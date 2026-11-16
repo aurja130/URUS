@@ -11,3 +11,5 @@ __pycache__/
 !.omp/config.yml
 !.omp/lsp.json
 !.omp/agents/
+# Obsidian vault settings of the Captain's Planning view
+Planning/.obsidian/

@@ -1,0 +1,11 @@
+project = "Coupled nodal neutronics and thermal-hydraulics PWR simulator"
+evidence = "BENCHMARKS.md"
+evidence_fields = ["Concepts", "Comments", "Reference", "Tolerance"]
+test_globs = ["tools/**/test_*.py"]
+banned_patterns = [
+    "\\bM[0-9]+\\b",
+    "(?i)\\bmilestone\\b",
+    "(?i)\\bstage [0-9]\\b",
+    "\\.(cpp|hpp|h|hdf5|h5|toml)\\b",
+    "(?<!check_dbc)\\.py\\b",
+]
