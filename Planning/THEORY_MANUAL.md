@@ -29,7 +29,7 @@ Every method carries one tag:
 | **[S5]** | The method named in the SIMULATE-5 paper. The paper names models but prints almost no equations, so the equations come from the cited textbook or are derived here. |
 | **[OURS]** | Needed here and present in neither reference (primary loop, HDF5 contract, our data path). |
 | **[DEPARTURE Dn]** | Differs from what PARCS or SIMULATE-5 does. Has a rationale in §20 and needs the Captain's approval before it is coded; §20.2 records her decision. |
-| **[OPEN On]** | A decision the Captain has to make; listed in §21. |
+| **[OPEN On]** | A decision for the Captain; §21 lists it with her choice once made. |
 
 ### 0.3 Citations
 
@@ -2310,8 +2310,8 @@ a low load the outlet cells would otherwise be colder than $T_\text{sec}$ and be
 it. The total removed is exactly $Q_\text{SG}$ at every instant. $U\!A_c$ is the input
 overall conductance of tube cell c. $T_\text{sec}$ is reported: a value far from a plausible
 secondary saturation temperature says the requested load is not one a steam generator
-could carry at the present primary temperature. O14 asks whether this shaping is accepted
-or a uniform distribution is preferred.
+could carry at the present primary temperature. O14 adopted this shaping over a uniform
+distribution (2026-11-16).
 
 ### 17.6 Steady state and what fixes the temperature level
 
@@ -2685,24 +2685,28 @@ These are [OURS]. They are listed so that nobody mistakes them for reference met
 | Entire primary loop | §17 |
 | Time-step control | §18.5 |
 
-## 21. Open decisions for the Captain
+## 21. Decisions for the Captain
+
+On 2026-11-16 the Captain adopted the recommendation of every row below. O3–O14 are
+working decisions: they stand until experience shows that one needs revisiting. O5 and O13
+are deferred, as their recommendations say.
 
 | ID | Decision | Options | Recommendation or decision |
 |---|---|---|---|
 | O1 | How the nodal library is generated | (a) single-assembly OpenMC calculations per assembly type and branch, plus reflector models; (b) full-core tallies per node as now | **Decided 2026-11-16:** (a) for the library, (b) kept as the verification reference (§19.3) |
 | O2 | `VISION.md` §2.1 and §5 said the group count and the delayed-group count are not hard-coded | Edit the vision to two and eight; or keep the sentence as a long-term aim | **Decided 2026-11-16:** vision edited to two energy groups and eight delayed groups, fixed |
-| O3 | Meaning of the flow knob | Imposed flow; pump speed with loop momentum (§17.4) | Pump speed, with imposed flow as the first implementation step |
-| O4 | System pressure | Imposed (§17.3); pressurizer model | Imposed |
-| O5 | Effective delayed-neutron fractions | Physical $\beta_k$ as now; adjoint-weighted $\beta_k$ tallied into the library | Decide with O1; the difference is a few percent of β |
-| O6 | Meaning of the boron knob in a transient | Uniform imposed concentration; injection with transport (§17.7) | Injection, with uniform as the first step |
-| O7 | Transverse leakage beyond a non-reflective external face | Zero-leakage ghost node; flat extension | Ghost node (used in §19.1 item 1) |
-| O8 | Threshold $\varepsilon_k$ of the ANM/NEM switch | Input; default to be fixed by a scan on IAEA 3D and BEAVRS | Default 0.01 until the scan |
-| O9 | Default Doppler temperature | (14.10) with an input weight; pellet volume average | (14.10); the weight to be set together with the lattice calculations of O1 |
-| O10 | Fraction of power deposited directly in the coolant | Input value | Take it from an OpenMC heating tally when O1 is run |
-| O11 | Zircaloy conductivity coefficient $c_1$ (§14.7) | 2.09×10⁻² (MATPRO, to be verified); the zirconium correlation Kolev Eq. (17.5.23) | Verify MATPRO; do not code Kolev's printed 9.09×10⁻² |
-| O12 | Hydraulic data BEAVRS does not give: grid and nozzle loss coefficients, every loop parameter, pump curves | A documented generic four-loop data set | Assemble it as a referenced input file before stage 4 |
-| O13 | Critical heat flux correlation for the monitor of §16.5, and drift-flux correlation valid at PWR pressure (§16.4) | To be chosen at stage 5 | — |
-| O14 | Distribution of the steam generator heat load over the tube cells | Conductance-weighted (17.7); uniform | (17.7) |
+| O3 | Meaning of the flow knob | Imposed flow; pump speed with loop momentum (§17.4) | **Adopted 2026-11-16:** pump speed, with imposed flow as the first implementation step |
+| O4 | System pressure | Imposed (§17.3); pressurizer model | **Adopted 2026-11-16:** imposed |
+| O5 | Effective delayed-neutron fractions | Physical $\beta_k$ as now; adjoint-weighted $\beta_k$ tallied into the library | **Deferred 2026-11-16** to the O1 generation plan; the difference is a few percent of β |
+| O6 | Meaning of the boron knob in a transient | Uniform imposed concentration; injection with transport (§17.7) | **Adopted 2026-11-16:** injection, with uniform as the first step |
+| O7 | Transverse leakage beyond a non-reflective external face | Zero-leakage ghost node; flat extension | **Adopted 2026-11-16:** ghost node (used in §19.1 item 1) |
+| O8 | Threshold $\varepsilon_k$ of the ANM/NEM switch | Input; default to be fixed by a scan on IAEA 3D and BEAVRS | **Adopted 2026-11-16:** input, default 0.01 until the scan |
+| O9 | Default Doppler temperature | (14.10) with an input weight; pellet volume average | **Adopted 2026-11-16:** (14.10); the weight to be set together with the lattice calculations of O1 |
+| O10 | Fraction of power deposited directly in the coolant | Input value | **Adopted 2026-11-16:** input, taken from an OpenMC heating tally when O1 is run |
+| O11 | Zircaloy conductivity coefficient $c_1$ (§14.7) | 2.09×10⁻² (MATPRO, to be verified); the zirconium correlation Kolev Eq. (17.5.23) | **Adopted 2026-11-16:** verify MATPRO before coding; never code Kolev's printed 9.09×10⁻² |
+| O12 | Hydraulic data BEAVRS does not give: grid and nozzle loss coefficients, every loop parameter, pump curves | A documented generic four-loop data set | **Adopted 2026-11-16:** assemble it as a referenced input file before stage 4 |
+| O13 | Critical heat flux correlation for the monitor of §16.5, and drift-flux correlation valid at PWR pressure (§16.4) | To be chosen at stage 5 | **Deferred 2026-11-16** to stage 5; until then $C_0=1$, $V_{gj}=0$ (§16.4) |
+| O14 | Distribution of the steam generator heat load over the tube cells | Conductance-weighted (17.7); uniform | **Adopted 2026-11-16:** (17.7) |
 
 ## 22. From this manual to the milestones
 
