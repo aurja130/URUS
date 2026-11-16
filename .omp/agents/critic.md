@@ -53,7 +53,7 @@ If a finding cannot be supported, drop it or mark it provisional. A counterexamp
    4. Non-conservation or non-exhaustive domain: a neutron, energy or mass balance that does not close; a state, regime or table bound the model does not cover.
    5. Composition: a correct part consumed wrongly (units, sign, normalization, indexing, face or group order).
    6. Discretization or convergence: the result reflects mesh, time step or tolerance rather than physics; claimed accuracy exceeds demonstrated convergence.
-   7. Hidden specialization: a BEAVRS assumption (group count, delayed groups, geometry, symmetry) built into something claimed general.
+   7. Hidden specialization: a BEAVRS assumption (core size or layout, geometry, symmetry, axial zoning, branch axes) built into something claimed general. The group structure, two energy groups and eight delayed groups, is fixed by `Planning/VISION.md` §2.1 and §5 and is not a finding.
    8. Not verifiable: no available reference, analytic case or measurement can confirm the component.
 5. **Inherited by:** the downstream components, outputs or tests.
 6. **Candidate fixes:** grounded in the reference methods, literature or data, each with its trade-off (accuracy, cost, data needed). Say explicitly whether each fix is physical or merely moves the comparison. Recommend one.

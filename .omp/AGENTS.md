@@ -29,7 +29,7 @@ Models: the session's choice, else `.omp/config.yml`. Disclose substitutions.
 2. Review one verified snapshot: affected presets build; affected tests and verification cases pass; format, lint and tidy clean; DBC updated and its checker passing. Any later code change voids the affected approvals.
 3. Keep one blocker ledger: id, violated rule, evidence, correction, regression test, status; mark each new, recurring or scope expansion (the Captain's call).
 4. Check findings against source and references; reject unsupported ones with evidence.
-5. Fix the invariant, not the input. Sweep the class: all groups and non-BEAVRS group counts; all faces and boundary conditions; interior, reflector, edge and corner nodes; rodded states; steady and transient; first and later iterations; table bounds; zero/full power and flow; units; NaN/Inf; balances; symmetry; refinement. Add deterministic regressions; never weaken an assertion or loosen a tolerance.
+5. Fix the invariant, not the input. Sweep the class: both energy groups and all eight delayed groups; non-BEAVRS core layouts; all faces and boundary conditions; interior, reflector, edge and corner nodes; rodded states; steady and transient; first and later iterations; table bounds; zero/full power and flow; units; NaN/Inf; balances; symmetry; refinement. Add deterministic regressions; never weaken an assertion or loosen a tolerance.
 6. A defect that survives its fix: re-derive the state model and respecify at invariant level.
 7. Re-review: new blockers must cite an original-scope rule and a concrete failure.
 
