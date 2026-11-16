@@ -1,0 +1,57 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Aurora Jahan
+# Licensed under the GNU GPL v3 or later, WITHOUT ANY WARRANTY; see LICENSE.
+
+# Python tooling for the reactor simulator. The packages are run in place from the
+# repository root (`python3 -m <package>.<module>`); nothing is installed.
+# Packages: `tools/`.
+
+[project]
+name = "reactor-simulator-tooling"
+version = "0.0.0"
+description = "Repository tooling for the coupled nodal neutronics/thermal-hydraulics simulator"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+requires-python = ">=3.13"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "basedpyright>=1.39",
+    "pytest>=9.1",
+    "ruff>=0.16",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+src = ["."]
+include = ["tools/**/*.py"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "SIM", # flake8-simplify
+    "PTH", # use pathlib
+    "RUF", # ruff-specific
+]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.basedpyright]
+include = ["tools"]
+pythonVersion = "3.13"
+typeCheckingMode = "strict"
+reportMissingModuleSource = false
+
+[tool.pytest.ini_options]
+testpaths = ["tools"]
+pythonpath = ["."]
+addopts = ["--import-mode=importlib", "-ra", "--strict-markers"]

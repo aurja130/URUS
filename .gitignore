@@ -1,1 +1,12 @@
 Resources/
+openmc_venv
+build/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+# omp agent workspace: sessions stay untracked; agent context and config are tracked
+.omp/*
+!.omp/AGENTS.md
+!.omp/LOCAL_ENVIRONMENT.md
+!.omp/config.yml
+!.omp/lsp.json

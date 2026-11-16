@@ -1,0 +1,17 @@
+{
+  "servers": {
+    "basedpyright": {
+      "rootMarkers": [".git"]
+    },
+    "clangd": {
+      "rootMarkers": [".git"],
+      "args": ["--background-index", "--compile-commands-dir=build/dev-clang"]
+    },
+    "sqls": {
+      "command": "/home/aurja/go/bin/sqls",
+      "fileTypes": [".sql"],
+      "languageId": "sql",
+      "rootMarkers": [".git"]
+    }
+  }
+}

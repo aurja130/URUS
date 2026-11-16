@@ -1,3 +1,3 @@
 [submodule "BEAVRS_minimal"]
-	path = BEAVRS_minimal
+	path = external/BEAVRS_minimal
 	url = https://codeberg.org/aurja130/BEAVRS_minimal.git
