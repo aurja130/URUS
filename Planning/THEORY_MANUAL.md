@@ -347,8 +347,8 @@ h_u^m L_{g,u}^m=-\left(\tilde D_g^{+}+\hat D_g^{+}\right)\bar\phi_g^{\,m+}
 \tag{4.6}
 $$
 
-This is the literal consequence of (4.1) and (3.9). PARCS's printed Eq. (3.4) carries different
-signs on $\hat D^+$ (Appendix C, item 1).
+This is the literal consequence of (4.1) and (3.9). PARCS's printed Eq. (3.4) has the opposite
+sign on $\hat D^+$ in the coefficient of the upper neighbour (Appendix C, item 1).
 
 The steady-state balance, (3.6)–(3.7) with zero time derivatives and (3.8) in equilibrium, is
 
@@ -987,8 +987,16 @@ w_{a,g}=\frac{\int_{\text{rodded by }a}\phi_g(z)\,dz}{\int_{z_b}^{z_t}\phi_g(z)\
 \tag{8.3}
 $$
 
-Volume weighting sets $w_{a,g}=\zeta_a$. PARCS's flux-weighting factor is
-$\alpha_g=w_{a,g}/\zeta_a$. (8.2) applies to every reaction cross section and to $1/(3D_g)$.
+Volume weighting sets $w_{a,g}=\zeta_a$. The flux-weighting factor of PARCS Eq. (9.4) is
+$\alpha_{a,g}=w_{a,g}/\zeta_a$. (8.2) applies to every reaction cross section and to
+$1/(3D_g)$. The radial discontinuity factors of the node are mixed with the same weights;
+neither reference says how they treat them [OURS].
+
+**Between two solutions of the rod problem** the stored quantity is $\alpha_{a,g}$, not
+$w_{a,g}$: the cross sections of a node always use the current rodded fraction,
+$w_{a,g}=\alpha_{a,g}\,\zeta_a(t_n)$, with $\alpha_{a,g}=1$ for a node or absorber zone the
+tip has just entered (PARCS Eq. (9.4): the fraction is current, the factor lagged). A stored
+$w$ would freeze the rod between nodal updates.
 
 Volume weighting ignores that the flux is depressed in the rodded part, so it overstates the
 absorption of a partially rodded node. The error grows and shrinks again each time
@@ -1025,8 +1033,31 @@ $$
   currents at the two faces of P, which give $\hat D$ on those faces through (4.3) in place
   of the two-node result.
 
-The three-node problem is solved at every nodal update. The new weights change the cross
-sections of P, so $\tilde D$ of its faces is recomputed before (4.3) is applied.
+The three-node problem is solved at every nodal update, and in a transient also in every
+time step for every node whose rodded fraction changed in that step, whether or not the
+nodal flag of §11.7 is set. The new weights change the cross sections of P, so $\tilde D$ of
+its faces is recomputed before (4.3) is applied.
+
+**Resolution.** (8.4) is second order in the mesh width and is not converged at the
+$N_\text{fine}=10$ of PARCS's Figure 9.2: in a 1D rodded-column test the thermal current at
+the P/R face was 6.1 % off at 10, 1.7 % at 20 and 0.45 % at 40 meshes per node, against a
+reference that the ANM kernel reproduces (critique `01-neutronics.md`, N-4). As the tip
+reaches a node boundary the interface also switches from this finite-difference current to
+the kernel current of §5, and $\hat D$ steps by that truncation error. $N_\text{fine}$ is
+therefore an input with a required convergence demonstration, default 40.
+
+**Kernel form [DEPARTURE D5].** The step disappears if the three-node problem is solved with
+the kernels of §5 instead of finite differences. Split P at its material boundaries into
+segments. Every segment and U and R is a homogeneous sub-node with a response (5.7); the
+quadratic leakage (5.4) of P is re-expanded exactly on each segment. Unknowns: the odd
+coefficients of every sub-node and the average fluxes of the segments of P. Equations: the
+interface conditions (5.23) at every internal interface. With s segments that is
+$4(s+1)$ equations for $2(s+2)+2s$ unknowns, a square system; the averages of U and R are
+the CMFD values, as in PARCS's closure. The node balance of each segment holds identically,
+because $\mathbf Q^+=\mathbf Q^-$ in (5.15) and (5.22). The weights (8.3) are then
+$h_\text{seg}\bar\phi_\text{seg}$ over their sum. With ANM this is exact in 1D and reduces
+to the two-node result as a segment vanishes. Until D5 is approved the code implements
+(8.4).
 
 Cases the PARCS text does not spell out, treated by the same construction [OURS]: P at the
 top or bottom of the core (the neighbour is a reflector node, or absent, in which case the
@@ -1044,15 +1075,20 @@ step 1). The three-node problem is the same idea applied only where a rod tip is
 ### 9.1 Adjoint problem [PARCS]
 
 PARCS §9.4. After the forward steady state has converged, the adjoint flux
-$\boldsymbol\phi_0^*$ solves the transposed CMFD problem with the converged $\hat D$ frozen:
+$\boldsymbol\phi_0^*$ solves the transposed CMFD problem with the converged $\hat D$ frozen.
+$\mathbf M$ and $\mathbf F$ of §4.3 are written per unit volume, and the inner products of
+§9.2 are volume-weighted. The adjoint that belongs to that inner product is the transpose of
+the volume-integrated system, with $\mathbf V$ the diagonal matrix of node volumes:
 
 $$
-\mathbf M^T\boldsymbol\phi_0^*=\lambda_0\,\mathbf F^T\boldsymbol\phi_0^* .
+\left(\mathbf V\mathbf M\right)^T\boldsymbol\phi_0^*=\lambda_0\left(\mathbf V\mathbf F\right)^T\boldsymbol\phi_0^* .
 \tag{9.1}
 $$
 
-No nodal or thermal-hydraulic update is involved, and the same Wielandt and Krylov machinery
-is used. The eigenvalue must equal the forward one; the difference is a reported check.
+Transposing the per-unit-volume matrices instead returns $V^m\phi_0^{*m}$; on a non-uniform
+mesh that puts the volume into (9.2)–(9.4) twice. No nodal or thermal-hydraulic update is
+involved, and the same Wielandt and Krylov machinery is used. The eigenvalue must equal the
+forward one; the difference is a reported check.
 
 ### 9.2 Dynamic reactivity and its components [PARCS]
 
@@ -1078,8 +1114,9 @@ $$
 The causes are control rods, boron, Doppler temperature, moderator density (with the
 moderator temperature, §7.3), xenon and samarium, and the change of $\hat D$ (PARCS's "nodal
 leakage" component). $\rho_\text{NULL}$ is zero when $\boldsymbol\phi_0^*$ is the exact adjoint
-and is kept as a diagnostic. The split is exact only to first order in the changes, because
-the causes are changed one at a time.
+and is kept as a diagnostic. The sum in (9.3) equals $\rho$ exactly when the operator change
+is the sum of the single-cause changes, as PARCS Eq. (9.8) assumes. The cross terms of the
+table (7.2) make it a first-order statement here; the remainder is reported.
 
 ### 9.3 Point-kinetics parameters [PARCS]
 
@@ -1102,10 +1139,12 @@ equation; it is background for these definitions and is not used by the method.
 
 **A limit of the model.** With a single emission group, a delayed neutron and a prompt
 neutron born at the same place have the same importance. (9.4) then gives
-$\beta^\text{eff}=\beta$ wherever $\beta$ is uniform: the higher worth of delayed neutrons,
-which comes from their lower emission energy, is absent. This is PARCS's assumption 1, not
-an error of this manual. If the effect is wanted, it has to be put into the library by
-tallying adjoint-weighted (effective) delayed fractions (data item L9, decision O5).
+$\beta^\text{eff}=\beta$ wherever $\beta$ is uniform. In reality delayed neutrons are emitted
+near 400 keV instead of 2 MeV and have a different importance; Marguet §17.10 gives a
+relative weight of 0.97 for a PWR, so that $\beta^\text{eff}$ is smaller than $\beta$ by
+about 3 %. That difference is absent here. This is PARCS's assumption 1, not an error of
+this manual. If the effect is wanted, it has to be put into the library by tallying
+adjoint-weighted (effective) delayed fractions (data item L9, decision O5).
 
 ## 10. Xenon and samarium
 
@@ -1337,10 +1376,10 @@ $$
 **Initial conditions.** From the converged steady state: $R_g^{\,0}=0$,
 $C_k^{\,0}=\beta_k\psi^0/\lambda_k$, $\lambda_0=1/k_\text{eff}$.
 
-**Limits.** $\Delta t\to\infty$ (or $v\to\infty$) with $\theta=1$ turns (11.7) into the
-steady-state equations (4.7): $\beta_p\to1$, $\tilde S_d\to0$, $S_g\to0$ (PARCS §2.1). A
-transient with nothing changed must stay at the initial state to solver tolerance. Both are
-tests.
+**Limits.** On the first step from the steady state, $\Delta t\to\infty$ (or $v\to\infty$)
+with $\theta=1$ turns (11.7) into the steady-state equations (4.7): $\beta_p\to1$,
+$\tilde S_d\to0$, $S_g\to0$ (PARCS §2.1). A transient with nothing changed must stay at the
+initial state to solver tolerance. Both are tests.
 
 **Discontinuous changes** [OURS]. $R^{n-1}$ in (11.2) is the balance at the end of the
 previous step, with the previous cross sections. If a cross section jumps at $t_{n-1}$, the
@@ -1399,8 +1438,11 @@ at every step (PARCS §10.2.1):
    the CMFD solution has not converged within an input number of iterations.
 4. At every nodal update store the current $\Sigma_{rg}^m$ as $\hat\Sigma_{rg}^m$.
 
-The three-node rod problems (§8.3) are part of a nodal update. A moving rod tip changes the
-removal cross section of its node at every step and so keeps the flag set while it moves.
+The three-node rod problems (§8.3) are part of every nodal update, and those of moving tips
+are solved in every step regardless of the flag. The cross sections of step 1 use the
+current rodded fractions with the stored factors $\alpha_{a,g}$ (§8.2), so a moving rod
+changes $\Sigma_{rg}$ at every step and raises the flag once the accumulated change exceeds
+$\varepsilon_\text{Xsec}$.
 
 ### 11.8 Choice of θ and of the step [PARCS, OURS]
 
@@ -1496,8 +1538,11 @@ $$
 \tag{13.2}
 $$
 
-By construction the node balance with $\mathbf A'$ holds for the node-average flux and the
-four radial face currents of the nodal solution.
+$\bar L_{g,z}$ is the node-average axial leakage. $\bar S_g$ is zero at steady state; in a
+transient it is whatever (11.10) adds to the leakage, with the opposite sign:
+$\bar S_g\equiv\bar\ell_g-\bar\ell_g^\text{eff}$. With that definition the node balance with
+$\mathbf A'$ holds for the node-average flux and the four radial face currents of the nodal
+solution (PARCS Eq. (5.1) defines its source through the same balance).
 
 ### 13.3 Analytic expansion [PARCS]
 
@@ -1683,7 +1728,7 @@ $$
 Derived temperatures:
 
 $$
-T_{cl}=T_1+\frac{q'''_1s_1}{4k_1},\qquad
+T_{cl}=T_1+\frac{K_{3/2}\left(T_1-T_2\right)s_1}{4k_1A_1},\qquad
 T_{fs}=T_{N_f}-\frac{q'_\text{gap}\left(R_f^2-s_{N_f}\right)}{4\pi k_{N_f}R_f^2},\qquad
 T_w=T_b+\frac{q''_w}{h_w},\qquad
 \bar T_f=\frac{1}{N_f}\sum_{i=1}^{N_f}T_i ,
@@ -1691,8 +1736,13 @@ T_w=T_b+\frac{q''_w}{h_w},\qquad
 $$
 
 with $q'_\text{gap}=K_\text{gap}(T_{N_f}-T_{c,1})$: centreline, pellet surface, cladding outer
-surface and pellet average. The centreline value assumes the parabolic shape inside the
-first ring (Kolev Eq. (2.5)).
+surface and pellet average. The centreline value continues the profile of the first ring,
+linear in s, with the slope set by the heat actually leaving that ring. At steady state
+that heat is $q'''_1A_1$ and the expression is Kolev's Eq. (2.5); for a flat profile it
+gives $T_{cl}=T_1$. Writing it with the source $q'''_1$ instead would add a term
+proportional to the instantaneous power to the Doppler temperature in a transient (critique
+`02-thermal-hydraulics-loop-coupling.md`, T-1). With $N_f=1$ the heat leaving is
+$q'_\text{gap}$.
 
 ### 14.5 Time integration [OURS]
 
@@ -1918,9 +1968,10 @@ $$
 $$
 
 in single-phase flow, and correspondingly with (15.1) and the void fraction at $\bar h_k$ in
-two-phase flow. $T_b$ in (14.8) and the properties in the correlations of §16 use the same
-state. At steady state this is the box (edge-centred) scheme and is second order in the
-axial mesh.
+two-phase flow. If the flow in a cell is downward, $h_{k-1}$ is replaced by the state of
+the cell above, the donor. $T_b$ in (14.8) and the properties in the correlations of §16
+use the same state. At steady state this is the box (edge-centred) scheme and is second
+order in the axial mesh.
 
 ### 15.7 Boron transport [OURS]
 
@@ -2042,7 +2093,11 @@ The wall temperature is the lower of the two that carry the heat flux: the conve
 from (16.1) and, once it exceeds $T_\text{sat}$, the boiling one from (16.2). The switch
 between them marks the onset of nucleate boiling. The Chen correlation (Kolev §3.10,
 Eqs. (3.94)–(3.96)) is the stage-5 alternative that blends both mechanisms. In the fuel rod
-model the result enters as an effective $h_w=q''_w/(T_w-T_b)$ in (14.8).
+model the result enters as an effective $h_w=q''_w/(T_w-T_b)$ in (14.8). (16.1) is written
+with the hydraulic diameter, the usual convention; Kolev's Eq. (3.73) is printed with the
+heated diameter. The two differ by the ratio of heated to wetted perimeter, which the
+guide tubes make about 0.88 for the BEAVRS assembly; the choice is an input and is settled
+with the primary source.
 
 ### 16.4 Subcooled boiling and drift-flux parameters
 
@@ -2062,12 +2117,14 @@ x=\frac{x_e-x_d\exp\left(x_e/x_d-1\right)}{1-x_d\exp\left(x_e/x_d-1\right)}
 \tag{16.4}
 $$
 
-**(not in Resources; verify before coding)**, which tends to $x_e$ in bulk boiling. In a
-transient the same relation defines the equilibrium flow quality towards which $\Gamma_g$ in
-(15.4) relaxes; the relaxation form is fixed at stage 5 (Kolev §3.6–§3.7 treats it).
+(Kolev Eqs. (3.63)–(3.64), given there for $x_e<0$), which tends to $x_e$ in bulk boiling.
+In a transient the same relation defines the equilibrium flow quality towards which
+$\Gamma_g$ in (15.4) relaxes; the relaxation form is fixed at stage 5 (Kolev §3.6–§3.7
+treats it).
 
-Drift-flux parameters, default Maier and Coddington (Kolev Eqs. (3.45)–(3.46)), with $p$ in
-Pa and $G$ in kg m⁻² s⁻¹:
+Drift-flux parameters are a selectable correlation with a stated validity range. No default
+is fixed yet. The pair that Kolev gives as an example, Maier and Coddington (Kolev
+Eqs. (3.45)–(3.46)), with $p$ in Pa and $G$ in kg m⁻² s⁻¹, is
 
 $$
 C_0=1.0062+2.57\times10^{-9}p,\qquad
@@ -2075,7 +2132,12 @@ V_{gj}=0.8-1.23\times10^{-7}p+5.63\times10^{-15}p^2+G\left(1.05\times10^{-3}-8.8
 \tag{16.5}
 $$
 
-Kolev §4.4 lists further drift-flux correlations.
+Kolev states no range for it. At 15.5 MPa the coefficient of $G$ is negative and (16.5)
+gives $V_{gj}=-0.25$ m s⁻¹ at the BEAVRS mass flux of about 3200 kg m⁻² s⁻¹, a vapour
+drifting downward in upflow. It must not be used at PWR conditions without the range from
+its primary source (critique `02-thermal-hydraulics-loop-coupling.md`, T-6). Until stage 5
+chooses a correlation [O13], two-phase states use $C_0=1$, $V_{gj}=0$. Kolev §4.4 lists
+further drift-flux correlations.
 
 ### 16.5 Departure from nucleate boiling: a monitor, not a model [OURS]
 
@@ -2142,9 +2204,11 @@ V_j\frac{d(\rho_jC_j)}{dt}=W_{j-1/2}C_{j-1}-W_{j+1/2}C_j-\delta_{js}W_\text{surg
 $$
 
 $Q_j$ is the heat added to the volume: negative in the steam generator tubes (§17.5), the
-pump heat in the pump volume, zero elsewhere. Heat capacity of the metal structures and heat
-losses are neglected. $S_{B,j}$ is the boron source of §17.7. The surge term acts only in
-the volume `s` where the pressure boundary is attached.
+pump heat in the pump volume, zero elsewhere. The pump heat is the part of the shaft power
+dissipated in the fluid, an input; it is what (15.5) and (17.2) leave out by neglecting
+dissipation. Heat capacity of the metal structures and heat losses are neglected. $S_{B,j}$
+is the boron source of §17.7. The surge term acts only in the volume `s` where the pressure
+boundary is attached.
 
 The core is the pair of volumes "channels" and "bypass" of this ring. The upper plenum
 receives the sum of the channel outflows with their enthalpies and boron concentrations and
@@ -2193,12 +2257,17 @@ $$
 \tag{17.6}
 $$
 
-with $f_H$ a tabulated curve from input, defined for forward flow and forward rotation. A
-stopped pump is a loss coefficient. The speed is either prescribed or follows from the
-angular momentum balance of the rotor with inertia $I_p$,
-$I_p\,d\omega/dt=\tau_\text{motor}-\tau_\text{hyd}-\tau_\text{fr}$, with the hydraulic
-torque in the same homologous form as (17.6). Pump curves, inertia and friction torque are
-input; none of the resource documents provides them.
+with $f_H$ a tabulated curve from input. Forward flow and forward rotation only; anything
+else stops the run. A coastdown ends with the rotor at rest and a finite natural-circulation
+flow, where $\nu\to\infty$ and (17.6) is useless. The curve is therefore given in two
+branches, as is usual for homologous pump data **(not in Resources; verify before
+coding)**: $f_H(\nu)$ for $\nu\le1$ and $g_H(1/\nu)=f_H/\nu^2$ for $\nu>1$, so that
+$\Delta p_\text{pump}=\rho gH_R(\dot V/\dot V_R)^2g_H(1/\nu)$. The limit $g_H(0)$ is the
+locked-rotor loss coefficient, and the hand-over to a stopped pump is continuous. The speed
+is either prescribed or follows from the angular momentum balance of the rotor with inertia
+$I_p$, $I_p\,d\omega/dt=\tau_\text{motor}-\tau_\text{hyd}-\tau_\text{fr}$, with the
+hydraulic torque in the same two-branch homologous form. Pump curves, inertia and friction
+torque are input; none of the resource documents provides them.
 
 **The flow knob.** `VISION.md` §3 names the primary coolant flow rate. Two readings are
 supported and O3 chooses the default:
@@ -2219,13 +2288,17 @@ temperature $T_\text{sec}$ not an input but the one unknown that makes the total
 knob:
 
 $$
-Q_c=-U\!A_c\left(T_c-T_\text{sec}\right),\qquad
-T_\text{sec}=\frac{\sum_cU\!A_c\,T_c-Q_\text{SG}}{\sum_cU\!A_c} .
+Q_c=-U\!A_c\,\max\!\left(T_c-T_\text{sec},\,0\right),\qquad
+\sum_cU\!A_c\,\max\!\left(T_c-T_\text{sec},\,0\right)=Q_\text{SG} .
 \tag{17.7}
 $$
 
-The total removed is exactly $Q_\text{SG}$ at every instant. $U\!A_c$ is the input overall
-conductance of tube cell c. $T_\text{sec}$ is reported: a value far from a plausible
+The second relation defines $T_\text{sec}$. Its left side decreases monotonically in
+$T_\text{sec}$, so the solution is unique for $Q_\text{SG}>0$; when no cell is clamped it is
+$T_\text{sec}=\left(\sum_cU\!A_cT_c-Q_\text{SG}\right)/\sum_cU\!A_c$. The clamp matters: at
+a low load the outlet cells would otherwise be colder than $T_\text{sec}$ and be heated by
+it. The total removed is exactly $Q_\text{SG}$ at every instant. $U\!A_c$ is the input
+overall conductance of tube cell c. $T_\text{sec}$ is reported: a value far from a plausible
 secondary saturation temperature says the requested load is not one a steam generator
 could carry at the present primary temperature. O14 asks whether this shaping is accepted
 or a uniform distribution is preferred.
@@ -2267,16 +2340,33 @@ critical search (§6.3). In a transient two modes are offered and O6 chooses the
 
 ### 17.8 Time integration
 
-Implicit Euler with donor states, as in the channels (§15.5). Within one coupled iteration
-(§18.3) the volumes are solved in flow order starting from the core outlet, then (17.5) is
-solved for $W_p$ by Newton iteration with $\Delta p_\text{core}(W_p)$ from §15.8. The
-series cells of a pipe diffuse a front numerically, like the channel cells (§15.7); the
+Implicit Euler with donor states, as in the channels (§15.5). The loop and the core form a
+ring: the state entering the core at $t_n$ depends on the state leaving it at $t_n$. A
+single sweep that starts from an old core outlet state either lags the ring by a step or
+accumulates over the coupled passes, and at steps longer than the loop transit time it
+barely converges. The ring is therefore closed inside every pass of §18.3 step 5.1:
+
+1. With the flows of the current iterate, sweep once around the ring from a trial core inlet
+   enthalpy $h_\text{in}$: channels (§15.5), upper plenum, hot side, steam generator, cold
+   side, lower plenum. The sweep returns a lower-plenum enthalpy $\mathcal H(h_\text{in})$.
+2. Solve $\mathcal H(h_\text{in})=h_\text{in}$ by a secant iteration. With frozen flows and
+   properties $\mathcal H$ is affine and two sweeps are exact; the density dependence makes
+   it mildly nonlinear. $T_\text{sec}$ of (17.7) depends on all tube cells and is a second
+   scalar unknown of the same iteration.
+3. Boron is linear: two sweeps of (17.3) and (15.14) give the inlet concentration exactly.
+4. Solve (17.5) for $W_p$ by Newton iteration with $\Delta p_\text{core}(W_p)$ from §15.8,
+   update the flows from (17.1), (17.4), and repeat from 1 until inlet enthalpy and flow
+   stop changing. The test is on the residual of $\mathcal H(h_\text{in})-h_\text{in}$, not
+   on the change between sweeps.
+
+The series cells of a pipe diffuse a front numerically, like the channel cells (§15.7); the
 number of cells per pipe is an input and its effect is shown by refinement.
 
 ### 17.9 Checks that belong to this model
 
-- Energy: over any interval, core heat plus pump heat minus steam generator heat equals the
-  change of the enthalpy content of loop and core plus the surge enthalpy flow.
+- Energy: over any interval, core heat plus pump heat minus steam generator heat, plus
+  $\sum_jV_j\,\Delta p_\text{sys}$, equals the change of the enthalpy content of loop and
+  core plus the surge enthalpy flow.
 - Transit: a step of inlet temperature at a pipe arrives after $\rho V/W$, smeared by the
   known numerical diffusion of N cells in series.
 - Coastdown with the pump head removed and no rotor inertia: (17.5) with a single loss
@@ -2343,24 +2433,45 @@ The step below does that; D1 records the difference.
 
 1. Set the knobs at $t_n$: rod positions and rodded fractions, boron mode data, flow or
    pump speed, heat load, system pressure.
-2. Advance xenon and samarium to $t_n$ (§10.3) when (10.4) is used.
+2. Advance xenon and samarium to $t_n$ with (10.4), if that explicit form is the one in use.
 3. Predict the node powers at $t_n$ by extrapolating the last two solutions (PARCS §10.2.2).
 4. Time-discretization data: $\alpha_g$ (11.3), $\Omega_k$ (11.5), $\tilde S_d$ and $\omega$
    (11.6), $S_g$ (11.2).
 5. Coupled iteration, index p:
-   1. advance fuel rods (§14.5), loop (§17.8) and channels (§15.5, §15.8) from $t_{n-1}$
-      to $t_n$ with the current estimate of the powers at $t_n$;
-   2. cross sections at $t_n$ (§7.4); the test of §11.7 sets the nodal flag;
+   1. advance fuel rods (§14.5), loop and channels (§17.8, §15.5, §15.8) from $t_{n-1}$
+      to $t_n$ with the current estimate of the step-mean heat (18.1);
+   2. cross sections at $t_n$ (§7.4), with D3 including the xenon and samarium densities
+      of the previous pass; the test of §11.7 sets the nodal flag;
    3. solve the fixed-source problem (11.7), with nodal updates as §11.7 prescribes;
-   4. new node powers from (12.1), with the decay heat at $t_n$ from (12.2) or (12.3);
+   4. new decay-heat groups from (12.2) or (12.3), new node powers from (12.1), new
+      step-mean heat from (18.1), and with D3 new xenon and samarium densities from
+      (10.5)–(10.8) with the rates of the current iterate; none of these is committed yet;
    5. compare with the previous iterate: largest relative change of node power, of $T_D$
       (PARCS Eq. (10.10)) and of $\rho_m$, and the residual (11.9) evaluated with the
       current matrix. Leave the loop when all are below their tolerances.
-6. Accept the step: update the precursors (11.4), the decay-heat groups, $R_g^n$ (11.8),
-   the stored fission sources, and with D3 the xenon and samarium densities (10.5)–(10.8).
+6. Accept the step: commit the precursors (11.4), the decay-heat groups, $R_g^n$ (11.8),
+   the stored fission sources, and the xenon and samarium densities.
 
 Every pass of step 5.1 starts again from the state at $t_{n-1}$; the thermal-hydraulic
 state at $t_n$ is a function of the power estimate, not an accumulation over the passes.
+
+**Energy handed to the thermal-hydraulics.** The implicit thermal-hydraulic schemes take
+one heat rate for the whole step. For the energy to balance, that rate must be the mean
+over the step, not the value at its end. Integrating (12.1) over the step with the fission
+power linear in time:
+
+$$
+\bar q_T^{\,n}=\tfrac12\left(q_f^{\,n-1}+q_f^{\,n}\right)-\frac{1}{\Delta t_n}\sum_i\left(D_i^{\,n}-D_i^{\,n-1}\right).
+\tag{18.1}
+$$
+
+Generated energy equals delivered energy plus the change of the stored decay energy, for
+either (12.2) or (12.3). $\bar q_T^{\,n}$ replaces $q_T$ in (14.2) for the step, whatever
+θ the rod uses. The channel receives the wall heat the rod scheme releases over the step,
+$\theta q'^{\,n}_w+(1-\theta)q'^{\,n-1}_w$. The power reported at $t_n$ remains (12.1).
+After a scram with (12.2) and end-of-step values instead, the fraction
+$x e^{-x}/(1-e^{-x})$ of a group's stored energy would be delivered, 95 % at
+$x=\zeta_i\Delta t=0.1$ (critique `02-thermal-hydraulics-loop-coupling.md`, T-3).
 
 The PARCS sequence remains available as an option for code-to-code comparison: step 5.1
 advances only the fuel rods, and loop and channels are advanced once after step 5.
@@ -2415,6 +2526,14 @@ this problem show; power-distribution errors were not evaluated and the publishe
 powers have to be obtained before item 1 becomes an acceptance test. The small eigenvalue
 error of the $\hat D=0$ run is not evidence that finite differences suffice.
 
+Two independent critiques of the committed manual were then written by reviewers who did
+not write it: `Planning/critiques/2026-11-16/01-neutronics.md` and
+`02-thermal-hydraulics-loop-coupling.md`. Their thirteen findings were each checked before
+being accepted: by re-derivation (N-1, N-2, N-5, T-1 to T-4, T-7), against the cited page
+(N-3, N-6, T-6) or against the library (T-5). All were accepted and this version carries
+the corrections. The numbers quoted from N-4 and T-3 are the critics' own and were not
+recomputed. The critiques also list what they re-derived and found sound.
+
 ### 19.2 Verification and validation matrix
 
 Verification: does the code solve these equations. Validation: do these equations describe
@@ -2462,14 +2581,20 @@ mesh tallies on a 15×15×17 mesh covering exactly the active fuel (assembly pit
 - Every node is its own composition, and its data carry the environment it had in that one
   core state: its neighbours, and all rods in or all rods out everywhere.
 - No discontinuity factors, no form functions, no reflector outside the mesh. The 32 corner
-  positions of each plane that lie outside the core are in the mesh and hold baffle and
-  water data; assemblies on the flat faces of the core have no reflector node beside them.
-- Statistical noise is large. Comparing each node with its mirror image across the core
-  diagonal at the 900 K, 585 K, rods-out state gives root-mean-square relative differences of
-  2.7 % in $\nu\Sigma_{f2}$, 5.2 % in $\Sigma_{a2}$, 5.6 % in $D_1$, 4.1 % in $D_2$ and 11 % in
-  $\Sigma_{12}$ and $\Sigma_{a1}$ (data-derived; the instrument tubes break that symmetry
-  only slightly). The library serves to exercise the code path. It cannot support a
-  validation claim.
+  positions of each plane that lie outside the core are in the mesh; assemblies on the flat
+  faces of the core have no reflector node beside them.
+- Those corner positions are not usable reflector data. Over the 72 states, $D_1$ is
+  $1.8\times10^{308}$ or negative in 46 entries and $D_2$ in 79; $\Sigma_{a1}$, $\Sigma_{a2}$
+  and $\Sigma_{12}$ are zero in 41, 77 and 220 entries. All of them are in corner
+  positions, none in the 3281 fuel nodes: tallies that scored nothing. A reader must reject
+  non-finite or non-positive $D$ and zero removal instead of computing with them.
+- Statistical noise is large. Comparing each fuel node with its mirror image across the
+  core diagonal at the 900 K, 585 K, rods-out state gives root-mean-square relative
+  differences of 2.7 % in $\nu\Sigma_{f2}$, 2.2 % in $\Sigma_{a2}$, 3.6 % in $D_1$, 3.1 % in
+  $D_2$, 6.1 % in $\Sigma_{12}$ and 5.0 % in $\Sigma_{a1}$; with the corner positions
+  included the last five become 5.2, 5.6, 4.1, 11 and 11 % (data-derived; the instrument
+  tubes break that symmetry only slightly). The library serves to exercise the code path.
+  It cannot support a validation claim.
 - `kappa_Sigma_f` is in eV cm⁻¹. Node order is x fastest, then y, then z.
 
 | Item | Quantity | Present | Required by |
@@ -2487,6 +2612,7 @@ mesh tallies on a 15×15×17 mesh covering exactly the active fuel (assembly pit
 | L11 | Reflector compositions: radial ring, top, bottom | corner positions only | §4.2, §5.9 |
 | L12 | Statistical uncertainty of every tallied quantity | not stored | §19.2 |
 | L13 | Units and conventions recorded in the file | none | §0.5 |
+| L14 | Validity of every entry; empty tallies marked, not stored as numbers | 46 to 220 unphysical entries per quantity | §7.2 |
 
 **The decision behind most of these rows (O1).** PARCS and SIMULATE-5 are fed by
 single-assembly lattice calculations with reflective boundaries, one per assembly type and
@@ -2523,6 +2649,7 @@ library and full-core runs for verification. OpenMC runs happen only when the Ca
 | D2 | Multilinear interpolation in a tensor table, with cross terms, in place of a sum of one-variable derivatives with a quadratic density term (§7.2) | PARCS Eq. (9.2) | The library is a tensor grid already; multilinear interpolation reproduces every table point and needs no reference state. Cross terms between fuel temperature and moderator density are real. | Derivative form built from the same table. |
 | D3 | Exact integration of the xenon and samarium chains over a step (10.5)–(10.8) | PARCS Eqs. (9.27)–(9.30), explicit Euler | Xenon transients last days. Explicit Euler is first order and unstable for steps of several hours; the exact form costs the same. | (10.4), with a step limit. |
 | D4 | Decay-heat groups integrated with the power linear over the step (12.3) | PARCS Eq. (9.16), power frozen at the start of the step | Second order, consistent with the precursor treatment (11.4); same cost. | (12.2). |
+| D5 | Rod three-node problem solved with the kernels of §5 on material segments (§8.3) | PARCS §9.3, fine-mesh finite differences | The finite-difference current is 6 % off at PARCS's 10 meshes per node and steps as a tip crosses a node boundary; the kernel form is exact in 1D and continuous with the two-node result. To be verified against a converged fine-mesh solution before adoption. | (8.4) with a demonstrated $N_\text{fine}$. |
 
 ### 20.3 Choices where both references are silent
 
@@ -2561,7 +2688,7 @@ These are [OURS]. They are listed so that nobody mistakes them for reference met
 | O10 | Fraction of power deposited directly in the coolant | Input value | Take it from an OpenMC heating tally when O1 is run |
 | O11 | Zircaloy conductivity coefficient $c_1$ (§14.7) | 2.09×10⁻² (MATPRO, to be verified); the zirconium correlation Kolev Eq. (17.5.23) | Verify MATPRO; do not code Kolev's printed 9.09×10⁻² |
 | O12 | Hydraulic data BEAVRS does not give: grid and nozzle loss coefficients, every loop parameter, pump curves | A documented generic four-loop data set | Assemble it as a referenced input file before stage 4 |
-| O13 | Critical heat flux correlation for the monitor of §16.5 | To be chosen at stage 5 | — |
+| O13 | Critical heat flux correlation for the monitor of §16.5, and drift-flux correlation valid at PWR pressure (§16.4) | To be chosen at stage 5 | — |
 | O14 | Distribution of the steam generator heat load over the tube cells | Conductance-weighted (17.7); uniform | (17.7) |
 
 ## 22. From this manual to the milestones
@@ -2622,10 +2749,11 @@ carried to the term that reaches round-off, and `expm1` for $E_0$ above it.
 
 | # | Place | Printed | Used here | Basis |
 |---|---|---|---|---|
-| 1 | PARCS Eq. (3.4) | $a^{m}=(\tilde D^-+\tilde D^+-\hat D^-+\hat D^+)/h$, $a^{m+}=-(\tilde D^+-\hat D^+)/h$ | (4.6): $+\hat D^-$, $-\hat D^+$ on the diagonal and $-(\tilde D^++\hat D^+)$ for the upper neighbour | Direct substitution of PARCS Eq. (3.1) into Eq. (2.18); consistent with PARCS Eq. (4.60); confirmed by §19.1 rows 1 and 2 |
+| 1 | PARCS Eq. (3.4) | $a^{m+}=-(\tilde D^{m+}-\hat D^{m+})/h$ | (4.6): $-(\tilde D^{+}+\hat D^{+})/h$ for the upper neighbour; the printed diagonal and lower-neighbour coefficients agree with (4.6) | Direct substitution of PARCS Eq. (3.1) into Eq. (2.18); consistent with PARCS Eq. (4.60); confirmed by §19.1 rows 1 and 2 |
 | 2 | PARCS Eq. (4.70) | $+(\beta-\omega)\lambda\sum\nu\Sigma_f\phi$ in the group-1 effective source; $L_1$ in the group-2 line | (11.10): the term enters the effective leakage with a plus sign, that is the effective source with a minus sign; $L_2$ in group 2 | Subtracting PARCS Eq. (4.69) from Eq. (4.66) with $\beta_p=1-\beta+\omega$ |
 | 3 | PARCS Eq. (4.2) | Group-2 source written with $\Sigma_{fg'}\phi_{g'}$ | $\Sigma_{12}\phi_1$ | PARCS Eq. (4.7) |
 | 4 | Kolev §17.5.1.6 | Zircaloy conductivity coefficient $c_1=9.09\times10^{-2}$ | Not used; see §14.7 and O11 | Gives 58 W m⁻¹ K⁻¹ at 600 K against about 19 from Kolev Eq. (17.5.23) |
+| 5 | PARCS Eqs. (9.4), (9.5) | (9.5) defines $\alpha_g$ as the rodded share of the node's flux integral; (9.4) multiplies $\alpha$ by the rodded fraction again | (8.2)–(8.3): the share $w$ multiplies $\Delta\Sigma$ once; $\alpha=w/\zeta$ | A flat flux at half insertion must give half of $\Delta\Sigma_c$; (9.4) with (9.5) gives a quarter |
 
 ## Appendix D. Material from outside `Resources/`
 
@@ -2637,7 +2765,7 @@ conductivity and surface tension releases (§16.1). Rowe, COBRA-IIIC, BNWL-1695 
 The Argonne Benchmark Problem Book, ANL-7416 Supplement 2, for the IAEA 2D and 3D PWR
 problems (§19.1, §19.2). Finnemann and Galati, NEACRP 3-D LWR core transient benchmark
 (§19.2). Langenbuch, Maurer and Werner for the LMW transient (§19.2). MATPRO for the
-zircaloy properties (§14.7). Saha and Zuber, and the profile-fit quality model (§16.4).
+zircaloy properties (§14.7). Homologous pump curves (§17.4).
 
 **Property set of the NEACRP benchmark**, as used for published PARCS results, T in K:
 
