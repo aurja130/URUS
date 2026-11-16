@@ -13,8 +13,8 @@ else. `Planning/VISION.md` wins where the two disagree.
 
 - **Two neutron energy groups** (g = 1 fast, g = 2 thermal) and **eight delayed-neutron
   precursor groups** (k = 1…8). All equations are written for exactly this structure.
-  (Captain's directive of 2026-11-16. `VISION.md` §2.1 and §5 still say the group counts are
-  not hard-coded; that sentence needs her edit or confirmation, see §21.)
+  (Captain's directive of 2026-11-16, written into `VISION.md` §2.1 and §5 the same day,
+  decision O2. A library with another structure is rejected when it is read.)
 - 3D Cartesian node mesh, PWR, BEAVRS as the development reactor, nothing about BEAVRS in
   the equations.
 - Out of scope here, as in `VISION.md` §8: depletion, hexagonal geometry, SP3.
@@ -2625,8 +2625,9 @@ nine assembly types (NUREG Table 2-3). Reflector data come from a fuel-and-refle
 The present full-core route can be kept for what it is good at: a reference solution. A
 full-core OpenMC run at a library state gives the node powers, pin powers and eigenvalue
 that the nodal solution with single-assembly data should reproduce, and it does so without
-any plant measurement uncertainty. The recommendation is single-assembly generation for the
-library and full-core runs for verification. OpenMC runs happen only when the Captain asks.
+any plant measurement uncertainty. The Captain decided on 2026-11-16 (O1): single-assembly
+generation for the library, full-core runs for verification. OpenMC runs happen only when
+the Captain asks.
 
 ## 20. Choices and departures
 
@@ -2674,10 +2675,10 @@ These are [OURS]. They are listed so that nobody mistakes them for reference met
 
 ## 21. Open decisions for the Captain
 
-| ID | Decision | Options | Recommendation |
+| ID | Decision | Options | Recommendation or decision |
 |---|---|---|---|
-| O1 | How the nodal library is generated | (a) single-assembly OpenMC calculations per assembly type and branch, plus reflector models; (b) full-core tallies per node as now | (a) for the library, (b) kept as the verification reference (§19.3) |
-| O2 | `VISION.md` §2.1 and §5 say the group count and the delayed-group count are not hard-coded | Edit the vision to two and eight; or keep the sentence as a long-term aim | Edit it: the ANM kernel of §5.5 is a two-group method |
+| O1 | How the nodal library is generated | (a) single-assembly OpenMC calculations per assembly type and branch, plus reflector models; (b) full-core tallies per node as now | **Decided 2026-11-16:** (a) for the library, (b) kept as the verification reference (§19.3) |
+| O2 | `VISION.md` §2.1 and §5 said the group count and the delayed-group count are not hard-coded | Edit the vision to two and eight; or keep the sentence as a long-term aim | **Decided 2026-11-16:** vision edited to two energy groups and eight delayed groups, fixed |
 | O3 | Meaning of the flow knob | Imposed flow; pump speed with loop momentum (§17.4) | Pump speed, with imposed flow as the first implementation step |
 | O4 | System pressure | Imposed (§17.3); pressurizer model | Imposed |
 | O5 | Effective delayed-neutron fractions | Physical $\beta_k$ as now; adjoint-weighted $\beta_k$ tallied into the library | Decide with O1; the difference is a few percent of β |

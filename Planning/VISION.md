@@ -29,15 +29,15 @@ comprehensive, fully 3D, and fully coupled.
 
 ### 2.1 Neutronics
 
-- Few-group nodal diffusion on a 3D Cartesian node mesh. Two groups is the
-  BEAVRS baseline, but the group count is not hard-coded.
+- Few-group nodal diffusion on a 3D Cartesian node mesh with exactly two
+  neutron energy groups (fast and thermal). The count is fixed by design.
 - Nonlinear nodal method: coarse-mesh finite difference (CMFD) global solve
   with two-node corrections from the analytic nodal method (ANM) and/or the
   nodal expansion method (NEM), as in PARCS.
 - Assembly discontinuity factors, plus a transverse-leakage approximation.
 - Steady-state eigenvalue solve (k-eff) and critical boron search.
-- Time-dependent spatial kinetics with delayed-neutron precursors (the existing
-  data library has 8 delayed groups). Time integration is theta-method with
+- Time-dependent spatial kinetics with exactly eight delayed-neutron precursor
+  groups, as in the existing data library. Time integration is theta-method with
   exponential transformation, as in PARCS.
 - Xenon and samarium dynamics, and decay heat.
 - Partial control-rod insertion within a node, with rod cusping correction.
@@ -98,7 +98,7 @@ can model a transient (rod withdrawal, boration, pump coastdown, load change).
 
 | Aspect | Present | Needed |
 |---|---|---|
-| Groups | 2 | 2 (generalizable) |
+| Groups | 2 | 2 (fixed) |
 | Spatial mesh | 15×15×17 full core, 1 node per assembly radially, ~21.5 cm axially | Plus axial reflector nodes and radial reflector treatment |
 | Branch axes | T_fuel (6) × moderator state (6) × rod state (2, all-in / all-out) | Add a boron axis; rod state per node rather than core-wide |
 | Kinetics | β, λ for 8 delayed groups, 1/v | Same |
@@ -112,8 +112,10 @@ can model a transient (rod withdrawal, boration, pump coastdown, load change).
 BEAVRS is the reference reactor for development and validation, not a built-in
 assumption. Any reactor that has a matching input file and nodal data library
 must run without code changes. This means core size and layout, assembly
-pitch, axial zoning, group count, delayed-group count, branch axes, and loop
-parameters all come from input.
+pitch, axial zoning, branch axes, and loop parameters all come from input.
+The group structure is the exception: two energy groups and eight
+delayed-neutron groups are fixed, and a library with any other structure is
+rejected when it is read.
 
 ## 6. Validation
 
