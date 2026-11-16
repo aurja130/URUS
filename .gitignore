@@ -10,3 +10,4 @@ __pycache__/
 !.omp/LOCAL_ENVIRONMENT.md
 !.omp/config.yml
 !.omp/lsp.json
+!.omp/agents/

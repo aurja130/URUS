@@ -1,17 +1,20 @@
 modelRoles:
-    # Main Opus sessions
+
+    # main orchestrator
     default: "anthropic/claude-opus-5-5:high"
+
+    # planning, review, etc.
     plan: "anthropic/claude-opus-5-5:max"
     slow: "anthropic/claude-opus-5-5:max"
+    critique: "anthropic/claude-fable-5-2:high"
 
     # Haiku workers
-    smol: "anthropic/claude-haiku-5-5:high"
+    smol: "anthropic/claude-haiku-5-5:medium"
     task: "anthropic/claude-haiku-5-5:max"
-    # task: "anthropic/claude-sonnet-5:medium"
 
     # Auxiliary workloads
     commit: "@smol"
-    tiny: "openai-codex/gpt-6-luna:medium"
+    tiny: "@smol"
     memory: "@smol"
 
 task:
@@ -20,6 +23,7 @@ task:
         sonic: "@smol"
         scout: "@smol"
         reviewer: "@slow"
+        critic: "@critique"
     # Soft cap per coding task
     agentSoftRequestBudget:
         task: 150
