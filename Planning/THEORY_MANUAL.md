@@ -28,7 +28,7 @@ Every method carries one tag:
 | **[PARCS]** | The method of the PARCS theory manual, restated in this manual's notation. |
 | **[S5]** | The method named in the SIMULATE-5 paper. The paper names models but prints almost no equations, so the equations come from the cited textbook or are derived here. |
 | **[OURS]** | Needed here and present in neither reference (primary loop, HDF5 contract, our data path). |
-| **[DEPARTURE Dn]** | Differs from what PARCS or SIMULATE-5 does. Has a rationale in §20 and needs the Captain's approval before it is coded. |
+| **[DEPARTURE Dn]** | Differs from what PARCS or SIMULATE-5 does. Has a rationale in §20 and needs the Captain's approval before it is coded; §20.2 records her decision. |
 | **[OPEN On]** | A decision the Captain has to make; listed in §21. |
 
 ### 0.3 Citations
@@ -914,7 +914,10 @@ part of every result; a run whose converged state is clamped is not a valid resu
 never extrapolates silently.
 
 The difference from PARCS's Eq. (9.2) is the quadratic density term, replaced by more density
-points. D2 in §20 records this.
+points. D2 in §20 records this. **Approved 2026-11-16.** The number of points on each axis
+is fixed in the generation plan of O1. If the full tensor grid is too expensive in OpenMC
+runs, the fallbacks are a coarser grid set by a sensitivity check, then the derivative form
+of PARCS Eq. (9.2); the library format serves both.
 
 ### 7.3 The moderator axis of the present library [OURS]
 
@@ -1056,8 +1059,14 @@ $4(s+1)$ equations for $2(s+2)+2s$ unknowns, a square system; the averages of U 
 the CMFD values, as in PARCS's closure. The node balance of each segment holds identically,
 because $\mathbf Q^+=\mathbf Q^-$ in (5.15) and (5.22). The weights (8.3) are then
 $h_\text{seg}\bar\phi_\text{seg}$ over their sum. With ANM this is exact in 1D and reduces
-to the two-node result as a segment vanishes. Until D5 is approved the code implements
-(8.4).
+to the two-node result as a segment vanishes. **Approved conditionally 2026-11-16.** The
+code implements (8.4) first; it is also the reference for D5. The kernel form is then
+prototyped and adopted only if it passes both of these tests on the 1D rodded-column
+problem: (i) the face currents of P agree with a Richardson-extrapolated sequence of (8.4)
+solutions within that reference's own estimated error, which must be below 0.05 %, a tenth
+of what (8.4) leaves at $N_\text{fine}=40$; (ii) as a tip approaches a node boundary,
+$\hat D$ on the faces of P tends to the two-node value of §5, checked at segment lengths
+down to 10⁻⁶ of the node height. Until it passes, the code implements (8.4).
 
 Cases the PARCS text does not spell out, treated by the same construction [OURS]: P at the
 top or bottom of the core (the neighbour is a reflector node, or absent, in which case the
@@ -1234,7 +1243,8 @@ $N_I$, $N_\text{Pm}$ on the right are the values at t. The quotients are evaluat
 `expm1`-type functions so that the limits $a_\text{Sm}\to0$ (shutdown: samarium only grows
 from promethium decay), $a_\text{Sm}\to\lambda_\text{Pm}$ and $\lambda^*\to\lambda_I$ are
 finite. (10.5)–(10.8) reproduce (10.3) as $\Delta t\to\infty$ and (10.4) as
-$\Delta t\to0$. Until D3 is approved the code implements (10.4).
+$\Delta t\to0$. **D3 approved 2026-11-16:** the code implements (10.5)–(10.8); (10.4) is
+recorded as the PARCS form only.
 
 ### 10.4 Effect on the cross sections [PARCS]
 
@@ -1493,9 +1503,9 @@ D_i^{\,n}=D_i^{\,n-1}e^{-x_i}+\alpha_i\Delta t_n\left\{\left[E_0(x_i)-E_1(x_i)\r
 \tag{12.3}
 $$
 
-Both keep the equilibrium exactly. Until D4 is approved the code implements (12.2). The decay
-heat precursors are updated together with the delayed-neutron precursors, after the step has
-converged (PARCS §10.2.4).
+Both keep the equilibrium exactly. **D4 approved 2026-11-16:** the code implements (12.3);
+(12.2) is recorded as the PARCS form only. The decay heat precursors are updated together
+with the delayed-neutron precursors, after the step has converged (PARCS §10.2.4).
 
 ### 12.3 Data
 
@@ -2429,11 +2439,13 @@ conduction inside a step, because the Doppler feedback is prompt, and advances t
 once at the end of the step; the coolant state used for the cross sections of step n is
 then the one computed at the end of step n−1. `VISION.md` §2.3 requires the fixed-point
 iteration between neutronics and thermal-hydraulics to be converged in every time step.
-The step below does that; D1 records the difference.
+The step below does that; D1 records the difference and was approved on 2026-11-16, with
+the PARCS sequence kept as an option (end of this section).
 
 1. Set the knobs at $t_n$: rod positions and rodded fractions, boron mode data, flow or
    pump speed, heat load, system pressure.
-2. Advance xenon and samarium to $t_n$ with (10.4), if that explicit form is the one in use.
+2. Xenon and samarium: nothing here. With D3 they are advanced inside the coupled
+   iteration (step 5.4). The PARCS form (10.4) would advance them at this point.
 3. Predict the node powers at $t_n$ by extrapolating the last two solutions (PARCS §10.2.2).
 4. Time-discretization data: $\alpha_g$ (11.3), $\Omega_k$ (11.5), $\tilde S_d$ and $\omega$
    (11.6), $S_g$ (11.2).
@@ -2642,15 +2654,15 @@ the Captain asks.
 | Pin power | PARCS (§13) | SIMULATE-5's synthesis depends on the submesh solution. |
 | Core thermal-hydraulics | SIMULATE-5 (§15) | The PARCS theory manual has no thermal-hydraulic model. |
 
-### 20.2 Departures that need the Captain's approval
+### 20.2 Departures and the Captain's decisions
 
-| ID | Departure | From | Rationale | Fallback if refused |
-|---|---|---|---|---|
-| D1 | Neutronics, fuel, channels and loop iterated to convergence in every time step (§18.3) | PARCS §10.2.2, which advances the coolant once per step with a one-step lag | Required by `VISION.md` §2.3. With a loop in the model the lag would also separate the core inlet state from the core power by one step. | The PARCS sequence, already an option. |
-| D2 | Multilinear interpolation in a tensor table, with cross terms, in place of a sum of one-variable derivatives with a quadratic density term (§7.2) | PARCS Eq. (9.2) | The library is a tensor grid already; multilinear interpolation reproduces every table point and needs no reference state. Cross terms between fuel temperature and moderator density are real. | Derivative form built from the same table. |
-| D3 | Exact integration of the xenon and samarium chains over a step (10.5)–(10.8) | PARCS Eqs. (9.27)–(9.30), explicit Euler | Xenon transients last days. Explicit Euler is first order and unstable for steps of several hours; the exact form costs the same. | (10.4), with a step limit. |
-| D4 | Decay-heat groups integrated with the power linear over the step (12.3) | PARCS Eq. (9.16), power frozen at the start of the step | Second order, consistent with the precursor treatment (11.4); same cost. | (12.2). |
-| D5 | Rod three-node problem solved with the kernels of §5 on material segments (§8.3) | PARCS §9.3, fine-mesh finite differences | The finite-difference current is 6 % off at PARCS's 10 meshes per node and steps as a tip crosses a node boundary; the kernel form is exact in 1D and continuous with the two-node result. To be verified against a converged fine-mesh solution before adoption. | (8.4) with a demonstrated $N_\text{fine}$. |
+| ID | Departure | From | Rationale | Fallback | Decision (2026-11-16) |
+|---|---|---|---|---|---|
+| D1 | Neutronics, fuel, channels and loop iterated to convergence in every time step (§18.3) | PARCS §10.2.2, which advances the coolant once per step with a one-step lag | Required by `VISION.md` §2.3. With a loop in the model the lag would also separate the core inlet state from the core power by one step. | The PARCS sequence, already an option. | Approved as the default; the PARCS sequence stays an option for code-to-code comparison |
+| D2 | Multilinear interpolation in a tensor table, with cross terms, in place of a sum of one-variable derivatives with a quadratic density term (§7.2) | PARCS Eq. (9.2) | The library is a tensor grid already; multilinear interpolation reproduces every table point and needs no reference state. Cross terms between fuel temperature and moderator density are real. | Coarser grid set by a sensitivity check; then the derivative form built from the same table. | Approved; grid size fixed in the O1 generation plan, fallbacks only if the run count is too expensive |
+| D3 | Exact integration of the xenon and samarium chains over a step (10.5)–(10.8) | PARCS Eqs. (9.27)–(9.30), explicit Euler | Xenon transients last days. Explicit Euler is first order and unstable for steps of several hours; the exact form costs the same. | (10.4), with a step limit. | Approved |
+| D4 | Decay-heat groups integrated with the power linear over the step (12.3) | PARCS Eq. (9.16), power frozen at the start of the step | Second order, consistent with the precursor treatment (11.4); same cost. | (12.2). | Approved |
+| D5 | Rod three-node problem solved with the kernels of §5 on material segments (§8.3) | PARCS §9.3, fine-mesh finite differences | The finite-difference current is 6 % off at PARCS's 10 meshes per node and steps as a tip crosses a node boundary; the kernel form is exact in 1D and continuous with the two-node result. | (8.4) with a demonstrated $N_\text{fine}$. | Approved on condition: (8.4) first, D5 adopted only after passing the two tests of §8.3 |
 
 ### 20.3 Choices where both references are silent
 
