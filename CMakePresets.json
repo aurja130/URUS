@@ -1,0 +1,89 @@
+{
+    "version": 6,
+    "configurePresets": [
+        {
+            "name": "base",
+            "hidden": true,
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}"
+        },
+        {
+            "name": "dev-gcc",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_CXX_COMPILER": "g++",
+                "NTS_SANITIZERS": ""
+            }
+        },
+        {
+            "name": "dev-clang",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_CXX_COMPILER": "clang++",
+                "NTS_SANITIZERS": ""
+            }
+        },
+        {
+            "name": "asan-ubsan-clang",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_CXX_COMPILER": "clang++",
+                "NTS_SANITIZERS": "address,undefined"
+            }
+        },
+        {
+            "name": "tsan-gcc",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_CXX_COMPILER": "g++",
+                "NTS_SANITIZERS": "thread"
+            }
+        },
+        {
+            "name": "release-gcc",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_CXX_COMPILER": "g++",
+                "NTS_SANITIZERS": ""
+            }
+        }
+    ],
+    "buildPresets": [
+        { "name": "dev-gcc", "configurePreset": "dev-gcc" },
+        { "name": "dev-clang", "configurePreset": "dev-clang" },
+        { "name": "asan-ubsan-clang", "configurePreset": "asan-ubsan-clang" },
+        { "name": "tsan-gcc", "configurePreset": "tsan-gcc" },
+        { "name": "release-gcc", "configurePreset": "release-gcc" }
+    ],
+    "testPresets": [
+        {
+            "name": "base-test",
+            "hidden": true,
+            "output": { "outputOnFailure": true },
+            "execution": { "noTestsAction": "error" }
+        },
+        { "name": "dev-gcc", "inherits": "base-test", "configurePreset": "dev-gcc" },
+        { "name": "dev-clang", "inherits": "base-test", "configurePreset": "dev-clang" },
+        {
+            "name": "asan-ubsan-clang",
+            "inherits": "base-test",
+            "configurePreset": "asan-ubsan-clang",
+            "environment": {
+                "ASAN_OPTIONS": "abort_on_error=1:detect_leaks=1",
+                "UBSAN_OPTIONS": "halt_on_error=1:print_stacktrace=1"
+            }
+        },
+        {
+            "name": "tsan-gcc",
+            "inherits": "base-test",
+            "configurePreset": "tsan-gcc",
+            "environment": { "TSAN_OPTIONS": "halt_on_error=1" }
+        },
+        { "name": "release-gcc", "inherits": "base-test", "configurePreset": "release-gcc" }
+    ]
+}

@@ -10,8 +10,9 @@ Usage (from the repository root)::
 
 The check prints one line per tool (status, name, version, path, detail): minimum versions
 for the C++ build, lint and test tools, the Python tooling, Universal Ctags, HDF5 with its
-C++ API (through ``h5c++``) and OpenMC (nodal data generation). It reports the glibc version
-and compares the regenerated manifest with the committed one.
+C++ API (through ``h5c++``), OpenMC (nodal data generation), and GoogleTest and Eigen (read
+through ``pkg-config --modversion``). It reports the glibc version and compares the regenerated
+manifest with the committed one.
 
 Exit codes: 0 every check passed; 1 at least one check failed (nothing is written then);
 2 command-line usage error (argparse).
@@ -137,6 +138,23 @@ TOOL_SPECS: tuple[ToolSpec, ...] = (
         rf"^OpenMC version {_NUMERIC_VERSION}",
         (0, 15),
         "install OpenMC (https://docs.openmc.org/en/latest/quickinstall.html)",
+    ),
+    # GoogleTest and Eigen are libraries: pkg-config reports their version, nothing is run.
+    ToolSpec(
+        "gtest",
+        "pkg-config",
+        re.compile(rf"^{_NUMERIC_VERSION}$", re.MULTILINE),
+        (1, 17),
+        "install GoogleTest (dnf install gtest-devel)",
+        ("--modversion", "gtest"),
+    ),
+    ToolSpec(
+        "eigen",
+        "pkg-config",
+        re.compile(rf"^{_NUMERIC_VERSION}$", re.MULTILINE),
+        (5, 0),
+        "install Eigen (dnf install eigen3-devel)",
+        ("--modversion", "eigen3"),
     ),
 )
 

@@ -1,0 +1,18 @@
+BasedOnStyle: LLVM
+IndentWidth: 4
+ColumnLimit: 100
+PointerAlignment: Left
+AccessModifierOffset: -4
+AllowShortFunctionsOnASingleLine: Inline
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: '^"nts/'
+    Priority: 1
+  - Regex: '^<gtest/'
+    Priority: 2
+  - Regex: '^<Eigen/'
+    Priority: 3
+  - Regex: '^<H5Cpp\.h>'
+    Priority: 4
+  - Regex: '^<.*>'
+    Priority: 5

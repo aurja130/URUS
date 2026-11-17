@@ -134,7 +134,9 @@ repository is that environment. The repository tooling (`tools/`) runs on it.
 - Open MPI: `openmpi-devel-5.0.9-4.fc44`, not on `PATH`; `module load mpi/openmpi-x86_64`
   puts `mpicxx` and `mpirun` (Open MPI 5.0.9) from `/usr/lib64/openmpi/bin` on it.
   `mpi/mpich-x86_64` is also available as a module.
-- Not installed: Catch2, GoogleTest.
+- GoogleTest: `gtest-devel-1.17.0-2.fc44` (`pkg-config --modversion gtest`; CMake config in
+  `/usr/lib64/cmake/GTest/`); GoogleMock is not installed.
+- Not installed: Catch2.
 
 ### Compiler/runtime validation
 
@@ -201,7 +203,7 @@ compiled with the flags and run, with no diagnostic. The TSan probe runs two thr
   - Command: `git`
   - Path: `/usr/bin/git`
   - Version: `git version 2.56.1`
-- Remotes: none on this repository. The submodule `external/BEAVRS_minimal` has
+- Remotes: `origin https://github.com/aurja130/URUS.git`. The submodule `external/BEAVRS_minimal` has
   `origin https://codeberg.org/aurja130/BEAVRS_minimal.git`.
 
 ## Executable search path

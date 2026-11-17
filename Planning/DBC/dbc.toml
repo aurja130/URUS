@@ -1,7 +1,7 @@
 project = "Coupled nodal neutronics and thermal-hydraulics PWR simulator"
 evidence = "BENCHMARKS.md"
 evidence_fields = ["Concepts", "Comments", "Reference", "Tolerance"]
-test_globs = ["tools/**/test_*.py"]
+test_globs = ["tools/**/test_*.py", "tests/**/*_test.cpp"]
 banned_patterns = [
     "\\bM[0-9]+\\b",
     "(?i)\\bmilestone\\b",

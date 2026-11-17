@@ -96,6 +96,9 @@ become `partial`.
 
 ### 1.1 Foundations
 
+**State.** Done 2026-11-17 (reviewed and merged into `milestone-1`; gate results in
+`CURRENT_PROJECT_STATE.md` §3).
+
 **Builds.** `CODING_STANDARDS.md` (§2 above, plus clang-format and clang-tidy settings:
 100 columns as in ruff, 4-space indent; tidy families bugprone, performance, modernize,
 readability, misc and clang-analyzer, warnings as errors). `CURRENT_PROJECT_STATE.md`
@@ -115,13 +118,14 @@ script `tools/ci/local_ci.py`. The toolchain manifest extended with GoogleTest a
 | `release-gcc` | GCC | Release, `-O3` | Invariant checks stay on |
 
 **Local CI**, cheapest step first; a failed step is a failed run: toolchain check, license
-header check, `clang-format --dry-run -Werror`, every preset (configure, build, `ctest`),
-`clang-tidy` on the `dev-clang` database, `ruff check`, `ruff format --check`,
-`basedpyright`, `pytest`, `check_dbc.py`. Prints one pass/fail line per step.
+header check, `clang-format --dry-run -Werror`, `ruff check`, `ruff format --check`,
+`basedpyright`, `pytest`, `check_dbc.py`, every preset (configure, build, `ctest`), and
+`clang-tidy` on the `dev-clang` database. Prints one pass/fail line per step.
 
 **DBC.** `dbc.toml` `test_globs` gains `tests/**/*_test.cpp` so that engine tests count; this
 is a configuration change the Captain approves with this plan. Nodes: `BuildPresets`,
-`LocalCi`, `ToolchainPin`.
+`LocalCi`, `ToolchainPin`, and `RuntimeChecks` (added in review: the invariant check and the
+floating-point trap fitted no node).
 
 **Acceptance.** All presets build and pass; the local CI passes; a test shows that
 `NTS_ASSERT` aborts with its message; another shows that a floating-point trap stops the
@@ -331,15 +335,17 @@ skipped case is reported as skipped, never as passed.
 
 ## 7. Workflow per sub-milestone
 
-1. Freeze the contract; flip nodes to `partial`; run the usage guard.
+1. Create the sub-milestone branch `milestone-1.<k>` from `milestone-1`; freeze the contract;
+   flip nodes to `partial`; run the usage guard.
 2. Workers (`task`; `sonic` for mechanical edits) get their target files, the cited and
    restated equations, the standards, interfaces with units, non-goals, the tests that must
    pass and their node IDs. One owner per file. Workers do not build or test.
 3. The orchestrator builds and tests the batch on every preset and runs the local CI.
 4. Reviewers (`reviewer`, read-only, same acceptance criteria) review the verified
    snapshot; one blocker ledger per sub-milestone (AGENTS.md Review).
-5. DBC update, `CURRENT_PROJECT_STATE.md`, commit; stop and report with the convergence
-   state of every result.
+5. DBC update, `CURRENT_PROJECT_STATE.md`, commit; merge `milestone-1.<k>` into
+   `milestone-1` with `git merge --no-ff`; stop and report with the convergence state of
+   every result. `milestone-1` merges into `main` the same way when the gate of §6 passes.
 
 ## 8. Risks
 
@@ -359,3 +365,6 @@ skipped case is reported as skipped, never as passed.
 | 2026-11-17 | First version, with P1, P6 and the three start decisions of §1.1. |
 | 2026-11-17 | The Captain named the executable `urus` (Uppsala universitets reaktorsimulator); library `nts_core` and namespace `nts` approved. |
 | 2026-11-17 | Approved by the Captain as a working plan; GoogleTest installed. |
+| 2026-11-17 | The Captain set the branch workflow: one branch per milestone (`milestone-1`, from `main`) and one per sub-milestone (`milestone-1.<k>`, from `milestone-1`); each merges into its parent when it closes (§7). Sub-milestone 1.1 started; its contract frozen as written. |
+| 2026-11-17 | 1.1 review: the local CI order follows its own rule, cheapest step first (the Python checks and the concept-map check now run before the preset builds, clang-tidy last on the database the `dev-clang` step writes); the floating-point trap follows the build type (`NDEBUG`) instead of a separate CMake option. |
+| 2026-11-17 | 1.1 closed: both reviews approved after two rounds; nodes `ToolchainPin`, `BuildPresets`, `LocalCi`, `RuntimeChecks` and `Tooling` implemented; merged into `milestone-1`. |
