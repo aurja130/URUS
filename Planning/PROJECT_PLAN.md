@@ -81,9 +81,10 @@ the code path only.
    release), the local CI script, and the C++ standard (§6, P6).
 2. Input and output: problem input layout and input validation (rejects any group structure
    other than two and eight); the library contract, including units, statistical
-   uncertainties and validity flags (TM §19.3 items L12–L14); a converter that brings the
-   present library under the contract with the empty corner tallies flagged invalid; field
-   output and run record.
+   uncertainties and validity flags (TM §19.3 items L12–L14); the submodule's library writer
+   re-extracts the present library from its 72 statepoints and writes it under the contract,
+   with the empty corner tallies flagged invalid, replacing the present file; field output
+   and run record.
 3. Cross-section model: multilinear interpolation with clamp counting (TM §7.1–§7.5).
 4. CMFD with zero coupling corrections: assembly and boundary conditions, outer iteration
    with Wielandt shift, linear solver, normalization (TM §3.3, §4).
@@ -298,8 +299,9 @@ and is not repeated in the tables.
 
 | Category | Item | When |
 |---|---|---|
-| Decide | P6: the C++ standard | Start |
-| Decide | P1: data work as separate data milestones | Start |
+| Decide | P6: the C++ standard | Start (decided 2026-11-17) |
+| Decide | P1: data work as separate data milestones | Start (decided 2026-11-17) |
+| Obtain | GoogleTest installed (`gtest-devel`), the test framework chosen 2026-11-17 | Scope 1 |
 | Obtain | IAEA 2D and 3D PWR specifications, reference eigenvalues and assembly powers | Scope 5 |
 
 ### 5.2 DM1
@@ -374,12 +376,12 @@ each one is due.
 
 | ID | Question | Recommendation |
 |---|---|---|
-| P1 | Data work as separate data milestones DM1 and DM2, beside the engine milestones | Yes: OpenMC campaigns take compute time and Captain approval, not engine sessions; separating them lets both proceed |
+| P1 | Data work as separate data milestones DM1 and DM2, beside the engine milestones | Yes: OpenMC campaigns take compute time and Captain approval, not engine sessions; separating them lets both proceed. **Decided 2026-11-17: yes.** |
 | P2 | Reflector data, discontinuity factors, form functions and rodded data per composition (L1, L6, L10, L11) generated in DM1, before milestone 2, not just before milestone 5 as TM §22 allows | Yes: a lattice library without reflectors cannot run BEAVRS at all, and one lattice run produces all of them at no extra cost. The engine uses the factors from milestone 2 on, as PARCS does; milestone 5 assesses them |
 | P3 | Grid and nozzle loss coefficients before milestone 2, not before stage 4 as O12 says | Yes: the steady channels need them. Only the loop part of O12 waits for milestone 4 |
 | P4 | Rod banks and rodded mixing (TM §8.1–§8.2), which TM §22 does not place | Milestone 2: the hot zero power comparison is at bank D, step 213 |
 | P5 | `VISION.md` §6 lists the cycle 1 boron letdown, which needs depletion, out of scope (TM §0.1) | Narrow validation to beginning-of-cycle measurements: hot zero power physics tests, hot full power boron, beginning-of-cycle flux maps. Edit `VISION.md` §6, and §8, whose open questions TM §0.1 has answered |
-| P6 | C++ standard (`VISION.md` §8 proposes C++20; the toolchain also supports C++23) | C++20, fixed in the coding standards at the start of milestone 1 |
+| P6 | C++ standard (`VISION.md` §8 proposes C++20; the toolchain also supports C++23) | C++20, fixed in the coding standards at the start of milestone 1. **Decided 2026-11-17: C++23** (`std::expected`, `std::mdspan`, `std::print`; students need GCC ≥ 14 or Clang ≥ 18). |
 | P7 | Six-group kinetics benchmarks (LMW, NEACRP) as eight-group data with two zero-abundance groups | Yes: the structure stays fixed at eight; input validation accepts a zero abundance |
 | P8 | A run-time target for student use; the vision states none | Record the run time of the BEAVRS hot full power steady state and of one reference transient at every milestone gate from milestone 2 on; the Captain sets the target before milestone 6 |
 
@@ -389,3 +391,4 @@ each one is due.
 |---|---|
 | 2026-11-17 | First version. |
 | 2026-11-17 | §5 rewritten as prerequisites by milestone in four categories, presented to the Captain when due; the "Needs" lines of §3 and §4 point to it. |
+| 2026-11-17 | P1 and P6 decided. Milestone 1 scope item 2: the converter is replaced by re-extraction from the statepoints in the submodule's library writer, whose contract file replaces the present library file; GoogleTest is the test framework (§5.1). Milestone plan: `MILESTONE_1_PLAN.md`. |

@@ -19,6 +19,10 @@ O1–O14 the decisions recorded in TM §20.2 and §21. The notation of the equat
 | eigenvalue | The multiplication factor k_eff of the steady state and its fundamental-mode flux. | TM §4.4 |
 | Wielandt shift | A shift of the eigenvalue problem that speeds up the power iteration. | TM §4.4 |
 | CMFD | Coarse-mesh finite difference: the global problem in node-average fluxes, with face currents from finite differences plus a correction. | TM §4 |
+| outer iteration | One update of the fission source and the eigenvalue in the shifted power iteration. | TM §4.4 |
+| inner iteration | The iterative linear solve inside an outer iteration: BiCGSTAB with a preconditioner (incomplete LU first; PARCS's BILU3D is a later performance item), stopped when its residual has fallen by a set factor. | TM §4.5 |
+| boundary condition | The relation at an outer face of the domain between outward current and surface flux, given as an albedo: reflective (0), vacuum, also called Marshak or zero incoming current (1/2), zero flux (10³⁰), or an input value per group. | TM §4.2 |
+| effective down-scatter | The fast-to-thermal transfer cross section with the small thermal-to-fast transfer folded in at the generating flux, so that the data carry no up-scatter. | TM §3.1, Eq. (3.5) |
 | coupling correction | The term added to the finite-difference face current so that it equals the accurate current from a two-node problem (PARCS's D-hat). Never clipped. | TM §4.1, §6.2 |
 | nodal kernel | A method that solves the one-dimensional problem inside a node to higher accuracy than finite differences. | TM §5 |
 | analytic nodal method | The kernel that solves the transverse-integrated two-group equation exactly with exponential and trigonometric functions (ANM). | TM §5.5 |
@@ -98,6 +102,7 @@ O1–O14 the decisions recorded in TM §20.2 and §21. The notation of the equat
 | time-step control | The choice of each step: schedule discontinuities, input limits, optional halving on an error estimate. | TM §18.5 |
 | tolerance | A convergence limit on a change or residual, given in the solver options. | TM §4.6, §11.5, §18.3 |
 | convergence state | Iteration counts, final changes and residuals with their tolerances; every reported result carries it. | TM §18.4 |
+| verification tolerances | Iteration tolerances far tighter than the production ones (PARCS's defaults), used in benchmarks so that iteration error never passes for agreement. | Milestone 1 plan §2.1 |
 | run record | What a result is stamped with: convergence state, table clamp counts, methods used, the input. | TM §18.4 |
 | balance check | A neutron, energy or mass balance evaluated and reported with its residual. | TM §17.9, §18.3 |
 | solution field | A quantity defined on nodes or pins at one time. | Vision §1 |
@@ -109,6 +114,7 @@ O1–O14 the decisions recorded in TM §20.2 and §21. The notation of the equat
 | --- | --- | --- |
 | problem input | The single HDF5 file that defines a run. | Vision §1 |
 | reactor description | Geometry, composition map, rod banks, channels and loop of the reactor; nothing about BEAVRS is built into the engine. | Vision §5 |
+| composition map | The node-by-node assignment of compositions. A position may be excluded, outside the domain, so a core need not be rectangular. | Vision §5; Milestone 1 plan §3 |
 | operating state | The power, pressure, inlet conditions, boron and rod positions a run starts from. | Vision §1 |
 | solver options | Tolerances, iteration limits and method choices given in the input. | Vision §1 |
 | input validation | The checks an input must pass before anything is solved. | Vision §5 |
@@ -122,6 +128,8 @@ O1–O14 the decisions recorded in TM §20.2 and §21. The notation of the equat
 | lattice calculation | A single-assembly calculation with reflective boundaries that produces the nodal data of one assembly type at one branch state. | O1, 2026-11-16; TM §19.3 |
 | OpenMC | The Monte Carlo transport code that generates the nodal data. | Vision §4 |
 | tally | An OpenMC estimate of a reaction rate or flux, with a statistical uncertainty. | TM §19.3 |
+| statepoint | The output file of an OpenMC run, holding each tally's sum and sum of squares, from which its mean and standard deviation follow. | TM §19.3 |
+| library writer | The program in the BEAVRS data submodule that turns OpenMC output into a nodal library under the library contract. | Project plan §3, 2026-11-17 |
 | full-core reference | Full-core OpenMC solutions at library states, the reference the nodal results must reproduce. | O1, 2026-11-16; TM §19.3 |
 | validity flag | The mark of a library entry that holds no physical value, such as an empty tally. | TM §19.3, item L14 |
 | reflector | Non-fuel material around the core whose data come from fuel-and-reflector models. | TM §5.9, §19.3 |
@@ -148,6 +156,9 @@ O1–O14 the decisions recorded in TM §20.2 and §21. The notation of the equat
 | build preset | A named build configuration of the engine. | AGENTS.md |
 | sanitizer | A compiler instrumentation that detects memory errors, undefined behaviour or data races at run time. | `.omp/LOCAL_ENVIRONMENT.md` |
 | local CI | The one local script that runs every gate. | AGENTS.md |
+| test framework | The library the engine's C++ tests are written with: GoogleTest. | Project plan §5.1, 2026-11-17 |
+| license header | The three-line GPL-3.0-or-later notice every code file of ours starts with. | AGENTS.md, License |
+| invariant check | A check of a condition the code itself guarantees; on in every build, it stops the program with its location and message when violated. | Milestone 1 plan §2 |
 | milestone | One large step of the project plan with its own milestone plan; engine milestones 1–6 carry the numbers of the vision's stages. | Project plan §1 |
 | data milestone | A milestone that produces nodal data or reference solutions with OpenMC, beside the engine milestones: DM1 and DM2. | Project plan §4 |
 | sub-milestone | The part of a milestone one session delivers; its contract freezes when it starts. | AGENTS.md |
@@ -157,4 +168,7 @@ O1–O14 the decisions recorded in TM §20.2 and §21. The notation of the equat
 | verification | Showing that the code solves its equations correctly. | TM §19.2 |
 | validation | Showing that the equations describe the reactor. | TM §19.2 |
 | benchmark | A reference problem with a published or computed solution that results are compared with, within a stated tolerance. | AGENTS.md; TM §19.2 |
+| reference script | A committed program, sharing no code with the engine, that computes a benchmark's reference values. | Milestone 1 plan §2 |
+| observed order | The rate at which an error falls under mesh or step refinement, measured from successive refinements. | Milestone 1 plan §5 |
+| code-path exercise | A run that shows the code works end to end on real data and makes no accuracy claim. | Project plan §3 |
 | pcm | Per cent mille, 10⁻⁵ in reactivity or relative eigenvalue. | TM §0.5 |

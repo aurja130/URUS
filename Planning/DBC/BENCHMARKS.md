@@ -8,39 +8,39 @@ become a real test or run when its concept is built. No case has been run on eng
 
 ## Bare homogeneous slab and cuboid
 **Concepts:** `CmfdSolve`, `EigenvalueSolve`
-**Comments:** 2026-11-16, orchestrator: from TM §19.2, row "CMFD assembly, boundary conditions". Not run.
-**Reference:** Analytic eigenvalue from the geometric buckling of a bare homogeneous body.
-**Tolerance:** Finite differences with zero coupling corrections converge at order 2 under mesh refinement; the observed order must be 2 within 0.1 over at least three meshes.
+**Comments:** 2026-11-16, orchestrator: from TM §19.2, row "CMFD assembly, boundary conditions". Not run. 2026-11-17, orchestrator: reference and tolerances set in the milestone 1 plan §5; infinite medium and mirror symmetry added.
+**Reference:** Analytic two-group eigenvalue: closed form for zero-flux and reflective faces; for vacuum and albedo faces the root of the 2×2 determinant of the exact two-group slab solution, computed by a reference script; k_∞ for an infinite medium.
+**Tolerance:** Finite differences with zero coupling corrections converge at order 2; the observed order must be 2 within 0.1 from the three finest of at least four meshes, for every boundary kind on every face, with the finest-mesh error above 1e3 times the eigenvalue tolerance. Infinite medium within 1e-11 in k; mirrored problems equal within 1e-10 per node flux; verification tolerances throughout.
 
 Tests the coarse-mesh assembly and every boundary condition without the kernels.
 
 ## One-dimensional fuel and reflector slab
 **Concepts:** `NodalKernels`, `AnmKernel`, `NemKernel`, `InterfaceSolve`
-**Comments:** 2026-11-16, orchestrator: TM §19.1 row 2, equations checked. Engine test not written.
-**Reference:** Fine-mesh finite difference at 0.5 and 0.25 cm, Richardson-extrapolated: k = 1.0507067.
-**Tolerance:** Analytic kernel within 0.01 pcm on 30 cm and 15 cm nodes (an exact kernel differs only by round-off); expansion kernel within the script values, −8.9 and −1.0 pcm, to 0.1 pcm.
+**Comments:** 2026-11-16, orchestrator: TM §19.1 row 2, equations checked. Engine test not written. 2026-11-17, orchestrator: reference changed to the analytic solution, which must reproduce 1.0507067; analytic-kernel tolerance tightened (milestone 1 plan §5).
+**Reference:** Analytic transfer-matrix solution from a reference script; it must reproduce the fine-mesh finite-difference value k = 1.0507067 (0.5 and 0.25 cm, Richardson-extrapolated) to its seven printed digits.
+**Tolerance:** Analytic kernel within 1e-9 relative in k and in node fluxes on 30 cm and 15 cm nodes (an exact kernel differs only by iteration error and round-off; 1000 times the verification eigenvalue tolerance); expansion kernel within the script values, −8.9 and −1.0 pcm, to 0.1 pcm.
 
 120 cm fuel and 30 cm reflector, reflective and vacuum ends, no transverse leakage. Also: the analytic and expansion kernels agree in the fine-mesh limit, and the node pair is symmetric under reflection.
 
 ## IAEA two- and three-dimensional PWR benchmarks
 **Concepts:** `NodalKernels`, `TransverseLeakage`, `EigenvalueSolve`
-**Comments:** 2026-11-16, orchestrator: TM §19.1 row 1 checked the 2D eigenvalue only (analytic kernel +2.3 pcm, expansion kernel +2.4 pcm at 10 cm nodes; Wielandt shift 0.04; fission source and k changes below 1e-9; 11 nodal updates, 203 outer iterations).
-**Reference:** Published reference k = 1.029585 for 2D. **Open:** the specification, the 3D reference and the reference assembly powers are not in Resources and must be obtained.
-**Tolerance:** **Open:** set once the reference powers are in hand; published nodal solutions at 10 cm reach a few pcm in k.
+**Comments:** 2026-11-16, orchestrator: TM §19.1 row 1 checked the 2D eigenvalue only (analytic kernel +2.3 pcm, expansion kernel +2.4 pcm at 10 cm nodes; Wielandt shift 0.04; fission source and k changes below 1e-9; 11 nodal updates, 203 outer iterations). 2026-11-17, orchestrator: the engine must first reproduce those script values within 0.1 pcm with the same options (milestone 1 plan §5).
+**Reference:** Published reference k = 1.029585 for 2D. **Open:** the specification, the 3D reference and the reference assembly powers are not in Resources and must be obtained. Code against script: TM §19.1 row 1, finite difference 1.029650, expansion kernel 1.029609, analytic kernel 1.029608.
+**Tolerance:** Code against script: 0.1 pcm, the script's printed resolution. Against the published reference: **Open:** set from the spread of the published nodal solutions in the obtained document, before any engine comparison.
 
 Becomes an acceptance test only with the reference powers.
 
 ## Two-region slab with discontinuity factors
 **Concepts:** `DiscontinuityFactors`, `InterfaceSolve`
-**Comments:** 2026-11-16, orchestrator: from TM §19.2. Not run.
-**Reference:** Analytic two-region solution with an imposed flux jump.
-**Tolerance:** Round-off, about 1e-10 relative, since the analytic kernel is exact in one dimension.
+**Comments:** 2026-11-16, orchestrator: from TM §19.2. Not run. 2026-11-17, orchestrator: tolerance made explicit (milestone 1 plan §5).
+**Reference:** Analytic two-region transfer-matrix solution with the imposed flux jump, from a reference script.
+**Tolerance:** 1e-10 relative in k and 1e-9 in node fluxes: the analytic kernel is exact in one dimension, so only iteration error and round-off remain, at 100 times the verification eigenvalue tolerance.
 
 ## Cross-section table interpolation
 **Concepts:** `CrossSectionModel`, `BranchGrid`
-**Comments:** 2026-11-16, orchestrator: from TM §19.2. Not run.
-**Reference:** The table itself, and data linear in every axis.
-**Tolerance:** Every table point reproduced to round-off; linear data reproduced exactly; every state outside the table counted as a clamp.
+**Comments:** 2026-11-16, orchestrator: from TM §19.2. Not run. 2026-11-17, orchestrator: round-off quantified (milestone 1 plan §5).
+**Reference:** The table itself, and data linear in every axis (linear in 1/(3D) for the diffusion coefficients).
+**Tolerance:** Every table point and linear data within 1e-14 relative (a multilinear evaluation rounds within a few machine epsilons); every state outside the table counted as a clamp, exactly, per node, axis and side; an axis of length one clamps every other value.
 
 ## Rod cusping
 **Concepts:** `ControlRods`, `CuspingCorrection`, `RoddedMixing`
@@ -56,9 +56,9 @@ Becomes an acceptance test only with the reference powers.
 
 ## Adjoint and reactivity edits
 **Concepts:** `AdjointEdits`
-**Comments:** 2026-11-16, orchestrator: from TM §19.2. Not run.
-**Reference:** The forward eigenvalue; the static reactivity 1 − 1/k.
-**Tolerance:** Forward and adjoint eigenvalues equal within the eigenvalue tolerance; unexplained reactivity near zero; dynamic reactivity equals the static difference for small uniform changes, to second order in the change.
+**Comments:** 2026-11-16, orchestrator: from TM §19.2. Not run. 2026-11-17, orchestrator: adjoint tolerances set (milestone 1 plan §5); the reactivity parts wait for their milestone.
+**Reference:** The forward eigenvalue; the static reactivity 1 − 1/k. For volume weighting: the fast forward flux of a problem with no group transfer and no thermal fission on a non-uniform mesh, whose fast-group operator is self-adjoint.
+**Tolerance:** Forward and adjoint eigenvalues within 1e-10 at verification tolerances (eigenvalues of transposed matrices); fast adjoint proportional to the fast forward flux within 1e-9 per node in the self-adjoint problem; unexplained reactivity near zero; dynamic reactivity equals the static difference for small uniform changes, to second order in the change.
 
 ## Xenon and samarium
 **Concepts:** `XenonSamarium`
@@ -149,3 +149,15 @@ Becomes an acceptance test only with the reference powers.
 **Comments:** 2026-11-16, orchestrator: the present library comes from these runs (TM §19.3); the nodal solution at a library state must reproduce their node powers and eigenvalue.
 **Reference:** Full-core OpenMC eigenvalue and node-wise tallies at the same state.
 **Tolerance:** **Open:** set from the tally standard deviations and the homogenization error once lattice data exist; with full-core data both errors are small, so this checks the solver more than the method.
+
+## Present-library reproduction
+**Concepts:** `LibraryContract`, `FullCoreReference`
+**Comments:** 2026-11-17, orchestrator: the library writer re-extracts the present library from its 72 statepoints before its contract file replaces the old one (milestone 1 plan §3, 1.2). Not run.
+**Reference:** The present library file.
+**Tolerance:** Every raw quantity bit-identical, with NaN at the same entries: the same extraction code reads the same statepoints.
+
+## BEAVRS on the present library
+**Concepts:** `ProblemInput`, `CrossSectionModel`, `EigenvalueSolve`, `RunRecord`
+**Comments:** 2026-11-17, orchestrator: a code-path exercise, not a validation; the present library has no reflectors and 2–6 % tally noise (TM §19.3). Not run.
+**Reference:** None; no accuracy claim is made.
+**Tolerance:** Converged at the production tolerances with the hybrid kernel and with finite differences; no clamps; a valid run record; every flux finite and positive in the domain; residual reported.
