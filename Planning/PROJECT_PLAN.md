@@ -97,7 +97,7 @@ two-region slab with discontinuity factors; cross-section table interpolation; I
 three-dimensional PWR benchmarks; forward and adjoint eigenvalues equal (adjoint and
 reactivity edits). A converged BEAVRS run on the present library.
 
-**Needs.** The IAEA specifications and reference solutions (§5).
+**Prerequisites.** §5.1.
 
 ### Milestone 2 · Coupled steady state
 
@@ -125,9 +125,8 @@ and BEAVRS hot zero power and hot full power with the power defect, NUREG §3.3)
 OpenMC reference at library states (node powers and eigenvalue against DM2). Fully inserted
 bank worths against BEAVRS §3.2 and NUREG §3.3.1.
 
-**Needs.** DM1 closed (boron axis, xenon data, reflectors, rodded compositions); DM2 node
-references; IAPWS-IF97 verification tables; the MATPRO Zircaloy conductivity (O11); grid
-and nozzle loss coefficients (§6, P3).
+**Prerequisites.** §5.4. Also DM1 closed before scope item 6 (boron axis, xenon data,
+reflectors, rodded compositions) and the DM2 node references before close.
 
 ### Milestone 3 · Kinetics
 
@@ -151,9 +150,8 @@ ramps; point-kinetics equivalence; decay heat; xenon and samarium (transient par
 peak); LMW and NEACRP transient benchmarks; coupled transients (step refinement, energy
 balance, PARCS sequence against the converged iteration).
 
-**Needs.** Decay-heat group fits (L8); the LMW and NEACRP specifications and references. Both
-benchmarks use six delayed groups; they enter as eight-group data with two groups of zero
-abundance (§6, P7).
+**Prerequisites.** §5.5. Both kinetics benchmarks use six delayed groups; they enter as
+eight-group data with two groups of zero abundance (P7).
 
 ### Milestone 4 · Primary loop
 
@@ -178,7 +176,7 @@ with the loop; coupled transients with the loop (step refinement, energy, mass a
 balances). One scenario per knob with the response's sign and time constant checked against
 a hand estimate stated in the milestone plan.
 
-**Needs.** The generic four-loop data set with pump curves (O12, loop part).
+**Prerequisites.** §5.6.
 
 ### Milestone 5 · Fidelity
 
@@ -201,7 +199,7 @@ BEAVRS §3.2 and NUREG §3.3.1); pin power reconstruction (analytic mode, DM2 pi
 BEAVRS hot zero power flux maps, BEAVRS §3.1–§3.3); full-core OpenMC reference rerun with
 discontinuity factors; coupled steady state rerun with the two-phase model.
 
-**Needs.** DM1 items L1, L6, L10; DM2 pin references; the O13 correlations.
+**Prerequisites.** §5.7. Also DM1 items L1, L6, L10 and the DM2 pin references.
 
 ### Milestone 6 · Polishing
 
@@ -212,6 +210,8 @@ and of the knobs. Worked scenarios: one per knob, and combined ones.
 
 **Closes on.** Package round trip against the engine on every scenario; every scenario
 converges and carries its run record; documentation reviewed against the contract.
+
+**Prerequisites.** §5.8.
 
 ## 4. Data milestones
 
@@ -243,6 +243,8 @@ flag.
 reaches critical boron and xenon. The OpenMC runs can proceed while milestone 1 work
 continues.
 
+**Prerequisites.** §5.2.
+
 ### DM2 · Full-core references
 
 **Outcome.** Full-core OpenMC solutions of BEAVRS at a few library states (uniform fuel
@@ -258,26 +260,117 @@ node powers agrees with the reported standard deviations.
 **Timing.** Node references before milestone 2 closes; pin references before milestone 5
 closes. One campaign serves both.
 
-## 5. Material from outside the repository
+**Prerequisites.** §5.3.
 
-Every item below is marked in TM as not in `Resources/`. The Captain supplies it (or approves
-a source) before the milestone that needs it; nothing so marked is coded from memory.
+## 5. Prerequisites by milestone
 
-| Item | First needed by | Used for |
+What the Captain does so that a milestone can proceed, sorted into four categories and
+placed at the step that first needs it, so that she meets each one only when it is due.
+
+| Category | What the Captain does |
+|---|---|
+| Decide | Chooses between options the agents present with a recommendation. |
+| Obtain | Gets a document that is not in `Resources/` (download, library, purchase) and puts it there, or approves a source the agents found. Nothing marked "not in Resources" in TM is coded from memory. |
+| Run | Approves an OpenMC run list with its compute estimate and gives it machine time. |
+| Approve data | Checks a data set the agents assembled from obtained documents, with every value's source, before it enters an input file. |
+
+The **When** column names the point by which the item must be done: **Start** (before the
+milestone plan freezes), **Scope n** (before the sub-milestone that builds scope item n of
+§3 or §4), or **Close** (before the gate).
+
+**How the agents present them.** Approving each milestone plan is the standing first step
+and is not repeated in the tables.
+
+1. When a milestone starts, the orchestrator presents only that milestone's **Start**
+   items, in the order Decide, Obtain, Run, Approve data. Decisions come as a form with the
+   options, their consequences and the recommendation preselected; documents with a
+   suggested source and what they are used for; runs with the run list, compute estimate
+   and what each run feeds; data sets with the value table and its sources.
+2. **Scope n** items are presented when the sub-milestone that needs them is planned, and
+   **Close** items when the gate comes into view; never earlier, unless the Captain asks.
+3. Work that a missing item does not block goes on. Work it blocks stops and is reported
+   with the item; it is never worked around with a guessed value or a placeholder.
+4. A decision is recorded with its date where its question lives: P items in §6, O items
+   in TM §21. Each item's state (open, done, waived by the Captain) is recorded in
+   `CURRENT_PROJECT_STATE.md`.
+
+### 5.1 Milestone 1
+
+| Category | Item | When |
 |---|---|---|
-| IAEA 2D and 3D PWR specifications, reference eigenvalues and assembly powers | Milestone 1 close | Kernel and transverse-leakage benchmark |
-| IAPWS-IF97 release with its verification tables | Milestone 2 | Water properties |
-| MATPRO Zircaloy conductivity (O11) | Milestone 2 | Fuel rod |
-| Grid and nozzle loss coefficients (core part of O12) | Milestone 2 | Channel pressure drop and flow distribution |
-| Decay-heat curve and its group fits (PARCS §9.5 Reference [24] or a decay-heat standard) | DM1 | L8 |
-| LMW and NEACRP rod-ejection specifications and reference solutions | Milestone 3 close | Kinetics benchmarks |
-| Generic four-loop data set with pump homologous curves (loop part of O12) | Milestone 4 | Loop |
-| Critical heat flux and drift-flux correlations valid at PWR pressure (O13) | Milestone 5 | Two-phase channels, DNB monitor |
-| Published PARCS or SIMULATE results for BEAVRS beyond NUREG/IA-0529 | Milestones 3 and 5, as they appear | Code-to-code comparison |
+| Decide | P6: the C++ standard | Start |
+| Decide | P1: data work as separate data milestones | Start |
+| Obtain | IAEA 2D and 3D PWR specifications, reference eigenvalues and assembly powers | Scope 5 |
+
+### 5.2 DM1
+
+| Category | Item | When |
+|---|---|---|
+| Decide | P2: reflector data, discontinuity factors, form functions and rodded data generated now | Start |
+| Decide | O5: effective or physical delayed-neutron fractions in the library | Start |
+| Obtain | The decay-heat curve and its group fits (PARCS §9.5 Reference [24], or a decay-heat standard) | Scope 2 |
+| Approve data | The decay-heat group constants (L8) | Scope 2 |
+| Run | The run list: assembly types, branch grid, statistics target, the tallies for O9 and O10, compute estimate | Scope 3 |
+| Run | Machine time for the pilot | Scope 3 |
+| Run | Machine time for the production runs and the reflector models | Scope 4 |
+
+### 5.3 DM2
+
+| Category | Item | When |
+|---|---|---|
+| Run | The run list: states, statistics target, node and pin tallies, compute estimate | Start |
+| Run | Machine time for the runs | Start |
+
+### 5.4 Milestone 2
+
+| Category | Item | When |
+|---|---|---|
+| Decide | P3: grid and nozzle loss coefficients now, not before milestone 4 | Start |
+| Decide | P4: rod banks and rodded mixing in this milestone | Start |
+| Decide | P5: validation limited to beginning of cycle; the edit of `VISION.md` §6 and §8 | Start |
+| Decide | P8: recording the run time at every gate | Start |
+| Obtain | The IAPWS-IF97 release with its verification tables | Scope 1 |
+| Obtain | A source for spacer grid and nozzle loss coefficients | Scope 2 |
+| Approve data | The grid and nozzle loss coefficients (core part of O12) | Scope 2 |
+| Obtain | The MATPRO Zircaloy conductivity, to verify the coefficient of O11 | Scope 3 |
+
+### 5.5 Milestone 3
+
+| Category | Item | When |
+|---|---|---|
+| Decide | P7: six-group benchmarks as eight-group data with two zero-abundance groups | Start |
+| Obtain | LMW and NEACRP rod-ejection specifications and reference solutions | Close |
+| Obtain | Published PARCS or SIMULATE transient results for BEAVRS, if any exist | Close, optional |
+
+### 5.6 Milestone 4
+
+| Category | Item | When |
+|---|---|---|
+| Obtain | Sources for a generic four-loop PWR: loop volumes and lengths, steam generator, pump rated values and homologous curves | Start |
+| Approve data | The generic four-loop data set (loop part of O12) | Scope 1 |
+
+### 5.7 Milestone 5
+
+| Category | Item | When |
+|---|---|---|
+| Decide | O13: the critical heat flux correlation and the drift-flux correlation valid at PWR pressure | Scope 4 |
+| Obtain | The documents of the chosen correlations | Scope 4 |
+| Obtain | Published PARCS or SIMULATE steady-state results for BEAVRS beyond NUREG/IA-0529, if any exist | Close, optional |
+
+The BEAVRS measured detector signals are already on this machine, in the `measurements/`
+directory of the BEAVRS repository (`.omp/LOCAL_ENVIRONMENT.md`); nothing to obtain.
+
+### 5.8 Milestone 6
+
+| Category | Item | When |
+|---|---|---|
+| Decide | P8: the run-time target | Start |
+| Decide | The worked scenarios, the audience and form of the user documentation, the supported Python versions and how the package is distributed | Start |
 
 ## 6. Decisions this plan asks for
 
-Each is **Open** until the Captain decides; the recommendation stands meanwhile.
+Each is **Open** until the Captain decides; the recommendation stands meanwhile. §5 says when
+each one is due.
 
 | ID | Question | Recommendation |
 |---|---|---|
@@ -295,3 +388,4 @@ Each is **Open** until the Captain decides; the recommendation stands meanwhile.
 | Date | Change |
 |---|---|
 | 2026-11-17 | First version. |
+| 2026-11-17 | §5 rewritten as prerequisites by milestone in four categories, presented to the Captain when due; the "Needs" lines of §3 and §4 point to it. |

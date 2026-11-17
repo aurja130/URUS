@@ -4,7 +4,7 @@ The user is the Captain: address her as Captain and refer to her with she/her. S
 
 Environment: @LOCAL_ENVIRONMENT.md
 
-What we build: `Planning/VISION.md`. The first milestone creates `Planning/CODING_STANDARDS.md`, `Planning/CURRENT_PROJECT_STATE.md`, `Planning/MILESTONE_<n>_PLAN.md`, the CMake presets and the local CI script; rules naming a file apply once it exists. Toolchain pin: `python3 -m tools.toolchain.check_toolchain`.
+What we build: `Planning/VISION.md`. How we get there: `Planning/PROJECT_PLAN.md`; present the Captain each milestone's prerequisites only when due, as its §5 describes. The first milestone creates `Planning/CODING_STANDARDS.md`, `Planning/CURRENT_PROJECT_STATE.md`, `Planning/MILESTONE_<n>_PLAN.md`, the CMake presets and the local CI script; rules naming a file apply once it exists. Toolchain pin: `python3 -m tools.toolchain.check_toolchain`.
 
 ## Ground rules
 
