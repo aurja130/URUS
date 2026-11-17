@@ -96,6 +96,9 @@ become `partial`.
 
 ### 1.1 Foundations
 
+**State.** Done 2026-11-17 (reviewed and merged into `milestone-1`; gate results in
+`CURRENT_PROJECT_STATE.md` §3).
+
 **Builds.** `CODING_STANDARDS.md` (§2 above, plus clang-format and clang-tidy settings:
 100 columns as in ruff, 4-space indent; tidy families bugprone, performance, modernize,
 readability, misc and clang-analyzer, warnings as errors). `CURRENT_PROJECT_STATE.md`
@@ -364,3 +367,4 @@ skipped case is reported as skipped, never as passed.
 | 2026-11-17 | Approved by the Captain as a working plan; GoogleTest installed. |
 | 2026-11-17 | The Captain set the branch workflow: one branch per milestone (`milestone-1`, from `main`) and one per sub-milestone (`milestone-1.<k>`, from `milestone-1`); each merges into its parent when it closes (§7). Sub-milestone 1.1 started; its contract frozen as written. |
 | 2026-11-17 | 1.1 review: the local CI order follows its own rule, cheapest step first (the Python checks and the concept-map check now run before the preset builds, clang-tidy last on the database the `dev-clang` step writes); the floating-point trap follows the build type (`NDEBUG`) instead of a separate CMake option. |
+| 2026-11-17 | 1.1 closed: both reviews approved after two rounds; nodes `ToolchainPin`, `BuildPresets`, `LocalCi`, `RuntimeChecks` and `Tooling` implemented; merged into `milestone-1`. |

@@ -21,7 +21,7 @@ the commit that changes any of them. Terms: [DEFINITIONS](DBC/DEFINITIONS.md).
 
 | Sub-milestone | Branch | State |
 |---|---|---|
-| 1.1 Foundations | `milestone-1.1` | In progress since 2026-11-17; contract frozen as written in the plan |
+| 1.1 Foundations | `milestone-1.1` | Done 2026-11-17; merged into `milestone-1` |
 | 1.2 Library contract and the present library | — | Not started |
 | 1.3 Problem input and cross-section model | — | Not started |
 | 1.4 CMFD with zero coupling corrections, eigenvalue, output | — | Not started |
@@ -69,4 +69,21 @@ States: open, done (with date), waived (by the Captain, with date).
 
 ## 3. Last gate results
 
-No gate has run yet.
+1.1 close, 2026-11-17, on the commit that closes 1.1, from build trees created fresh in the
+same session: `python3 -m tools.ci.local_ci` passed all 14 steps.
+
+| Step | Result |
+|---|---|
+| toolchain | Every pinned tool matches `manifests/toolchain.txt` |
+| license-headers | Every code file of ours has its header |
+| clang-format | No change needed |
+| ruff check, ruff format | Clean |
+| basedpyright | 0 errors |
+| pytest | 91 passed |
+| dbc | `check_dbc.py` ok |
+| preset `dev-gcc` | 7 of 7 tests passed |
+| preset `dev-clang` | 7 of 7 tests passed |
+| preset `asan-ubsan-clang` | 7 of 7 tests passed; also 7 of 7 run without the preset environment |
+| preset `tsan-gcc` | 7 of 7 tests passed; also 7 of 7 run without the preset environment |
+| preset `release-gcc` | 7 of 7 tests passed |
+| clang-tidy | No finding on every engine source in the `dev-clang` database |

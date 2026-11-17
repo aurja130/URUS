@@ -38,8 +38,7 @@ Coupling -.->|iterates to convergence| PrimaryLoop
 Coupling -->|converged state| Results["Results"]
 Tooling["Development tooling"]
 class ProblemInput,Knobs,Neutronics,CoreThermalHydraulics,PrimaryLoop,Coupling,Results planned
-class NodalLibrary implemented
-class Tooling partial
+class NodalLibrary,Tooling implemented
 ```
 
 | Node | Meaning | Terms | Status |
@@ -52,7 +51,7 @@ class Tooling partial
 | `PrimaryLoop` | The closed coolant path outside the core: plena, hot and cold legs, steam generator primary side and pump. It sets the core inlet temperature, flow and boron. | primary loop, heat load | planned |
 | `Coupling` | The fixed-point iteration that brings neutronics, core thermal-hydraulics and loop to one consistent state, at steady state and in every time step, and the choice of the time steps. | Picard iteration, time step | planned |
 | `Results` | What a run returns: solution fields, time histories, edits, and the record of convergence, table clamps and balances that every result carries. | run record, convergence state | planned |
-| `Tooling` | The repository's own tools and the development safety nets built into the engine: the pinned toolchain, build presets, local checks, runtime checks and the agents' usage guard. Changed 2026-11-17; was "The repository's own tools: the pinned toolchain, build presets, local checks and the agents' usage guard." | toolchain pin, usage guard, runtime checks | partial |
+| `Tooling` | The repository's own tools and the development safety nets built into the engine: the pinned toolchain, build presets, local checks, runtime checks and the agents' usage guard. Changed 2026-11-17; was "The repository's own tools: the pinned toolchain, build presets, local checks and the agents' usage guard." | toolchain pin, usage guard, runtime checks | implemented |
 
 ### L2 · Problem input (`ProblemInput`)
 ```mermaid
@@ -388,14 +387,13 @@ ToolchainPin["Toolchain pin"] -.->|pins compilers and tools for| BuildPresets["B
 BuildPresets -->|configured builds| LocalCi["Local CI"]
 UsageGuard["Usage guard"]
 BuildPresets -.->|switches floating-point traps in| RuntimeChecks["Runtime checks"]
-class UsageGuard implemented
-class ToolchainPin,BuildPresets,LocalCi,RuntimeChecks partial
+class UsageGuard,ToolchainPin,BuildPresets,LocalCi,RuntimeChecks implemented
 ```
 
 | Node | Meaning | Terms | Status |
 | --- | --- | --- | --- |
-| `ToolchainPin` | The recorded versions of every compiler and tool the project relies on, and the check that the machine still has them. | toolchain pin | partial |
+| `ToolchainPin` | The recorded versions of every compiler and tool the project relies on, and the check that the machine still has them. | toolchain pin | implemented |
 | `UsageGuard` | The check agents run at batch boundaries that reads the cached usage of the model provider and says whether to continue, wait or stop. | usage guard | implemented |
-| `BuildPresets` | Named build configurations: compilers, warnings as errors, sanitizers, release and debug. | build preset, sanitizer | partial |
-| `LocalCi` | One local script that builds the presets, runs the tests, formatters, linters and the concept-map check, and reports pass or fail. | local CI | partial |
-| `RuntimeChecks` | The checks inside the engine that stop a run where it goes wrong: invariant checks in every build, and floating-point traps in debug and sanitizer builds so that a NaN or an infinity stops the program where it is made. | invariant check, floating-point trap | partial |
+| `BuildPresets` | Named build configurations: compilers, warnings as errors, sanitizers, release and debug. | build preset, sanitizer | implemented |
+| `LocalCi` | One local script that builds the presets, runs the tests, formatters, linters and the concept-map check, and reports pass or fail. | local CI | implemented |
+| `RuntimeChecks` | The checks inside the engine that stop a run where it goes wrong: invariant checks in every build, and floating-point traps in debug and sanitizer builds so that a NaN or an infinity stops the program where it is made. | invariant check, floating-point trap | implemented |

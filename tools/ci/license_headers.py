@@ -21,7 +21,8 @@ The year must be between 2026, the year of the repository's first commit, and th
 Files under ``external/``, ``Resources/`` and ``build/``, and the DBC checker
 ``Planning/DBC/check_dbc.py`` (read-only planning material), are not checked.
 
-Exit codes: 0 all headers correct; 1 a header is wrong or missing; 2 usage error.
+Exit codes: 0 all headers correct; 1 a header is wrong or missing, or no file was checked;
+2 usage error.
 """
 
 from __future__ import annotations
