@@ -23,7 +23,7 @@ task:
         sonic: "@smol"
         scout: "@smol"
         reviewer: "@slow"
-        critic: "@critique"
+        critic: "@slow"
     # Soft cap per coding task
     agentSoftRequestBudget:
         task: 150

@@ -1,5 +1,7 @@
 Resources/
 openmc_venv
+# local pyenv selection; each machine names its own virtualenv
+.python-version
 build/
 __pycache__/
 .pytest_cache/
