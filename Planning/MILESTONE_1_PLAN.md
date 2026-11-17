@@ -331,15 +331,17 @@ skipped case is reported as skipped, never as passed.
 
 ## 7. Workflow per sub-milestone
 
-1. Freeze the contract; flip nodes to `partial`; run the usage guard.
+1. Create the sub-milestone branch `milestone-1.<k>` from `milestone-1`; freeze the contract;
+   flip nodes to `partial`; run the usage guard.
 2. Workers (`task`; `sonic` for mechanical edits) get their target files, the cited and
    restated equations, the standards, interfaces with units, non-goals, the tests that must
    pass and their node IDs. One owner per file. Workers do not build or test.
 3. The orchestrator builds and tests the batch on every preset and runs the local CI.
 4. Reviewers (`reviewer`, read-only, same acceptance criteria) review the verified
    snapshot; one blocker ledger per sub-milestone (AGENTS.md Review).
-5. DBC update, `CURRENT_PROJECT_STATE.md`, commit; stop and report with the convergence
-   state of every result.
+5. DBC update, `CURRENT_PROJECT_STATE.md`, commit; merge `milestone-1.<k>` into
+   `milestone-1` with `git merge --no-ff`; stop and report with the convergence state of
+   every result. `milestone-1` merges into `main` the same way when the gate of §6 passes.
 
 ## 8. Risks
 
@@ -359,3 +361,4 @@ skipped case is reported as skipped, never as passed.
 | 2026-11-17 | First version, with P1, P6 and the three start decisions of §1.1. |
 | 2026-11-17 | The Captain named the executable `urus` (Uppsala universitets reaktorsimulator); library `nts_core` and namespace `nts` approved. |
 | 2026-11-17 | Approved by the Captain as a working plan; GoogleTest installed. |
+| 2026-11-17 | The Captain set the branch workflow: one branch per milestone (`milestone-1`, from `main`) and one per sub-milestone (`milestone-1.<k>`, from `milestone-1`); each merges into its parent when it closes (§7). Sub-milestone 1.1 started; its contract frozen as written. |

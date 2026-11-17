@@ -38,7 +38,8 @@ Coupling -.->|iterates to convergence| PrimaryLoop
 Coupling -->|converged state| Results["Results"]
 Tooling["Development tooling"]
 class ProblemInput,Knobs,Neutronics,CoreThermalHydraulics,PrimaryLoop,Coupling,Results planned
-class NodalLibrary,Tooling implemented
+class NodalLibrary implemented
+class Tooling partial
 ```
 
 | Node | Meaning | Terms | Status |
@@ -51,7 +52,7 @@ class NodalLibrary,Tooling implemented
 | `PrimaryLoop` | The closed coolant path outside the core: plena, hot and cold legs, steam generator primary side and pump. It sets the core inlet temperature, flow and boron. | primary loop, heat load | planned |
 | `Coupling` | The fixed-point iteration that brings neutronics, core thermal-hydraulics and loop to one consistent state, at steady state and in every time step, and the choice of the time steps. | Picard iteration, time step | planned |
 | `Results` | What a run returns: solution fields, time histories, edits, and the record of convergence, table clamps and balances that every result carries. | run record, convergence state | planned |
-| `Tooling` | The repository's own tools: the pinned toolchain, build presets, local checks and the agents' usage guard. | toolchain pin, usage guard | implemented |
+| `Tooling` | The repository's own tools: the pinned toolchain, build presets, local checks and the agents' usage guard. | toolchain pin, usage guard | partial |
 
 ### L2 · Problem input (`ProblemInput`)
 ```mermaid
@@ -386,13 +387,13 @@ classDef external fill:#eeeeee,stroke:#9e9e9e,stroke-dasharray:1 3,color:#616161
 ToolchainPin["Toolchain pin"] -.->|pins compilers and tools for| BuildPresets["Build presets"]
 BuildPresets -->|configured builds| LocalCi["Local CI"]
 UsageGuard["Usage guard"]
-class ToolchainPin,UsageGuard implemented
-class BuildPresets,LocalCi planned
+class UsageGuard implemented
+class ToolchainPin,BuildPresets,LocalCi partial
 ```
 
 | Node | Meaning | Terms | Status |
 | --- | --- | --- | --- |
-| `ToolchainPin` | The recorded versions of every compiler and tool the project relies on, and the check that the machine still has them. | toolchain pin | implemented |
+| `ToolchainPin` | The recorded versions of every compiler and tool the project relies on, and the check that the machine still has them. | toolchain pin | partial |
 | `UsageGuard` | The check agents run at batch boundaries that reads the cached usage of the model provider and says whether to continue, wait or stop. | usage guard | implemented |
-| `BuildPresets` | Named build configurations: compilers, warnings as errors, sanitizers, release and debug. | build preset, sanitizer | planned |
-| `LocalCi` | One local script that builds the presets, runs the tests, formatters, linters and the concept-map check, and reports pass or fail. | local CI | planned |
+| `BuildPresets` | Named build configurations: compilers, warnings as errors, sanitizers, release and debug. | build preset, sanitizer | partial |
+| `LocalCi` | One local script that builds the presets, runs the tests, formatters, linters and the concept-map check, and reports pass or fail. | local CI | partial |
