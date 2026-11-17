@@ -47,15 +47,15 @@ the plan.
   Dependencies, all GPL-3.0-compatible: HDF5 C++ API 1.14.6 (BSD-style), Eigen 5.0.1
   (MPL-2.0, sparse matrices and BiCGSTAB), GoogleTest 1.17 (BSD-3-Clause). Third-party
   headers are included as system headers so that warnings-as-errors applies to our code only.
-- **Names.** Library target `nts_core`, executable `nts`, namespace `nts` ("nodal
-  thermal-hydraulic simulator"); renaming later touches every file, so it is approved here.
+- **Names** (approved 2026-11-17). Library target `nts_core` and namespace `nts` ("nodal
+  thermal-hydraulic simulator"); executable `urus` (Uppsala universitets reaktorsimulator).
   Types `PascalCase`; functions and variables `snake_case`; members end in `_`. Physics
   symbols follow TM §2. Every variable with a unit names it where the type does not
   (`width_cm`, `power_w`).
 - **Units.** Inside the engine: cm, s, K, kg m⁻³, ppm, W, J. Conversions happen only when
   reading input files; the contracts name one accepted unit per quantity and reject the rest.
 - **Layout.** `src/nts/<area>/` (`common`, `io`, `xs`, `cmfd`, `nodal`, `solve`); `app/`
-  (the `nts` main); `tests/unit/`, `tests/verification/`, `tests/end_to_end/`;
+  (the `urus` main); `tests/unit/`, `tests/verification/`, `tests/end_to_end/`;
   `tools/inputs/` (Python problem-input writer); `tools/references/` (reference scripts);
   `tools/ci/` (local CI); `docs/contracts/` (problem input, nodal library, output).
 - **Errors.** Input and data errors are collected as diagnostics in `std::expected` and
@@ -72,7 +72,7 @@ the plan.
   `// TM Eq. (5.23)`. A departure from PARCS or SIMULATE-5 needs the Captain's approval
   before code (AGENTS.md).
 - **Tests.** Unit tests build their HDF5 fixtures in C++, so they need no Python. End-to-end
-  tests run `nts` on inputs written by `tools/inputs/`. Benchmark references come from
+  tests run `urus` on inputs written by `tools/inputs/`. Benchmark references come from
   committed reference scripts that share no code with the engine.
 
 ### 2.1 Iteration tolerances
@@ -231,7 +231,7 @@ rescaled at each call. Convergence by Eq. (4.10) plus the residual.
 and power density; the run record: convergence state (outer and inner iterations, nodal
 updates, δ_k, δ_L2, δ_L∞, residual, largest D̂ change), clamp counts by axis and side, methods
 and every solver option as used, SHA-256 of input and library, engine version and commit,
-preset, wall time; a valid/invalid flag with the reason. `nts <input> -o <output>`. Exit
+preset, wall time; a valid/invalid flag with the reason. `urus <input> -o <output>`. Exit
 status: 0 valid result; 2 input or library rejected; 3 not converged; 4 converged with clamps.
 The output is written in the cases 0, 3 and 4.
 
@@ -356,3 +356,4 @@ skipped case is reported as skipped, never as passed.
 | Date | Change |
 |---|---|
 | 2026-11-17 | First version, with P1, P6 and the three start decisions of §1.1. |
+| 2026-11-17 | The Captain named the executable `urus` (Uppsala universitets reaktorsimulator); library `nts_core` and namespace `nts` approved. |

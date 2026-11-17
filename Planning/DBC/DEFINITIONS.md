@@ -156,6 +156,7 @@ O1–O14 the decisions recorded in TM §20.2 and §21. The notation of the equat
 | build preset | A named build configuration of the engine. | AGENTS.md |
 | sanitizer | A compiler instrumentation that detects memory errors, undefined behaviour or data races at run time. | `.omp/LOCAL_ENVIRONMENT.md` |
 | local CI | The one local script that runs every gate. | AGENTS.md |
+| urus | The engine's executable, Uppsala universitets reaktorsimulator; it reads a problem input and writes the results. | Captain, 2026-11-17 |
 | test framework | The library the engine's C++ tests are written with: GoogleTest. | Project plan §5.1, 2026-11-17 |
 | license header | The three-line GPL-3.0-or-later notice every code file of ours starts with. | AGENTS.md, License |
 | invariant check | A check of a condition the code itself guarantees; on in every build, it stops the program with its location and message when violated. | Milestone 1 plan §2 |
