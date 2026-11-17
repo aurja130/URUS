@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
@@ -17,26 +18,61 @@ EXPECTED_STEPS = [
     "toolchain",
     "license-headers",
     "clang-format",
+    "ruff check",
+    "ruff format",
+    "basedpyright",
+    "pytest",
+    "dbc",
     "preset dev-gcc",
     "preset dev-clang",
     "preset asan-ubsan-clang",
     "preset tsan-gcc",
     "preset release-gcc",
     "clang-tidy",
-    "ruff check",
-    "ruff format",
-    "basedpyright",
-    "pytest",
-    "dbc",
 ]
-PRESET_STEPS = EXPECTED_STEPS[3:8]
+PRESET_STEPS = [name for name in EXPECTED_STEPS if name.startswith("preset ")]
 
 
 def _names(steps: list[lc.Step]) -> list[str]:
     return [step.name for step in steps]
 
 
-def test_steps_follow_the_plan_order() -> None:
+def _step(name: str) -> lc.Step:
+    return next(step for step in lc.STEPS if step.name == name)
+
+
+def _record_commands(monkeypatch: pytest.MonkeyPatch) -> list[lc.Command]:
+    """Replace ``run_command`` with a recorder that passes every command it is given."""
+    calls: list[lc.Command] = []
+
+    def fake_run_command(argv: lc.Command) -> lc.Outcome:
+        calls.append(argv)
+        return True, ""
+
+    monkeypatch.setattr(lc, "run_command", fake_run_command)
+    return calls
+
+
+def _repo_files(paths: list[str]) -> Callable[[Path], list[str]]:
+    """A stand-in for ``repository_files`` that lists ``paths`` whatever the root."""
+
+    def listed(_root: Path) -> list[str]:
+        return paths
+
+    return listed
+
+
+def _write_database(root: Path, entries: list[dict[str, str]]) -> None:
+    database = root / "build" / "dev-clang" / "compile_commands.json"
+    database.parent.mkdir(parents=True)
+    database.write_text(json.dumps(entries), encoding="utf-8")
+
+
+def _tidy_passes(_source: str) -> lc.Outcome:
+    return True, ""
+
+
+def test_steps_run_cheapest_first_with_clang_tidy_last() -> None:
     assert _names(lc.STEPS) == EXPECTED_STEPS
 
 
@@ -48,6 +84,39 @@ def test_each_preset_is_configured_built_and_tested() -> None:
     )
 
 
+@pytest.mark.parametrize("preset", lc.PRESETS)
+def test_each_preset_step_configures_builds_and_tests_its_preset(
+    preset: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls = _record_commands(monkeypatch)
+    assert lc.run_step(_step(f"preset {preset}")).passed
+    assert calls == [
+        ("cmake", "--preset", preset),
+        ("cmake", "--build", "--preset", preset),
+        ("ctest", "--preset", preset),
+    ]
+
+
+@pytest.mark.parametrize(
+    ("name", "argv"),
+    [
+        ("toolchain", ("python3", "-m", "tools.toolchain.check_toolchain")),
+        ("license-headers", ("python3", "-m", "tools.ci.license_headers")),
+        ("ruff check", ("ruff", "check")),
+        ("ruff format", ("ruff", "format", "--check")),
+        ("basedpyright", ("basedpyright",)),
+        ("pytest", ("python3", "-m", "pytest")),
+        ("dbc", ("python3", "Planning/DBC/check_dbc.py")),
+    ],
+)
+def test_command_step_runs_exactly_its_command(
+    name: str, argv: lc.Command, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls = _record_commands(monkeypatch)
+    assert lc.run_step(_step(name)).passed
+    assert calls == [argv]
+
+
 def test_select_steps_keeps_the_step_order() -> None:
     assert _names(lc.select_steps(["pytest", "toolchain"])) == ["toolchain", "pytest"]
 
@@ -57,7 +126,7 @@ def test_select_steps_expands_presets() -> None:
 
 
 def test_select_steps_combines_presets_with_other_names() -> None:
-    assert _names(lc.select_steps(["dbc", "presets"])) == [*PRESET_STEPS, "dbc"]
+    assert _names(lc.select_steps(["dbc", "presets"])) == ["dbc", *PRESET_STEPS]
 
 
 def test_select_steps_without_names_selects_every_step() -> None:
@@ -76,6 +145,29 @@ def test_unknown_only_name_is_a_usage_error(capsys: pytest.CaptureFixture[str]) 
 def test_list_prints_every_step_and_runs_nothing(capsys: pytest.CaptureFixture[str]) -> None:
     assert lc.main(["--list"]) == lc.EXIT_OK
     assert capsys.readouterr().out.splitlines() == EXPECTED_STEPS
+
+
+def test_only_skips_the_other_steps_and_never_claims_a_full_pass(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    steps = [lc.Step("a", lambda: (True, "a\n")), lc.Step("b", lambda: (True, "b\n"))]
+    monkeypatch.setattr(lc, "STEPS", steps)
+    assert lc.main(["--only", "a"]) == lc.EXIT_OK
+    lines = capsys.readouterr().out.splitlines()
+    assert len(lines) == 3
+    assert lines[0] == "SKIP b"
+    assert lines[1].startswith("PASS a  (")
+    assert lines[2] == "selected steps passed (1 of 2; 1 not run)"
+
+
+def test_only_naming_every_step_is_still_a_full_run(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    steps = [lc.Step("a", lambda: (True, "a\n")), lc.Step("b", lambda: (True, "b\n"))]
+    monkeypatch.setattr(lc, "STEPS", steps)
+    assert lc.main(["--only", "a", "--only", "b"]) == lc.EXIT_OK
+    last_line = capsys.readouterr().out.splitlines()[-1]
+    assert last_line.startswith("local CI passed (2 steps,")
 
 
 def test_a_failing_command_fails_the_step_and_keeps_its_output() -> None:
@@ -108,6 +200,42 @@ def test_run_in_order_stops_at_the_first_failing_command(tmp_path: Path) -> None
     assert not marker.exists()
 
 
+def test_clang_format_checks_the_engine_sources_and_headers_only(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls = _record_commands(monkeypatch)
+    monkeypatch.setattr(
+        lc, "repository_files", _repo_files(["src/nts/a.cpp", "src/nts/b.hpp", "tools/x.py"])
+    )
+    assert lc.clang_format_check() == (True, "")
+    assert calls == [("clang-format", "--dry-run", "-Werror", "src/nts/a.cpp", "src/nts/b.hpp")]
+
+
+def test_clang_format_fails_when_clang_format_reports_a_file(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(lc, "repository_files", _repo_files(["src/nts/a.cpp"]))
+
+    def fake_run_command(_argv: lc.Command) -> lc.Outcome:
+        return False, "src/nts/a.cpp:3:1: error: code should be clang-formatted\n"
+
+    monkeypatch.setattr(lc, "run_command", fake_run_command)
+    passed, output = lc.clang_format_check()
+    assert not passed
+    assert "clang-formatted" in output
+
+
+def test_clang_format_fails_when_no_engine_source_exists(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls = _record_commands(monkeypatch)
+    monkeypatch.setattr(lc, "repository_files", _repo_files(["tools/x.py", "README.md"]))
+    passed, output = lc.clang_format_check()
+    assert not passed
+    assert "nothing was checked" in output
+    assert calls == []
+
+
 def test_tidy_sources_keeps_engine_sources_once(tmp_path: Path) -> None:
     entries = [
         {"directory": str(tmp_path), "file": "src/nts/a.cpp"},
@@ -135,15 +263,58 @@ def test_clang_tidy_needs_the_dev_clang_database(
     assert "dev-clang" in output
 
 
-def test_clang_tidy_passes_when_no_engine_source_is_listed(
+def test_clang_tidy_fails_when_no_engine_source_exists(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    database = tmp_path / "build" / "dev-clang" / "compile_commands.json"
-    database.parent.mkdir(parents=True)
-    entries = [{"directory": str(tmp_path), "file": "tools/x.cpp"}]
-    database.write_text(json.dumps(entries), encoding="utf-8")
+    _write_database(tmp_path, [{"directory": str(tmp_path), "file": "tools/x.cpp"}])
     monkeypatch.setattr(lc, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(lc, "repository_files", _repo_files(["tools/x.cpp"]))
+    passed, output = lc.clang_tidy_check()
+    assert not passed
+    assert "nothing was checked" in output
+
+
+def test_clang_tidy_fails_when_the_database_lacks_an_engine_source(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _write_database(tmp_path, [{"directory": str(tmp_path), "file": "src/nts/a.cpp"}])
+    monkeypatch.setattr(lc, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(lc, "repository_files", _repo_files(["src/nts/a.cpp", "src/nts/b.cpp"]))
+    passed, output = lc.clang_tidy_check()
+    assert not passed
+    assert "src/nts/b.cpp" in output
+    assert "src/nts/a.cpp" not in output
+    assert lc.TIDY_HINT in output
+
+
+def test_clang_tidy_passes_when_every_engine_source_passes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    sources = ["src/nts/a.cpp", "app/main.cpp"]
+    _write_database(tmp_path, [{"directory": str(tmp_path), "file": path} for path in sources])
+    monkeypatch.setattr(lc, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(lc, "repository_files", _repo_files(sources))
+    monkeypatch.setattr(lc, "_tidy_one", _tidy_passes)
     assert lc.clang_tidy_check() == (True, "")
+
+
+def test_clang_tidy_returns_the_output_of_each_failing_source(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    sources = ["src/nts/a.cpp", "src/nts/b.cpp"]
+    _write_database(tmp_path, [{"directory": str(tmp_path), "file": path} for path in sources])
+    monkeypatch.setattr(lc, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(lc, "repository_files", _repo_files(sources))
+
+    def fake_tidy_one(source: str) -> lc.Outcome:
+        if source == "src/nts/b.cpp":
+            return False, "src/nts/b.cpp:4:1: error: boom [clang-diagnostic-error]\n"
+        return True, ""
+
+    monkeypatch.setattr(lc, "_tidy_one", fake_tidy_one)
+    passed, output = lc.clang_tidy_check()
+    assert not passed
+    assert output == "src/nts/b.cpp:4:1: error: boom [clang-diagnostic-error]\n"
 
 
 def test_main_stops_at_the_first_failure_and_prints_its_tail(

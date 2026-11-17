@@ -62,10 +62,13 @@ certify another.
   conditions the code itself guarantees. It is on in every build including release,
   evaluates the condition once and the message only on failure, and on failure writes one
   line with expression, message, file, line and function to stderr and aborts.
-- **Floating-point traps.** Debug and sanitizer builds (`NTS_FLOATING_POINT_TRAPS=ON`) trap
-  invalid operations, division by zero and overflow, so a NaN or an infinity stops the run
-  with SIGFPE where it is made. Every `main` of ours calls
+- **Floating-point traps.** Every build without `NDEBUG` (Debug: the four development and
+  sanitizer presets) traps invalid operations, division by zero and overflow, so a NaN or an
+  infinity stops the run with SIGFPE where it is made; release builds do not trap. The switch
+  follows the build type and has no separate option. Every `main` of ours calls
   `nts::configure_floating_point_environment()` first. Underflow and inexact are not trapped.
+  The program tells the sanitizer runtimes not to catch SIGFPE, so a trap stops it under a
+  sanitizer too. Invariant checks and floating-point traps together are the runtime checks.
 - No raw `new`/`delete`; no mutable globals.
 
 ## 5. Equations and departures
@@ -100,10 +103,12 @@ certify another.
 ## 8. Local CI
 
 `python3 -m tools.ci.local_ci` runs every gate, cheapest first, and stops at the first
-failure: toolchain check, license headers, `clang-format --dry-run -Werror`, each preset
-(configure, build, test), clang-tidy on the `dev-clang` database, `ruff check`,
-`ruff format --check`, basedpyright, pytest, the concept-map check. `--list` names the steps;
-`--only STEP` runs a subset. A skipped step is never reported as passed.
+failure: toolchain check, license headers, `clang-format --dry-run -Werror`, `ruff check`,
+`ruff format --check`, basedpyright, pytest, the concept-map check, each preset (configure,
+build, test), and last clang-tidy on the `dev-clang` database (which the `dev-clang` step
+writes). clang-tidy fails when the database lacks any engine source of ours; a check given no
+file fails. `--list` names the steps; `--only STEP` runs a subset, prints `SKIP` for every
+other step and never ends with "local CI passed". A skipped step is never reported as passed.
 
 ## 9. License
 

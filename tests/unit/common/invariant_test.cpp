@@ -7,9 +7,13 @@
 #include <gtest/gtest.h>
 
 #include <csignal>
+#include <format>
+#include <string>
 
 namespace {
 
+// The NTS_ASSERT in require_positive sits two lines below this constant; keep them adjacent.
+constexpr int require_positive_assert_line = __LINE__ + 2;
 void require_positive(int value) {
     NTS_ASSERT(value > 0, "value must be positive");
 }
@@ -17,9 +21,11 @@ void require_positive(int value) {
 } // namespace
 
 TEST(InvariantTest, FailureAbortsWithDiagnostic) {
-    constexpr auto failure_pattern =
-        "invariant check failed: value > 0 .*value must be positive .*invariant_test\\.cpp:[0-9]+";
-    EXPECT_EXIT(require_positive(-1), testing::KilledBySignal(SIGABRT), failure_pattern);
+    const std::string failure_pattern = std::format(
+        R"(invariant check failed: value > 0 - value must be positive \[.*invariant_test\.cpp:{})"
+        R"( in .*require_positive)",
+        require_positive_assert_line);
+    EXPECT_EXIT(require_positive(-1), testing::KilledBySignal(SIGABRT), failure_pattern.c_str());
 }
 
 TEST(InvariantTest, ConditionIsEvaluatedOnce) {

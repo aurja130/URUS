@@ -18,3 +18,28 @@ void configure_floating_point_environment() {
 }
 
 } // namespace nts
+
+// The sanitizer runtimes call these hooks during startup. The floating-point trap must stop the
+// program with SIGFPE, not be reported by a sanitizer, so the runtimes' SIGFPE handler is turned
+// off here. This object is always linked: every main calls configure_floating_point_environment.
+// The hooks only return a constant; no_sanitize keeps every sanitizer out of them. Their names
+// and external linkage are fixed by the runtimes, hence the suppressed checks.
+#pragma GCC visibility push(default)
+// NOLINTBEGIN(bugprone-reserved-identifier,misc-use-internal-linkage,readability-identifier-naming)
+extern "C" {
+
+[[gnu::no_sanitize("address", "thread", "undefined")]] const char* __asan_default_options() {
+    return "handle_sigfpe=0";
+}
+
+[[gnu::no_sanitize("address", "thread", "undefined")]] const char* __tsan_default_options() {
+    return "handle_sigfpe=0";
+}
+
+[[gnu::no_sanitize("address", "thread", "undefined")]] const char* __ubsan_default_options() {
+    return "handle_sigfpe=0";
+}
+
+} // extern "C"
+// NOLINTEND(bugprone-reserved-identifier,misc-use-internal-linkage,readability-identifier-naming)
+#pragma GCC visibility pop

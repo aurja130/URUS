@@ -58,3 +58,17 @@ TEST(FloatingPointTraps, DivideOneByZeroTrapsOrYieldsInfinity) {
 TEST(FloatingPointTraps, OverflowTrapsOrYieldsInfinity) {
     expect_trap_or_ieee_result(overflow_max_times_two, false);
 }
+
+TEST(FloatingPointTraps, UnderflowAndInexactDoNotTrap) {
+    const volatile double one = 1.0;
+    const volatile double three = 3.0;
+    const volatile double smallest_normal = std::numeric_limits<double>::min();
+
+    const double inexact = one / three;
+    const double underflowing = smallest_normal / three;
+
+    EXPECT_TRUE(std::isfinite(inexact));
+    EXPECT_GT(inexact, 0.0);
+    EXPECT_TRUE(std::isfinite(underflowing));
+    EXPECT_GT(underflowing, 0.0);
+}

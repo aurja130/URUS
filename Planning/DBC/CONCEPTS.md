@@ -52,7 +52,7 @@ class Tooling partial
 | `PrimaryLoop` | The closed coolant path outside the core: plena, hot and cold legs, steam generator primary side and pump. It sets the core inlet temperature, flow and boron. | primary loop, heat load | planned |
 | `Coupling` | The fixed-point iteration that brings neutronics, core thermal-hydraulics and loop to one consistent state, at steady state and in every time step, and the choice of the time steps. | Picard iteration, time step | planned |
 | `Results` | What a run returns: solution fields, time histories, edits, and the record of convergence, table clamps and balances that every result carries. | run record, convergence state | planned |
-| `Tooling` | The repository's own tools: the pinned toolchain, build presets, local checks and the agents' usage guard. | toolchain pin, usage guard | partial |
+| `Tooling` | The repository's own tools and the development safety nets built into the engine: the pinned toolchain, build presets, local checks, runtime checks and the agents' usage guard. Changed 2026-11-17; was "The repository's own tools: the pinned toolchain, build presets, local checks and the agents' usage guard." | toolchain pin, usage guard, runtime checks | partial |
 
 ### L2 · Problem input (`ProblemInput`)
 ```mermaid

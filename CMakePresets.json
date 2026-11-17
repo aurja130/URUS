@@ -13,7 +13,6 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_CXX_COMPILER": "g++",
-                "NTS_FLOATING_POINT_TRAPS": "ON",
                 "NTS_SANITIZERS": ""
             }
         },
@@ -23,7 +22,6 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_CXX_COMPILER": "clang++",
-                "NTS_FLOATING_POINT_TRAPS": "ON",
                 "NTS_SANITIZERS": ""
             }
         },
@@ -33,7 +31,6 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_CXX_COMPILER": "clang++",
-                "NTS_FLOATING_POINT_TRAPS": "ON",
                 "NTS_SANITIZERS": "address,undefined"
             }
         },
@@ -43,7 +40,6 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_CXX_COMPILER": "g++",
-                "NTS_FLOATING_POINT_TRAPS": "ON",
                 "NTS_SANITIZERS": "thread"
             }
         },
@@ -53,7 +49,6 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
                 "CMAKE_CXX_COMPILER": "g++",
-                "NTS_FLOATING_POINT_TRAPS": "OFF",
                 "NTS_SANITIZERS": ""
             }
         }
@@ -79,7 +74,7 @@
             "inherits": "base-test",
             "configurePreset": "asan-ubsan-clang",
             "environment": {
-                "ASAN_OPTIONS": "abort_on_error=1:detect_leaks=1:handle_sigfpe=0",
+                "ASAN_OPTIONS": "abort_on_error=1:detect_leaks=1",
                 "UBSAN_OPTIONS": "halt_on_error=1:print_stacktrace=1"
             }
         },
@@ -87,7 +82,7 @@
             "name": "tsan-gcc",
             "inherits": "base-test",
             "configurePreset": "tsan-gcc",
-            "environment": { "TSAN_OPTIONS": "halt_on_error=1:handle_sigfpe=0" }
+            "environment": { "TSAN_OPTIONS": "halt_on_error=1" }
         },
         { "name": "release-gcc", "inherits": "base-test", "configurePreset": "release-gcc" }
     ]

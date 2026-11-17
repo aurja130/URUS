@@ -115,13 +115,14 @@ script `tools/ci/local_ci.py`. The toolchain manifest extended with GoogleTest a
 | `release-gcc` | GCC | Release, `-O3` | Invariant checks stay on |
 
 **Local CI**, cheapest step first; a failed step is a failed run: toolchain check, license
-header check, `clang-format --dry-run -Werror`, every preset (configure, build, `ctest`),
-`clang-tidy` on the `dev-clang` database, `ruff check`, `ruff format --check`,
-`basedpyright`, `pytest`, `check_dbc.py`. Prints one pass/fail line per step.
+header check, `clang-format --dry-run -Werror`, `ruff check`, `ruff format --check`,
+`basedpyright`, `pytest`, `check_dbc.py`, every preset (configure, build, `ctest`), and
+`clang-tidy` on the `dev-clang` database. Prints one pass/fail line per step.
 
 **DBC.** `dbc.toml` `test_globs` gains `tests/**/*_test.cpp` so that engine tests count; this
 is a configuration change the Captain approves with this plan. Nodes: `BuildPresets`,
-`LocalCi`, `ToolchainPin`.
+`LocalCi`, `ToolchainPin`, and `RuntimeChecks` (added in review: the invariant check and the
+floating-point trap fitted no node).
 
 **Acceptance.** All presets build and pass; the local CI passes; a test shows that
 `NTS_ASSERT` aborts with its message; another shows that a floating-point trap stops the
@@ -362,3 +363,4 @@ skipped case is reported as skipped, never as passed.
 | 2026-11-17 | The Captain named the executable `urus` (Uppsala universitets reaktorsimulator); library `nts_core` and namespace `nts` approved. |
 | 2026-11-17 | Approved by the Captain as a working plan; GoogleTest installed. |
 | 2026-11-17 | The Captain set the branch workflow: one branch per milestone (`milestone-1`, from `main`) and one per sub-milestone (`milestone-1.<k>`, from `milestone-1`); each merges into its parent when it closes (§7). Sub-milestone 1.1 started; its contract frozen as written. |
+| 2026-11-17 | 1.1 review: the local CI order follows its own rule, cheapest step first (the Python checks and the concept-map check now run before the preset builds, clang-tidy last on the database the `dev-clang` step writes); the floating-point trap follows the build type (`NDEBUG`) instead of a separate CMake option. |

@@ -4,13 +4,14 @@
 
 #pragma once
 
-#ifndef NTS_FLOATING_POINT_TRAPS
-#error "NTS_FLOATING_POINT_TRAPS must be defined by the build system"
-#endif
-
 namespace nts {
 
-inline constexpr bool floating_point_traps_enabled = (NTS_FLOATING_POINT_TRAPS != 0);
+// Traps are on in every build without NDEBUG (Debug and the sanitizer presets) and off in release.
+#ifdef NDEBUG
+inline constexpr bool floating_point_traps_enabled = false;
+#else
+inline constexpr bool floating_point_traps_enabled = true;
+#endif
 
 // Makes invalid, divide-by-zero and overflow operations raise SIGFPE; no-op when traps are off.
 void configure_floating_point_environment();

@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Aurora Jahan
 # Licensed under the GNU GPL v3 or later, WITHOUT ANY WARRANTY; see LICENSE.
-"""Check that every tracked source file starts with the project license header.
+"""Check that every tracked or untracked, not ignored, code file of ours starts with the
+project license header.
 
 Usage (from the repository root)::
 
@@ -16,9 +17,9 @@ and CMake, ``// `` for C++)::
     <marker>Copyright (C) <YYYY> Aurora Jahan
     <marker>Licensed under the GNU GPL v3 or later, WITHOUT ANY WARRANTY; see LICENSE.
 
-The year must be between 2000 and the current year. Files under ``external/``, ``Resources/``
-and ``build/``, and the DBC checker ``Planning/DBC/check_dbc.py`` (read-only planning material),
-are not checked.
+The year must be between 2026, the year of the repository's first commit, and the current year.
+Files under ``external/``, ``Resources/`` and ``build/``, and the DBC checker
+``Planning/DBC/check_dbc.py`` (read-only planning material), are not checked.
 
 Exit codes: 0 all headers correct; 1 a header is wrong or missing; 2 usage error.
 """
@@ -36,7 +37,7 @@ from tools.ci import REPO_ROOT, repository_files
 
 EXIT_OK = 0
 EXIT_FAILED = 1
-FIRST_YEAR = 2000
+FIRST_YEAR = 2026
 HEADER_LINES = 3
 EXCLUDED_TOP_DIRS = ("external", "Resources", "build")
 EXCLUDED_FILES = ("Planning/DBC/check_dbc.py",)
@@ -117,7 +118,10 @@ def check_files(root: Path, paths: Iterable[str], current_year: int) -> list[tup
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="python3 -m tools.ci.license_headers",
-        description="Check the license header of every tracked source file.",
+        description=(
+            "Check the license header of every tracked or untracked, not ignored, "
+            "code file of ours."
+        ),
         epilog="exit codes: 0 all headers correct, 1 a header is wrong, 2 usage error",
     )
     parser.parse_args(argv)

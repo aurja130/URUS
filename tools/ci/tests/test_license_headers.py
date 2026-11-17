@@ -59,15 +59,15 @@ def test_hash_comments_in_a_cpp_file_are_wrong_on_line_one() -> None:
     assert problem.startswith("license header line 1 must be '// SPDX")
 
 
-@pytest.mark.parametrize("year", ["2000", "2026"])
+@pytest.mark.parametrize("year", ["2026"])
 def test_years_in_range_pass(year: str) -> None:
     assert lh.header_problem("tools/x.py", _header("# ", year), CURRENT_YEAR) is None
 
 
-@pytest.mark.parametrize("year", ["1999", "2027"])
+@pytest.mark.parametrize("year", ["2025", "2027"])
 def test_years_out_of_range_are_reported(year: str) -> None:
     problem = lh.header_problem("tools/x.py", _header("# ", year), CURRENT_YEAR)
-    assert problem == f"copyright year {year} is outside 2000..{CURRENT_YEAR}"
+    assert problem == f"copyright year {year} is outside 2026..{CURRENT_YEAR}"
 
 
 def test_wrong_license_line_is_reported() -> None:
@@ -76,6 +76,18 @@ def test_wrong_license_line_is_reported() -> None:
     problem = lh.header_problem("tools/x.py", "\n".join(lines) + "\n", CURRENT_YEAR)
     assert problem is not None
     assert problem.startswith("license header line 3 must be")
+
+
+@pytest.mark.parametrize(
+    "line2",
+    ["# Copyright (C) 2026 Someone Else", "// Copyright (C) 2026 Aurora Jahan"],
+)
+def test_wrong_copyright_line_is_reported(line2: str) -> None:
+    lines = _header("# ").splitlines()
+    lines[1] = line2
+    problem = lh.header_problem("tools/x.py", "\n".join(lines) + "\n", CURRENT_YEAR)
+    assert problem is not None
+    assert problem.startswith("license header line 2 must read")
 
 
 def test_candidate_files_select_sources_and_skip_excluded_paths() -> None:
