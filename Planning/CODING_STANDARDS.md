@@ -107,8 +107,9 @@ failure: toolchain check, license headers, `clang-format --dry-run -Werror`, `ru
 `ruff format --check`, basedpyright, pytest, the concept-map check, each preset (configure,
 build, test), and last clang-tidy on the `dev-clang` database (which the `dev-clang` step
 writes). clang-tidy fails when the database lacks any engine source of ours; a check given no
-file fails. `--list` names the steps; `--only STEP` runs a subset, prints `SKIP` for every
-other step and never ends with "local CI passed". A skipped step is never reported as passed.
+file fails. `--list` names the steps; `--only STEP` runs a subset; when it leaves a step out it
+prints `SKIP` for it and does not end with "local CI passed". A skipped step is never reported
+as passed.
 
 ## 9. License
 

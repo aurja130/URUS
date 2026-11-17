@@ -12,6 +12,15 @@
 
 namespace {
 
+// The policy, stated here independently of the code under test: builds without NDEBUG trap.
+#ifdef NDEBUG
+constexpr bool traps_expected = false;
+#else
+constexpr bool traps_expected = true;
+#endif
+static_assert(nts::floating_point_traps_enabled == traps_expected,
+              "floating-point traps must be on exactly in builds without NDEBUG");
+
 double divide_zero_by_zero() {
     const volatile double numerator = 0.0;
     const volatile double denominator = 0.0;
@@ -33,7 +42,7 @@ double overflow_max_times_two() {
 }
 
 void expect_trap_or_ieee_result(double (*operation)(), bool yields_nan) {
-    if constexpr (nts::floating_point_traps_enabled) {
+    if constexpr (traps_expected) {
         EXPECT_EXIT(operation(), testing::KilledBySignal(SIGFPE), "");
     } else {
         const double result = operation();

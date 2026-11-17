@@ -10,7 +10,7 @@ is still planned and absent here.
 | `BuildPresets` | `CMakeLists.txt` `nts_warnings` `NTS_SANITIZERS` `CMAKE_CXX_SCAN_FOR_MODULES` | C++23 without extensions, no module scanning; warnings as errors on our targets only; the sanitizer switch the presets set. |
 | `BuildPresets` | `src/CMakeLists.txt` `nts_core` | The engine library. |
 | `BuildPresets` | `tests/unit/CMakeLists.txt` `nts_unit_tests` `gtest_discover_tests` | The unit-test executable; CTest discovers each test. |
-| `LocalCi` | `tools/ci/local_ci.py` `STEPS` `PRESETS` `Step` `select_steps` `run_steps` `clang_tidy_check` `clang_format_check` `main` | Run as `python3 -m tools.ci.local_ci`; cheapest step first, clang-tidy last; stops at the first failed step; an `--only` run prints `SKIP` for the other steps and never reports a full pass. |
+| `LocalCi` | `tools/ci/local_ci.py` `STEPS` `PRESETS` `Step` `select_steps` `run_steps` `clang_tidy_check` `clang_format_check` `main` | Run as `python3 -m tools.ci.local_ci`; cheapest step first, clang-tidy last; stops at the first failed step; an `--only` run that leaves a step out prints `SKIP` for it and never reports a full pass. |
 | `LocalCi` | `tools/ci/license_headers.py` `header_problem` `candidate_files` `check_files` | The license-header step. |
 | `LocalCi` | `tools/ci/__init__.py` `repository_files` | The files of ours: tracked plus untracked, not ignored. |
 | `LocalCi` | `.clang-format` | Formatting rules the clang-format step enforces. |

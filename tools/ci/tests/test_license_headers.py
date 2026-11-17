@@ -143,3 +143,15 @@ def test_main_lists_bad_files_and_fails(
     out = capsys.readouterr().out
     assert f"bad.py: {MISSING_HASH_HEADER}\n" in out
     assert "license headers FAILED: 1 of 1 files" in out
+
+
+def test_main_fails_when_no_code_file_is_found(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    def tracked(_root: Path) -> list[str]:
+        return ["README.md", "external/x.py"]
+
+    monkeypatch.setattr(lh, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(lh, "repository_files", tracked)
+    assert lh.main([]) == lh.EXIT_FAILED
+    assert "nothing was checked" in capsys.readouterr().out

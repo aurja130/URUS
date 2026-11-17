@@ -48,6 +48,7 @@ PRESETS = ("dev-gcc", "dev-clang", "asan-ubsan-clang", "tsan-gcc", "release-gcc"
 PRESETS_SHORTHAND = "presets"
 TIDY_BUILD_DIR = "build/dev-clang"
 TIDY_HINT = "rerun cmake --preset dev-clang"
+TIDY_UNLISTED_HINT = f"add each to a CMake target, or {TIDY_HINT}"
 SOURCE_DIRS = ("src", "tests", "app")
 CLANG_FORMAT_SUFFIXES = (".cpp", ".hpp", ".h")
 TIDY_SUFFIXES = (".cpp",)
@@ -161,7 +162,7 @@ def clang_tidy_check() -> Outcome:
         names = "".join(f"    {path}\n" for path in missing)
         return False, (
             f"{TIDY_BUILD_DIR}/compile_commands.json lacks {len(missing)} engine source(s):\n"
-            f"{names}{TIDY_HINT}"
+            f"{names}{TIDY_UNLISTED_HINT}"
         )
     with ThreadPoolExecutor(max_workers=os.cpu_count()) as pool:
         results = list(pool.map(_tidy_one, expected))

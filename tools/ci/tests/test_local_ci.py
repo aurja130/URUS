@@ -284,6 +284,7 @@ def test_clang_tidy_fails_when_the_database_lacks_an_engine_source(
     assert not passed
     assert "src/nts/b.cpp" in output
     assert "src/nts/a.cpp" not in output
+    assert "add each to a CMake target" in output
     assert lc.TIDY_HINT in output
 
 

@@ -122,7 +122,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             "Check the license header of every tracked or untracked, not ignored, "
             "code file of ours."
         ),
-        epilog="exit codes: 0 all headers correct, 1 a header is wrong, 2 usage error",
+        epilog=(
+            "exit codes: 0 all headers correct, 1 a header is wrong or no file was checked, "
+            "2 usage error"
+        ),
     )
     parser.parse_args(argv)
     paths = repository_files(REPO_ROOT)
@@ -132,6 +135,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"{path}: {reason}")
     if problems:
         print(f"license headers FAILED: {len(problems)} of {checked} files")
+        return EXIT_FAILED
+    if checked == 0:
+        print("license headers FAILED: no code file of ours found; nothing was checked")
         return EXIT_FAILED
     print(f"license headers passed ({checked} files)")
     return EXIT_OK
