@@ -5,6 +5,7 @@ The glossary of the concept map. It links to [CONCEPTS](CONCEPTS.md), [CODE](COD
 [the theory manual](../THEORY_MANUAL.md), where every equation behind a term is stated and
 cited; "Vision §n" is a section of [the vision](../VISION.md). D1–D5 are the departures and
 O1–O14 the decisions recorded in TM §20.2 and §21. The notation of the equations is TM §2.
+"Project plan §n" is a section of [the project plan](../PROJECT_PLAN.md).
 
 ## Neutronics
 
@@ -125,6 +126,19 @@ O1–O14 the decisions recorded in TM §20.2 and §21. The notation of the equat
 | validity flag | The mark of a library entry that holds no physical value, such as an empty tally. | TM §19.3, item L14 |
 | reflector | Non-fuel material around the core whose data come from fuel-and-reflector models. | TM §5.9, §19.3 |
 
+## Plant states and measurements
+
+| Term | Meaning | Decision |
+| --- | --- | --- |
+| hot zero power | The reactor critical at operating temperature and pressure with negligible fission power, so no fuel or coolant feedback; the state of the BEAVRS startup physics tests. | BEAVRS §3; TM §19.2 |
+| hot full power | The reactor at rated power with its operating temperatures and flows. | TM §19.2 |
+| power defect | The reactivity lost between hot zero power and hot full power, from the fuel and coolant temperature rise. | TM §19.2 |
+| bank worth | The reactivity a rod bank removes when inserted, measured at hot zero power. | BEAVRS §3.2; TM §19.2 |
+| flux map | A set of in-core detector signals measured across the core at one time. | BEAVRS §3.1–3.3; TM §13.7 |
+| scram | Insertion of all rod banks at once to shut the reactor down. | TM §12 |
+| depletion | The change of fuel composition with burnup over a cycle. Out of scope. | TM §0.1 |
+| beginning of cycle | The fresh core of a cycle, before depletion matters; the only part of a cycle this simulator models. | TM §0.1 |
+
 ## Tooling and working words
 
 | Term | Meaning | Decision |
@@ -134,6 +148,10 @@ O1–O14 the decisions recorded in TM §20.2 and §21. The notation of the equat
 | build preset | A named build configuration of the engine. | AGENTS.md |
 | sanitizer | A compiler instrumentation that detects memory errors, undefined behaviour or data races at run time. | `.omp/LOCAL_ENVIRONMENT.md` |
 | local CI | The one local script that runs every gate. | AGENTS.md |
+| milestone | One large step of the project plan with its own milestone plan; engine milestones 1–6 carry the numbers of the vision's stages. | Project plan §1 |
+| data milestone | A milestone that produces nodal data or reference solutions with OpenMC, beside the engine milestones: DM1 and DM2. | Project plan §4 |
+| sub-milestone | The part of a milestone one session delivers; its contract freezes when it starts. | AGENTS.md |
+| gate | The checks a snapshot must pass before a milestone or sub-milestone closes. | AGENTS.md; Project plan §2 |
 | departure | A method that differs from PARCS or SIMULATE-5 and needs the Captain's approval; D1–D5. | TM §20.2 |
 | verification | Showing that the code solves its equations correctly. | TM §19.2 |
 | validation | Showing that the equations describe the reactor. | TM §19.2 |
