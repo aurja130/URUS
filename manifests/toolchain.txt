@@ -23,4 +23,6 @@ clang-format  22.1.8    /usr/bin/clang-format
 ctags         6.2.1     /usr/bin/ctags
 hdf5          1.14.6    /usr/bin/h5c++
 openmc        0.15.4    ~/.local/bin/openmc
+gtest         1.17.0    /usr/bin/pkg-config
+eigen         5.0.1     /usr/bin/pkg-config
 glibc         2.43

@@ -160,9 +160,12 @@ O1–O14 the decisions recorded in TM §20.2 and §21. The notation of the equat
 | test framework | The library the engine's C++ tests are written with: GoogleTest. | Project plan §5.1, 2026-11-17 |
 | license header | The three-line GPL-3.0-or-later notice every code file of ours starts with. | AGENTS.md, License |
 | invariant check | A check of a condition the code itself guarantees; on in every build, it stops the program with its location and message when violated. | Milestone 1 plan §2 |
+| floating-point trap | A hardware exception, switched on at program start in debug and sanitizer builds, that stops the program with SIGFPE at the operation that makes a NaN (invalid operation), divides by zero or overflows. Underflow and inexact results are not trapped. | Milestone 1 plan §2 |
+| runtime checks | The invariant checks and floating-point traps together. | Coding standards §4, 2026-11-17 |
 | milestone | One large step of the project plan with its own milestone plan; engine milestones 1–6 carry the numbers of the vision's stages. | Project plan §1 |
 | data milestone | A milestone that produces nodal data or reference solutions with OpenMC, beside the engine milestones: DM1 and DM2. | Project plan §4 |
 | sub-milestone | The part of a milestone one session delivers; its contract freezes when it starts. | AGENTS.md |
+| milestone branch, sub-milestone branch | The git branch a milestone (`milestone-<n>`, from `main`) or sub-milestone (`milestone-<n>.<k>`, from its milestone branch) is built on; each merges into its parent when it closes. | Captain, 2026-11-17 |
 | gate | The checks a snapshot must pass before a milestone or sub-milestone closes. | AGENTS.md; Project plan §2 |
 | prerequisite | Something the Captain does so that a milestone can proceed: decide, obtain a document, approve and give machine time to OpenMC runs, or approve an assembled data set. Each is presented to her only when it is due. | Project plan §5 |
 | departure | A method that differs from PARCS or SIMULATE-5 and needs the Captain's approval; D1–D5. | TM §20.2 |

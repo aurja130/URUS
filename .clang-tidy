@@ -1,0 +1,23 @@
+# Disabled checks, with the reason for each:
+#   modernize-use-trailing-return-type: the codebase keeps leading return types.
+#   readability-identifier-length: short names are idiomatic for physics symbols.
+#   bugprone-easily-swappable-parameters: numeric kernels take many same-typed quantities.
+#   readability-magic-numbers: physical constants are named where they carry meaning.
+Checks: 'bugprone-*,performance-*,modernize-*,readability-*,misc-*,clang-analyzer-*,-modernize-use-trailing-return-type,-readability-identifier-length,-bugprone-easily-swappable-parameters,-readability-magic-numbers'
+WarningsAsErrors: '*'
+HeaderFilterRegex: '.*/(src|tests|app)/.*'
+CheckOptions:
+  readability-identifier-naming.ClassCase: CamelCase
+  readability-identifier-naming.StructCase: CamelCase
+  readability-identifier-naming.EnumCase: CamelCase
+  readability-identifier-naming.FunctionCase: lower_case
+  readability-identifier-naming.VariableCase: lower_case
+  readability-identifier-naming.ParameterCase: lower_case
+  readability-identifier-naming.MemberCase: lower_case
+  readability-identifier-naming.PrivateMemberSuffix: _
+  readability-identifier-naming.ProtectedMemberSuffix: _
+  readability-identifier-naming.ConstexprVariableCase: lower_case
+  readability-identifier-naming.MacroDefinitionCase: UPPER_CASE
+  readability-identifier-naming.NamespaceCase: lower_case
+  misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic: true
+  readability-function-cognitive-complexity.IgnoreMacros: true

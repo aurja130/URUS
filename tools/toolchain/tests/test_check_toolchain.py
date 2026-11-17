@@ -38,6 +38,8 @@ SAMPLE_OUTPUTS = {
         "OpenMC version 0.15.4-dev94\nCommit hash: 417343c9203c9337547d1eeeefb8a9fd0ec536fd\n",
         "0.15.4",
     ),
+    "gtest": ("1.17.0\n", "1.17.0"),
+    "eigen": ("5.0.1\n", "5.0.1"),
 }
 
 
@@ -147,3 +149,25 @@ def test_display_path() -> None:
         ct.display_path(ct.REPO_ROOT / "manifests" / "toolchain.txt") == "manifests/toolchain.txt"
     )
     assert ct.display_path("/usr/bin/gcc") == "/usr/bin/gcc"
+
+
+def test_unknown_pkg_config_package_fails_with_hint() -> None:
+    result = ct.evaluate_version_output(
+        _spec("gtest"), "/usr/bin/pkg-config", "Package 'gtest' not found\n"
+    )
+    assert result.status is ct.Status.FAIL
+    assert "install GoogleTest (dnf install gtest-devel)" in result.detail
+
+
+def test_unknown_pkg_config_package_fails_through_check_tool() -> None:
+    spec = ct.ToolSpec(
+        "nosuch",
+        "pkg-config",
+        _spec("gtest").version_re,
+        (1,),
+        "install nosuch",
+        ("--modversion", "sim-no-such-package-xyz"),
+    )
+    result = ct.check_tool(spec)
+    assert result.status is ct.Status.FAIL
+    assert "install nosuch" in result.detail

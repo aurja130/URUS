@@ -387,8 +387,9 @@ classDef external fill:#eeeeee,stroke:#9e9e9e,stroke-dasharray:1 3,color:#616161
 ToolchainPin["Toolchain pin"] -.->|pins compilers and tools for| BuildPresets["Build presets"]
 BuildPresets -->|configured builds| LocalCi["Local CI"]
 UsageGuard["Usage guard"]
+BuildPresets -.->|switches floating-point traps in| RuntimeChecks["Runtime checks"]
 class UsageGuard implemented
-class ToolchainPin,BuildPresets,LocalCi partial
+class ToolchainPin,BuildPresets,LocalCi,RuntimeChecks partial
 ```
 
 | Node | Meaning | Terms | Status |
@@ -397,3 +398,4 @@ class ToolchainPin,BuildPresets,LocalCi partial
 | `UsageGuard` | The check agents run at batch boundaries that reads the cached usage of the model provider and says whether to continue, wait or stop. | usage guard | implemented |
 | `BuildPresets` | Named build configurations: compilers, warnings as errors, sanitizers, release and debug. | build preset, sanitizer | partial |
 | `LocalCi` | One local script that builds the presets, runs the tests, formatters, linters and the concept-map check, and reports pass or fail. | local CI | partial |
+| `RuntimeChecks` | The checks inside the engine that stop a run where it goes wrong: invariant checks in every build, and floating-point traps in debug and sanitizer builds so that a NaN or an infinity stops the program where it is made. | invariant check, floating-point trap | partial |
