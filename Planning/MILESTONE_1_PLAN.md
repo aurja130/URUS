@@ -1,7 +1,8 @@
 # Milestone 1 Plan · Core engine: steady-state nodal neutronics
 
-**Status.** Draft for the Captain's approval, 2026-11-17. Nothing below is frozen until she
-approves; each sub-milestone's contract freezes when its session starts (§4).
+**Status.** Approved by the Captain, 2026-11-17, as a working plan: problems found during
+implementation are corrected through §9. Each sub-milestone's contract freezes when its
+session starts (§4).
 
 **Outcome** (Project plan §3). The engine reads a problem input and a nodal library, solves
 the steady-state two-group eigenvalue problem with CMFD and the ANM/NEM hybrid, computes the
@@ -30,7 +31,7 @@ core of Project plan §2 item 3.
 
 | Category | Item | Due | Presented |
 |---|---|---|---|
-| Obtain | Install GoogleTest: `sudo dnf install gtest-devel` (1.17.0, BSD-3-Clause) | Start of 1.1 | Now |
+| Obtain | Install GoogleTest: `sudo dnf install gtest-devel` (1.17.0, BSD-3-Clause) | Start of 1.1 | Done 2026-11-17 (`gtest-devel-1.17.0-2.fc44`) |
 | Obtain | IAEA 2D and 3D PWR specifications, reference eigenvalues and assembly powers (ANL-7416 Suppl. 2, TM Appendix D) | Start of 1.5 (scope item 5) | When 1.5 is planned |
 
 The statepoints in `~/Programming/OpenMC_inputs/BEAVRS_minimal/beavrs_parameter_sweep/`
@@ -357,3 +358,4 @@ skipped case is reported as skipped, never as passed.
 |---|---|
 | 2026-11-17 | First version, with P1, P6 and the three start decisions of §1.1. |
 | 2026-11-17 | The Captain named the executable `urus` (Uppsala universitets reaktorsimulator); library `nts_core` and namespace `nts` approved. |
+| 2026-11-17 | Approved by the Captain as a working plan; GoogleTest installed. |
