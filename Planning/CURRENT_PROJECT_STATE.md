@@ -38,6 +38,7 @@ States: open, done (with date), waived (by the Captain, with date).
 | 1 | Decide | P6: the C++ standard | Start | Done 2026-11-17: C++23 |
 | 1 | Decide | P1: data work as separate data milestones | Start | Done 2026-11-17: yes |
 | 1 | Obtain | GoogleTest installed (`gtest-devel`) | Scope 1 | Done 2026-11-17: `gtest-devel-1.17.0-2.fc44` |
+| 1 | Obtain | Statepoint archive published on Zenodo, DOI recorded | Before 1.2 | Open: archive staged 2026-11-18, upload by the Captain |
 | 1 | Obtain | IAEA 2D and 3D PWR specifications, reference eigenvalues and assembly powers | Scope 5 | Open |
 | DM1 | Decide | P2: reflector data, discontinuity factors, form functions and rodded data generated now | Start | Open |
 | DM1 | Decide | O5: effective or physical delayed-neutron fractions | Start | Open |
