@@ -33,14 +33,18 @@ core of Project plan §2 item 3.
 |---|---|---|---|
 | Obtain | Install GoogleTest: `sudo dnf install gtest-devel` (1.17.0, BSD-3-Clause) | Start of 1.1 | Done 2026-11-17 (`gtest-devel-1.17.0-2.fc44`) |
 | Obtain | IAEA 2D and 3D PWR specifications, reference eigenvalues and assembly powers (ANL-7416 Suppl. 2, TM Appendix D) | Start of 1.5 (scope item 5) | When 1.5 is planned |
-| Obtain | Statepoint archive published on Zenodo, its DOI recorded here | Before 1.2 starts | Presented 2026-11-18; archive staged, upload by the Captain |
+| Obtain | Statepoint archive published on Zenodo | Before 1.2 starts | Waived 2026-11-18 by the Captain: risk accepted for milestone 1; the upload moved to DM1's close (Project plan §5.2) |
 
 The statepoints in `~/Programming/OpenMC_inputs/BEAVRS_minimal/beavrs_parameter_sweep/`
 (610 MB) are in no repository. If they are lost, the present library can only be rebuilt
 with 72 new OpenMC runs (8.3 h). The library writer records the SHA-256 of each one it reads.
-**Backup (decided 2026-11-18):** the whole directory goes to a public Zenodo record, staged
-in `~/Programming/OpenMC_inputs/zenodo_beavrs_parameter_sweep/` (archive, SHA-256 of every
-file, README, BEAVRS MIT notice). This plan does not commit them.
+**Risk accepted (2026-11-18):** the Captain keeps no backup during milestone 1; losing the
+files costs the 72 runs, or turns the bit-identical re-extraction benchmark into a
+statistical one. They go to Zenodo together with the DM1 statepoints when DM1 closes. The
+README, `SHA256SUMS` of the present files and the BEAVRS MIT notice stay in
+`~/Programming/OpenMC_inputs/zenodo_beavrs_parameter_sweep/`; the README needs a limitations
+section first (low statistics, boron fixed at 975 ppm, rods all in or all out, code exercise
+only). This plan does not commit them.
 
 ## 2. Engineering baseline (all sub-milestones)
 
@@ -354,7 +358,7 @@ skipped case is reported as skipped, never as passed.
 
 | Risk | Consequence | Mitigation |
 |---|---|---|
-| Statepoints outside any repository | Library not rebuildable without 72 runs | SHA-256 recorded; Zenodo record (§1.2) |
+| Statepoints outside any repository | Library not rebuildable without 72 runs | SHA-256 recorded; risk accepted by the Captain until DM1's Zenodo record (§1.2) |
 | Library about 130 MB with standard deviations | Submodule history grows | gzip with shuffle filter in HDF5 |
 | ANM overflow or cancellation | NaN or lost digits at large or small node buckling | Scaled hyperbolics and the series of TM §5.5; floating-point traps; unit tests at both ends |
 | Eigen's stopping criterion differs from PARCS's | Inner iterations stop at the wrong residual | Tolerance rescaled to the starting residual each call; a test checks the reduction |
@@ -372,3 +376,4 @@ skipped case is reported as skipped, never as passed.
 | 2026-11-17 | 1.1 review: the local CI order follows its own rule, cheapest step first (the Python checks and the concept-map check now run before the preset builds, clang-tidy last on the database the `dev-clang` step writes); the floating-point trap follows the build type (`NDEBUG`) instead of a separate CMake option. |
 | 2026-11-17 | 1.1 closed: both reviews approved after two rounds; nodes `ToolchainPin`, `BuildPresets`, `LocalCi`, `RuntimeChecks` and `Tooling` implemented; merged into `milestone-1`. |
 | 2026-11-18 | The Captain chose a public Zenodo record as the statepoints' backup (§1.2); the archive is staged and its upload is hers. |
+| 2026-11-18 | Reversed the same day: the present library serves only as a code-path exercise, so the Captain accepted the risk for milestone 1; the statepoints go to Zenodo with the DM1 data (Project plan §5.2). |

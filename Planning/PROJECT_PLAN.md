@@ -315,6 +315,7 @@ and is not repeated in the tables.
 | Run | The run list: assembly types, branch grid, statistics target, the tallies for O9 and O10, compute estimate | Scope 3 |
 | Run | Machine time for the pilot | Scope 3 |
 | Run | Machine time for the production runs and the reflector models | Scope 4 |
+| Obtain | A Zenodo record of the DM1 statepoints and the 72 present statepoints, its DOI recorded | Close |
 
 ### 5.3 DM2
 
@@ -392,3 +393,4 @@ each one is due.
 | 2026-11-17 | First version. |
 | 2026-11-17 | §5 rewritten as prerequisites by milestone in four categories, presented to the Captain when due; the "Needs" lines of §3 and §4 point to it. |
 | 2026-11-17 | P1 and P6 decided. Milestone 1 scope item 2: the converter is replaced by re-extraction from the statepoints in the submodule's library writer, whose contract file replaces the present library file; GoogleTest is the test framework (§5.1). Milestone plan: `MILESTONE_1_PLAN.md`. |
+| 2026-11-18 | §5.2: DM1 closes with a Zenodo record of its statepoints and the present ones; the Captain accepted the risk of keeping the present statepoints without a backup during milestone 1. |

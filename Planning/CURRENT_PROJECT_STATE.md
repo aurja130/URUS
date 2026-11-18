@@ -38,7 +38,7 @@ States: open, done (with date), waived (by the Captain, with date).
 | 1 | Decide | P6: the C++ standard | Start | Done 2026-11-17: C++23 |
 | 1 | Decide | P1: data work as separate data milestones | Start | Done 2026-11-17: yes |
 | 1 | Obtain | GoogleTest installed (`gtest-devel`) | Scope 1 | Done 2026-11-17: `gtest-devel-1.17.0-2.fc44` |
-| 1 | Obtain | Statepoint archive published on Zenodo, DOI recorded | Before 1.2 | Open: archive staged 2026-11-18, upload by the Captain |
+| 1 | Obtain | Statepoint archive published on Zenodo | Before 1.2 | Waived 2026-11-18 by the Captain: risk accepted; moved to DM1 close |
 | 1 | Obtain | IAEA 2D and 3D PWR specifications, reference eigenvalues and assembly powers | Scope 5 | Open |
 | DM1 | Decide | P2: reflector data, discontinuity factors, form functions and rodded data generated now | Start | Open |
 | DM1 | Decide | O5: effective or physical delayed-neutron fractions | Start | Open |
@@ -47,6 +47,7 @@ States: open, done (with date), waived (by the Captain, with date).
 | DM1 | Run | Run list | Scope 3 | Open |
 | DM1 | Run | Machine time for the pilot | Scope 3 | Open |
 | DM1 | Run | Machine time for the production runs and reflector models | Scope 4 | Open |
+| DM1 | Obtain | Zenodo record of the DM1 statepoints and the present statepoints, DOI recorded | Close | Open |
 | DM2 | Run | Run list | Start | Open |
 | DM2 | Run | Machine time for the runs | Start | Open |
 | 2 | Decide | P3: grid and nozzle loss coefficients now | Start | Open |
