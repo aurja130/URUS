@@ -37,15 +37,16 @@ Coupling -.->|iterates to convergence| CoreThermalHydraulics
 Coupling -.->|iterates to convergence| PrimaryLoop
 Coupling -->|converged state| Results["Results"]
 Tooling["Development tooling"]
-class ProblemInput,Knobs,Neutronics,CoreThermalHydraulics,PrimaryLoop,Coupling,Results planned
-class NodalLibrary,Tooling implemented
+class Knobs,Neutronics,CoreThermalHydraulics,PrimaryLoop,Coupling,Results planned
+class ProblemInput,NodalLibrary partial
+class Tooling implemented
 ```
 
 | Node | Meaning | Terms | Status |
 | --- | --- | --- | --- |
-| `ProblemInput` | Everything a run is given: the reactor description, the operating state, the knob settings or schedules and the solver options, read from one input file and checked before anything is solved. | problem input, reactor description, operating state, solver options | planned |
+| `ProblemInput` | Everything a run is given: the reactor description, the operating state, the knob settings or schedules and the solver options, read from one input file and checked before anything is solved. | problem input, reactor description, operating state, solver options | partial |
 | `Knobs` | The four controls a student may change: control rod insertion, boron, primary coolant flow and steam generator heat load, each a constant or a schedule in time. | knob, knob schedule | planned |
-| `NodalLibrary` | Homogenized cross sections and kinetics data for every composition and branch state, how they are generated with OpenMC, and the full-core reference solutions that check the nodal results. | nodal library, branch state, composition, OpenMC | implemented |
+| `NodalLibrary` | Homogenized cross sections and kinetics data for every composition and branch state, how they are generated with OpenMC, and the full-core reference solutions that check the nodal results. | nodal library, branch state, composition, OpenMC | partial |
 | `Neutronics` | Two-group nodal diffusion with eight delayed-neutron precursor groups: eigenvalue and critical boron, transient kinetics, xenon and samarium, decay heat, control rods, edits and pin powers. | two-group nodal diffusion, delayed-neutron precursor, eigenvalue | planned |
 | `CoreThermalHydraulics` | Fuel rod conduction and one coolant channel per assembly on the neutronic axial mesh, giving the Doppler temperature, moderator density and boron of every node. | fuel rod, coolant channel, Doppler temperature, moderator density | planned |
 | `PrimaryLoop` | The closed coolant path outside the core: plena, hot and cold legs, steam generator primary side and pump. It sets the core inlet temperature, flow and boron. | primary loop, heat load | planned |
@@ -64,7 +65,8 @@ ReactorDescription["Reactor description"] -->|geometry, maps, banks| InputValida
 OperatingState["Operating state"] -->|initial conditions| InputValidation
 SolverOptions["Solver options"] -->|tolerances, method choices| InputValidation
 LibraryBinding["Library binding"] -->|compositions, group structure| InputValidation
-class ReactorDescription,OperatingState,SolverOptions,LibraryBinding,InputValidation planned
+class ReactorDescription,OperatingState,SolverOptions,LibraryBinding planned
+class InputValidation partial
 ```
 
 | Node | Meaning | Terms | Status |
@@ -73,7 +75,7 @@ class ReactorDescription,OperatingState,SolverOptions,LibraryBinding,InputValida
 | `OperatingState` | The state a run starts from: power level, system pressure, core inlet temperature and flow, boron and rod positions. | operating state, system pressure | planned |
 | `SolverOptions` | Tolerances, iteration limits and method choices, such as the nodal kernel, the kernel switch threshold, the fine-mesh resolution of the cusping correction and the coupling sequence. | solver options, tolerance | planned |
 | `LibraryBinding` | Which nodal library the run uses and which library composition each node of the composition map refers to. | nodal library, composition | planned |
-| `InputValidation` | Rejects an inconsistent input before solving, including any library whose group structure is not two energy groups and eight delayed groups. | input validation, group structure | planned |
+| `InputValidation` | Rejects an inconsistent input before solving, including any library whose group structure is not two energy groups and eight delayed groups. | input validation, group structure | partial |
 
 ### L2 · Operator knobs (`Knobs`)
 ```mermaid
@@ -109,8 +111,9 @@ BranchGrid -->|branch states| FullCoreReference["Full-core reference"]
 LatticeGeneration -->|assembly data| LibraryContract["Library contract"]
 ReflectorData["Reflector data"] -->|reflector data| LibraryContract
 FullCoreReference -.->|reference powers and eigenvalues| LibraryContract
-class BranchGrid,FullCoreReference implemented
-class LatticeGeneration,ReflectorData,LibraryContract planned
+class BranchGrid implemented
+class FullCoreReference,LibraryContract partial
+class LatticeGeneration,ReflectorData planned
 ```
 
 | Node | Meaning | Terms | Status |
@@ -118,8 +121,8 @@ class LatticeGeneration,ReflectorData,LibraryContract planned
 | `BranchGrid` | The set of branch states data are generated at: a tensor grid in fuel temperature, moderator state, boron and rod state. The present grid has no boron axis. | branch state, tensor grid | implemented |
 | `LatticeGeneration` | Single-assembly OpenMC calculations with reflective boundaries, one per assembly type and branch state, giving cross sections, kinetics data, discontinuity factors and form functions. | lattice calculation, OpenMC, discontinuity factor, form function | planned |
 | `ReflectorData` | Cross sections of the radial, top and bottom reflectors from fuel-and-reflector models. | reflector, composition | planned |
-| `FullCoreReference` | Full-core OpenMC runs at library states with node-wise tallies. They produced the present library and are kept as the reference solution the nodal results must reproduce. | full-core reference, OpenMC, tally | implemented |
-| `LibraryContract` | The file layout the engine reads: quantities per composition and branch state, units, statistical uncertainties and validity flags for empty tallies. | nodal library, library contract, validity flag | planned |
+| `FullCoreReference` | Full-core OpenMC runs at library states with node-wise tallies. They produced the present library and are kept as the reference solution the nodal results must reproduce. | full-core reference, OpenMC, tally | partial |
+| `LibraryContract` | The file layout the engine reads: quantities per composition and branch state, units, statistical uncertainties and validity flags for empty tallies. | nodal library, library contract, validity flag | partial |
 
 ### L2 · Nodal neutronics (`Neutronics`)
 ```mermaid

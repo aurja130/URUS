@@ -157,7 +157,8 @@ because DM1 writes to it):
   are additive; a later milestone (rod linkage, milestone 2) adds them without changing
   what version 1 means.
 - `valid[N, axes…]` (uint8): 0 marks an entry that holds no physical value (L14). The writer
-  sets 0 where any quantity is non-finite, D ≤ 0, Σ_a ≤ 0 or Σ₁₂ < 0.
+  sets 0 where any quantity breaks its entry rule (`docs/contracts/nodal_library.md` §3.3:
+  non-finite, D ≤ 0, Σ_a ≤ 0, Σ₁₂ ≤ 0, 1/v ≤ 0, a negative σ, β or λ, …).
 - Provenance group: per entry the statepoint SHA-256 and the full-core k ± σ of the run it
   came from; OpenMC version, nuclear data library, batches, inactive batches, particles.
 
@@ -377,3 +378,4 @@ skipped case is reported as skipped, never as passed.
 | 2026-11-17 | 1.1 closed: both reviews approved after two rounds; nodes `ToolchainPin`, `BuildPresets`, `LocalCi`, `RuntimeChecks` and `Tooling` implemented; merged into `milestone-1`. |
 | 2026-11-18 | The Captain chose a public Zenodo record as the statepoints' backup (§1.2); the archive is staged and its upload is hers. |
 | 2026-11-18 | Reversed the same day: the present library serves only as a code-path exercise, so the Captain accepted the risk for milestone 1; the statepoints go to Zenodo with the DM1 data (Project plan §5.2). |
+| 2026-11-18 | 1.2 started on `milestone-1.2`; contract frozen as `docs/contracts/nodal_library.md`. Details the plan left open: one composition set `beavrs_full_core` (7650 compositions); quantity groups holding `value` and `std_dev`; every quantity has an entry rule (§3.3 of the contract), extending the writer rule above to Σ₁₂ ≤ 0 (an exact zero is an empty tally, TM §19.3), 1/v, β, λ and σ; the writer restores the ±1.8 × 10³⁰⁸ that `openmc.mgxs` substitutes for ±∞; the water density is read from each run's materials, not from its directory name; provenance per entry through a run index. |

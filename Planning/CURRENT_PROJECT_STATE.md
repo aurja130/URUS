@@ -22,7 +22,7 @@ the commit that changes any of them. Terms: [DEFINITIONS](DBC/DEFINITIONS.md).
 | Sub-milestone | Branch | State |
 |---|---|---|
 | 1.1 Foundations | `milestone-1.1` | Done 2026-11-17; merged into `milestone-1` |
-| 1.2 Library contract and the present library | — | Not started |
+| 1.2 Library contract and the present library | `milestone-1.2` | In progress since 2026-11-18; contract frozen ([nodal library contract](../docs/contracts/nodal_library.md)) |
 | 1.3 Problem input and cross-section model | — | Not started |
 | 1.4 CMFD with zero coupling corrections, eigenvalue, output | — | Not started |
 | 1.5 Nodal kernels and the interface solve | — | Not started |
