@@ -2710,7 +2710,7 @@ are deferred, as their recommendations say.
 | O2 | `VISION.md` §2.1 and §5 said the group count and the delayed-group count are not hard-coded | Edit the vision to two and eight; or keep the sentence as a long-term aim | **Decided 2026-11-16:** vision edited to two energy groups and eight delayed groups, fixed |
 | O3 | Meaning of the flow knob | Imposed flow; pump speed with loop momentum (§17.4) | **Adopted 2026-11-16:** pump speed, with imposed flow as the first implementation step |
 | O4 | System pressure | Imposed (§17.3); pressurizer model | **Adopted 2026-11-16:** imposed |
-| O5 | Effective delayed-neutron fractions | Physical $\beta_k$ as now; adjoint-weighted $\beta_k$ tallied into the library | **Deferred 2026-11-16** to the O1 generation plan; the difference is a few percent of β |
+| O5 | Effective delayed-neutron fractions | Physical $\beta_k$ as now; adjoint-weighted $\beta_k$ tallied into the library | **Deferred 2026-11-16** to the O1 generation plan; the difference is a few percent of β. **Decided 2026-11-19:** adjoint-weighted $\beta_k$ tallied into the library (DM1) |
 | O6 | Meaning of the boron knob in a transient | Uniform imposed concentration; injection with transport (§17.7) | **Adopted 2026-11-16:** injection, with uniform as the first step |
 | O7 | Transverse leakage beyond a non-reflective external face | Zero-leakage ghost node; flat extension | **Adopted 2026-11-16:** ghost node (used in §19.1 item 1) |
 | O8 | Threshold $\varepsilon_k$ of the ANM/NEM switch | Input; default to be fixed by a scan on IAEA 3D and BEAVRS | **Adopted 2026-11-16:** input, default 0.01 until the scan |

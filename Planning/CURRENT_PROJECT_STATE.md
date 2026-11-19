@@ -9,7 +9,7 @@ the commit that changes any of them. Terms: [DEFINITIONS](DBC/DEFINITIONS.md).
 | Milestone | Branch | State |
 |---|---|---|
 | 1 Core engine | `milestone-1` | In progress since 2026-11-17 ([plan](MILESTONE_1_PLAN.md), approved 2026-11-17) |
-| DM1 Single-assembly library | — | Not started; may start: the library contract froze when 1.2 closed (2026-11-19); its start decisions P2 and O5 are open |
+| DM1 Single-assembly library | — | Not started; may start: the library contract froze when 1.2 closed (2026-11-19); its start decisions P2 and O5 were made 2026-11-19 |
 | DM2 Full-core references | — | Not started |
 | 2 Coupled steady state | — | Not started |
 | 3 Kinetics | — | Not started |
@@ -40,8 +40,8 @@ States: open, done (with date), waived (by the Captain, with date).
 | 1 | Obtain | GoogleTest installed (`gtest-devel`) | Scope 1 | Done 2026-11-17: `gtest-devel-1.17.0-2.fc44` |
 | 1 | Obtain | Statepoint archive published on Zenodo | Before 1.2 | Waived 2026-11-18 by the Captain: risk accepted; moved to DM1 close |
 | 1 | Obtain | IAEA 2D and 3D PWR specifications, reference eigenvalues and assembly powers | Scope 5 | Open |
-| DM1 | Decide | P2: reflector data, discontinuity factors, form functions and rodded data generated now | Start | Open |
-| DM1 | Decide | O5: effective or physical delayed-neutron fractions | Start | Open |
+| DM1 | Decide | P2: reflector data, discontinuity factors, form functions and rodded data generated now | Start | Decided 2026-11-19: yes |
+| DM1 | Decide | O5: effective or physical delayed-neutron fractions | Start | Decided 2026-11-19: effective fractions tallied into the library |
 | DM1 | Obtain | Decay-heat curve and its group fits | Scope 2 | Open |
 | DM1 | Approve data | Decay-heat group constants (L8) | Scope 2 | Open |
 | DM1 | Run | Run list | Scope 3 | Open |

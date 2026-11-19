@@ -228,8 +228,8 @@ commits, then a pointer update here.
    cycle 1, NUREG Table 2-3); the tensor grid with a boron axis and separate moderator
    temperature and density (L4, L5), sized so that D2 needs no fallback; rodded data per
    composition and absorber type (L6); statistics target; run count and compute estimate.
-   The decisions deferred to it are made here: effective delayed fractions (O5), Doppler
-   weight (O9), direct heating fraction (O10).
+   The decisions deferred to it are made here: Doppler weight (O9), direct heating fraction
+   (O10); it also plans the tally of effective delayed fractions (O5, decided 2026-11-19).
 2. Generator changes producing L1–L3, L6–L8, L10, L12–L14 of TM §19.3. The decay-heat fits
    (L8) are input data from a decay-heat standard, not OpenMC tallies (TM §12.3).
 3. A pilot: one assembly type at one branch state through the whole chain.
@@ -378,7 +378,7 @@ each one is due.
 | ID | Question | Recommendation |
 |---|---|---|
 | P1 | Data work as separate data milestones DM1 and DM2, beside the engine milestones | Yes: OpenMC campaigns take compute time and Captain approval, not engine sessions; separating them lets both proceed. **Decided 2026-11-17: yes.** |
-| P2 | Reflector data, discontinuity factors, form functions and rodded data per composition (L1, L6, L10, L11) generated in DM1, before milestone 2, not just before milestone 5 as TM §22 allows | Yes: a lattice library without reflectors cannot run BEAVRS at all, and one lattice run produces all of them at no extra cost. The engine uses the factors from milestone 2 on, as PARCS does; milestone 5 assesses them |
+| P2 | Reflector data, discontinuity factors, form functions and rodded data per composition (L1, L6, L10, L11) generated in DM1, before milestone 2, not just before milestone 5 as TM §22 allows | Yes: a lattice library without reflectors cannot run BEAVRS at all, and one lattice run produces all of them at no extra cost. The engine uses the factors from milestone 2 on, as PARCS does; milestone 5 assesses them. **Decided 2026-11-19: yes.** |
 | P3 | Grid and nozzle loss coefficients before milestone 2, not before stage 4 as O12 says | Yes: the steady channels need them. Only the loop part of O12 waits for milestone 4 |
 | P4 | Rod banks and rodded mixing (TM §8.1–§8.2), which TM §22 does not place | Milestone 2: the hot zero power comparison is at bank D, step 213 |
 | P5 | `VISION.md` §6 lists the cycle 1 boron letdown, which needs depletion, out of scope (TM §0.1) | Narrow validation to beginning-of-cycle measurements: hot zero power physics tests, hot full power boron, beginning-of-cycle flux maps. Edit `VISION.md` §6, and §8, whose open questions TM §0.1 has answered |
@@ -394,3 +394,4 @@ each one is due.
 | 2026-11-17 | §5 rewritten as prerequisites by milestone in four categories, presented to the Captain when due; the "Needs" lines of §3 and §4 point to it. |
 | 2026-11-17 | P1 and P6 decided. Milestone 1 scope item 2: the converter is replaced by re-extraction from the statepoints in the submodule's library writer, whose contract file replaces the present library file; GoogleTest is the test framework (§5.1). Milestone plan: `MILESTONE_1_PLAN.md`. |
 | 2026-11-18 | §5.2: DM1 closes with a Zenodo record of its statepoints and the present ones; the Captain accepted the risk of keeping the present statepoints without a backup during milestone 1. |
+| 2026-11-19 | DM1 start decisions: P2 yes (reflector data, discontinuity factors, form functions and rodded data generated in DM1); O5 (a), effective (adjoint-weighted) delayed fractions tallied into the library (TM §21). |

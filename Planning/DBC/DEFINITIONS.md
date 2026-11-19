@@ -15,7 +15,7 @@ O1–O14 the decisions recorded in TM §20.2 and §21. The notation of the equat
 | energy group, group structure | The engine has exactly two energy groups (fast and thermal, every fission neutron born fast) and eight delayed-neutron groups. Any other structure is rejected. | O2, 2026-11-16; Vision §2.1, §5; TM §0.1 |
 | two-group nodal diffusion | Neutron diffusion in two energy groups, solved per node with node-average fluxes and face currents. | TM §3 |
 | delayed-neutron precursor | A fission product that emits a neutron after a delay; eight groups with fixed half-lives from 55.6 s to 0.195 s, abundances from the library. | TM §3.1, §7.5 |
-| effective delayed-neutron fraction | The delayed fraction weighted by neutron importance. The model gives the physical fraction, about 3 % larger for a PWR. **Open:** whether to tally the effective fractions into the library is deferred to the data generation plan. | O5; TM §9.3 |
+| effective delayed-neutron fraction | The delayed fraction weighted by neutron importance; about 3 % smaller than the physical fraction for a PWR. The single-assembly library tallies it (decided 2026-11-19); the present library holds the physical fraction. (2026-11-19; before: "The model gives the physical fraction, about 3 % larger for a PWR. **Open:** whether to tally the effective fractions into the library is deferred to the data generation plan.") | O5; TM §9.3 |
 | eigenvalue | The multiplication factor k_eff of the steady state and its fundamental-mode flux. | TM §4.4 |
 | Wielandt shift | A shift of the eigenvalue problem that speeds up the power iteration. | TM §4.4 |
 | CMFD | Coarse-mesh finite difference: the global problem in node-average fluxes, with face currents from finite differences plus a correction. | TM §4 |
