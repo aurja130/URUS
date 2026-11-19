@@ -3,3 +3,4 @@
 # Licensed under the GNU GPL v3 or later, WITHOUT ANY WARRANTY; see LICENSE.
 
 add_subdirectory(unit)
+add_subdirectory(end_to_end)

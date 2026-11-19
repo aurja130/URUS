@@ -38,7 +38,8 @@ Coupling -.->|iterates to convergence| PrimaryLoop
 Coupling -->|converged state| Results["Results"]
 Tooling["Development tooling"]
 class ProblemInput,Knobs,Neutronics,CoreThermalHydraulics,PrimaryLoop,Coupling,Results planned
-class NodalLibrary,Tooling implemented
+class NodalLibrary implemented
+class Tooling implemented
 ```
 
 | Node | Meaning | Terms | Status |
@@ -73,7 +74,7 @@ class ReactorDescription,OperatingState,SolverOptions,LibraryBinding,InputValida
 | `OperatingState` | The state a run starts from: power level, system pressure, core inlet temperature and flow, boron and rod positions. | operating state, system pressure | planned |
 | `SolverOptions` | Tolerances, iteration limits and method choices, such as the nodal kernel, the kernel switch threshold, the fine-mesh resolution of the cusping correction and the coupling sequence. | solver options, tolerance | planned |
 | `LibraryBinding` | Which nodal library the run uses and which library composition each node of the composition map refers to. | nodal library, composition | planned |
-| `InputValidation` | Rejects an inconsistent input before solving, including any library whose group structure is not two energy groups and eight delayed groups. | input validation, group structure | planned |
+| `InputValidation` | Rejects an inconsistent input before solving, including a problem that uses a library composition with an invalid entry at some branch state. Changed 2026-11-18; was "Rejects an inconsistent input before solving, including any library whose group structure is not two energy groups and eight delayed groups." The library's own rules, its group structure among them, are now checked when it is read (`LibraryReader`). | input validation, library entry, validity flag | planned |
 
 ### L2 · Operator knobs (`Knobs`)
 ```mermaid
@@ -108,9 +109,11 @@ BranchGrid["Branch grid"] -->|branch states| LatticeGeneration["Lattice generati
 BranchGrid -->|branch states| FullCoreReference["Full-core reference"]
 LatticeGeneration -->|assembly data| LibraryContract["Library contract"]
 ReflectorData["Reflector data"] -->|reflector data| LibraryContract
+FullCoreReference -->|present library| LibraryContract
 FullCoreReference -.->|reference powers and eigenvalues| LibraryContract
-class BranchGrid,FullCoreReference implemented
-class LatticeGeneration,ReflectorData,LibraryContract planned
+LibraryContract -->|library file| LibraryReader["Library reader"]
+class BranchGrid,FullCoreReference,LibraryContract,LibraryReader implemented
+class LatticeGeneration,ReflectorData planned
 ```
 
 | Node | Meaning | Terms | Status |
@@ -118,8 +121,9 @@ class LatticeGeneration,ReflectorData,LibraryContract planned
 | `BranchGrid` | The set of branch states data are generated at: a tensor grid in fuel temperature, moderator state, boron and rod state. The present grid has no boron axis. | branch state, tensor grid | implemented |
 | `LatticeGeneration` | Single-assembly OpenMC calculations with reflective boundaries, one per assembly type and branch state, giving cross sections, kinetics data, discontinuity factors and form functions. | lattice calculation, OpenMC, discontinuity factor, form function | planned |
 | `ReflectorData` | Cross sections of the radial, top and bottom reflectors from fuel-and-reflector models. | reflector, composition | planned |
-| `FullCoreReference` | Full-core OpenMC runs at library states with node-wise tallies. They produced the present library and are kept as the reference solution the nodal results must reproduce. | full-core reference, OpenMC, tally | implemented |
-| `LibraryContract` | The file layout the engine reads: quantities per composition and branch state, units, statistical uncertainties and validity flags for empty tallies. | nodal library, library contract, validity flag | planned |
+| `FullCoreReference` | Full-core OpenMC runs at library states with node-wise tallies. Their library writer re-extracts the statepoints into the present library under the library contract, after a reproduction check against the library it replaces; the runs are kept as the reference solution the nodal results must reproduce. (2026-11-18; before: "They produced the present library and are kept as the reference solution the nodal results must reproduce.") | full-core reference, OpenMC, tally, statepoint, library writer, reproduction check | implemented |
+| `LibraryContract` | The file layout the engine reads: quantities per composition and branch state, units, statistical uncertainties and validity flags for empty tallies. | nodal library, library contract, validity flag | implemented |
+| `LibraryReader` | Reads a nodal library into memory and rejects it when it breaks the library contract: format, group structure, units, state axes, shapes, and every entry marked valid against its entry rules. All problems are reported together, each naming the file, the dataset and the entry. It also tells which of the compositions a problem uses hold an invalid entry. | nodal library, library contract, entry rule, validity flag | implemented |
 
 ### L2 · Nodal neutronics (`Neutronics`)
 ```mermaid

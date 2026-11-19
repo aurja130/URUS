@@ -9,7 +9,7 @@ the commit that changes any of them. Terms: [DEFINITIONS](DBC/DEFINITIONS.md).
 | Milestone | Branch | State |
 |---|---|---|
 | 1 Core engine | `milestone-1` | In progress since 2026-11-17 ([plan](MILESTONE_1_PLAN.md), approved 2026-11-17) |
-| DM1 Single-assembly library | — | Not started; starts when the library contract freezes (end of 1.2) |
+| DM1 Single-assembly library | — | Not started; may start: the library contract froze when 1.2 closed (2026-11-19); its start decisions P2 and O5 are open |
 | DM2 Full-core references | — | Not started |
 | 2 Coupled steady state | — | Not started |
 | 3 Kinetics | — | Not started |
@@ -22,7 +22,7 @@ the commit that changes any of them. Terms: [DEFINITIONS](DBC/DEFINITIONS.md).
 | Sub-milestone | Branch | State |
 |---|---|---|
 | 1.1 Foundations | `milestone-1.1` | Done 2026-11-17; merged into `milestone-1` |
-| 1.2 Library contract and the present library | — | Not started |
+| 1.2 Library contract and the present library | `milestone-1.2` | Done 2026-11-19; merged into `milestone-1` ([nodal library contract](../docs/contracts/nodal_library.md), format version 1) |
 | 1.3 Problem input and cross-section model | — | Not started |
 | 1.4 CMFD with zero coupling corrections, eigenvalue, output | — | Not started |
 | 1.5 Nodal kernels and the interface solve | — | Not started |
@@ -71,8 +71,9 @@ States: open, done (with date), waived (by the Captain, with date).
 
 ## 3. Last gate results
 
-1.1 close, 2026-11-17, on the commit that closes 1.1, from build trees created fresh in the
-same session: `python3 -m tools.ci.local_ci` passed all 14 steps.
+1.2 close, 2026-11-19, on the snapshot the reviewers approved (code unchanged since the run;
+only `Planning/` documents changed afterwards): `python3 -m tools.ci.local_ci` passed all 14
+steps in 178.9 s.
 
 | Step | Result |
 |---|---|
@@ -83,9 +84,13 @@ same session: `python3 -m tools.ci.local_ci` passed all 14 steps.
 | basedpyright | 0 errors |
 | pytest | 91 passed |
 | dbc | `check_dbc.py` ok |
-| preset `dev-gcc` | 7 of 7 tests passed |
-| preset `dev-clang` | 7 of 7 tests passed |
-| preset `asan-ubsan-clang` | 7 of 7 tests passed; also 7 of 7 run without the preset environment |
-| preset `tsan-gcc` | 7 of 7 tests passed; also 7 of 7 run without the preset environment |
-| preset `release-gcc` | 7 of 7 tests passed |
+| preset `dev-gcc` | 730 of 730 tests passed |
+| preset `dev-clang` | 730 of 730 tests passed |
+| preset `asan-ubsan-clang` | 730 of 730 tests passed |
+| preset `tsan-gcc` | 730 of 730 tests passed |
+| preset `release-gcc` | 730 of 730 tests passed |
 | clang-tidy | No finding on every engine source in the `dev-clang` database |
+
+Submodule `external/BEAVRS_minimal` at `4bf2d26`: `pytest` 25 passed, `ruff check` clean.
+Library reproduction (writer, 16 parallel jobs): 13 raw datasets, 7 435 800 values
+bit-identical with the replaced library, NaN at the same entries (tolerance 0).

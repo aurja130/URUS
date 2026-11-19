@@ -83,8 +83,8 @@ certify another.
 - `clang-format` (`.clang-format`): LLVM base, 4-space indent, 100 columns (as ruff),
   pointer to the left, own headers first, then third-party, then the standard library.
 - `clang-tidy` (`.clang-tidy`): families bugprone, performance, modernize, readability, misc,
-  clang-analyzer; every warning is an error. Each excluded check carries its reason in the
-  file. A `NOLINT` names its check and its reason.
+  clang-analyzer; every warning is an error. Each excluded check and each check option that
+  narrows a check carries its reason in the file. A `NOLINT` names its check and its reason.
 - Python tooling: ruff (line length 100, rules in `pyproject.toml`), `ruff format`,
   basedpyright strict, pytest.
 

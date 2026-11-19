@@ -124,6 +124,7 @@ O1–O14 the decisions recorded in TM §20.2 and §21. The notation of the equat
 | library contract | The documented layout, units and validity rules of the nodal library. | Vision §4; TM §19.3 |
 | composition | A material description of a node that has its own set of library data, such as an assembly type with or without rods, or a reflector. | TM §7.4 |
 | branch state | One combination of fuel temperature, moderator state, boron and rod state at which data are generated. | TM §7.1, §19.3 |
+| rod state | Whether the control rods of a branch state are out or in; the present library has all banks out or all in, and its rodded and unrodded data are separate compositions. | TM §7.1; Library contract §7.2, 2026-11-18 |
 | tensor grid | Branch states forming every combination of the values on each axis. | D2; TM §7.2 |
 | lattice calculation | A single-assembly calculation with reflective boundaries that produces the nodal data of one assembly type at one branch state. | O1, 2026-11-16; TM §19.3 |
 | OpenMC | The Monte Carlo transport code that generates the nodal data. | Vision §4 |
@@ -132,6 +133,12 @@ O1–O14 the decisions recorded in TM §20.2 and §21. The notation of the equat
 | library writer | The program in the BEAVRS data submodule that turns OpenMC output into a nodal library under the library contract. | Project plan §3, 2026-11-17 |
 | full-core reference | Full-core OpenMC solutions at library states, the reference the nodal results must reproduce. | O1, 2026-11-16; TM §19.3 |
 | validity flag | The mark of a library entry that holds no physical value, such as an empty tally. | TM §19.3, item L14 |
+| composition set | Compositions of a nodal library that share one table of branch states, with their own state axes. | Library contract §3, 2026-11-18 |
+| state axis | One table dimension of a composition set: fuel temperature, moderator density, moderator temperature or boron, with strictly ascending points. A one-point axis is a fixed value. | Library contract §3.1, 2026-11-18; TM §7.2 |
+| library entry | One composition at one branch state, the unit a validity flag marks. | Library contract §3.4, 2026-11-18 |
+| entry rule | The physical bound a library quantity must meet in a valid entry, such as a positive diffusion coefficient; a broken rule makes the writer mark the entry invalid. | Library contract §3.3, 2026-11-18 |
+| provenance | The record of where library data came from: the run of every entry, its statepoint checksum and eigenvalue, and the code and settings that produced it. | Library contract §6, 2026-11-18 |
+| reproduction check | The library writer's comparison of what it extracts with the library it replaces: every raw value bit for bit, at the same branch state. | Library contract §7.4, 2026-11-18 |
 | reflector | Non-fuel material around the core whose data come from fuel-and-reflector models. | TM §5.9, §19.3 |
 
 ## Plant states and measurements

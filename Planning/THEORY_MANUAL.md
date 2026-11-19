@@ -2626,6 +2626,19 @@ mesh tallies on a 15×15×17 mesh covering exactly the active fuel (assembly pit
 | L13 | Units and conventions recorded in the file | none | §0.5 |
 | L14 | Validity of every entry; empty tallies marked, not stored as numbers | 46 to 220 unphysical entries per quantity | §7.2 |
 
+**Replaced library (2026-11-18).** The present data now sit in the library contract's format
+version 1 (`docs/contracts/nodal_library.md`), re-extracted from the same 72 statepoints after
+a bit-for-bit reproduction check of every raw quantity. That closes L2 ($\Sigma_{12}$ is the
+effective down-scatter (3.5); $\Sigma_{21}$ stored), L12 (every quantity with its standard
+deviation), L13 (units on every quantity and axis, provenance per entry) and L14 (a validity
+flag per entry). Rod states are separate compositions (7650 = 2 × 3825), and κΣ_f is in J cm⁻¹.
+Counted against the entry rules, $D_1$ breaks in 46 entries, $D_2$ in 79, $\Sigma_{a1}$ and
+$1/v_1$ in 41, $\Sigma_{a2}$ and $1/v_2$ in 77, and the effective $\Sigma_{12}$ in 222: the
+220 entries where the raw $\Sigma_{12}$ is zero (179 stay zero; 41, where the fast flux is
+also zero, become NaN) plus two corner entries that (3.5) makes slightly negative, each within
+one standard deviation of zero. All 227 invalid entries lie in the 32 corner positions; none
+is in a fuel node.
+
 **The decision behind most of these rows (O1).** PARCS and SIMULATE-5 are fed by
 single-assembly lattice calculations with reflective boundaries, one per assembly type and
 branch state (PARCS §9.2; S5 §2.3; NUREG §2.2). Such a calculation gives the cross sections,

@@ -140,6 +140,9 @@ program in debug builds.
 
 ### 1.2 Library contract and the present library
 
+**State.** Done 2026-11-19 (reviewed and merged into `milestone-1`; gate results in
+`CURRENT_PROJECT_STATE.md` §3).
+
 **Contract** (`docs/contracts/nodal_library.md`, format version 1, frozen at the end of 1.2
 because DM1 writes to it):
 
@@ -157,7 +160,8 @@ because DM1 writes to it):
   are additive; a later milestone (rod linkage, milestone 2) adds them without changing
   what version 1 means.
 - `valid[N, axes…]` (uint8): 0 marks an entry that holds no physical value (L14). The writer
-  sets 0 where any quantity is non-finite, D ≤ 0, Σ_a ≤ 0 or Σ₁₂ < 0.
+  sets 0 where any quantity breaks its entry rule (`docs/contracts/nodal_library.md` §3.3:
+  non-finite, D ≤ 0, Σ_a ≤ 0, Σ₁₂ ≤ 0, 1/v ≤ 0, a negative σ, β or λ, …).
 - Provenance group: per entry the statepoint SHA-256 and the full-core k ± σ of the run it
   came from; OpenMC version, nuclear data library, batches, inactive batches, particles.
 
@@ -181,8 +185,8 @@ every quantity and standard deviation present; a zero delayed abundance is allow
 Validity is checked per composition actually used (1.3): a used composition with any
 invalid entry is rejected, naming the entry.
 
-**DBC.** Nodes: `LibraryContract`, `FullCoreReference` (the writer), `InputValidation`
-(library rules).
+**DBC.** Nodes: `LibraryContract`, `FullCoreReference` (the writer), `LibraryReader` (the
+library's rules); `InputValidation` redefined, planned until 1.3 (§9, 2026-11-18).
 
 **Acceptance.** Every rule has a rejection test naming composition, quantity and entry,
 swept over both energy groups and all eight delayed groups, NaN, ±Inf, a length-1 axis and a
@@ -359,7 +363,7 @@ skipped case is reported as skipped, never as passed.
 | Risk | Consequence | Mitigation |
 |---|---|---|
 | Statepoints outside any repository | Library not rebuildable without 72 runs | SHA-256 recorded; risk accepted by the Captain until DM1's Zenodo record (§1.2) |
-| Library about 130 MB with standard deviations | Submodule history grows | gzip with shuffle filter in HDF5 |
+| Library about 130 MB with standard deviations | Submodule history grows | gzip with shuffle filter in HDF5; the written file is 85 MB |
 | ANM overflow or cancellation | NaN or lost digits at large or small node buckling | Scaled hyperbolics and the series of TM §5.5; floating-point traps; unit tests at both ends |
 | Eigen's stopping criterion differs from PARCS's | Inner iterations stop at the wrong residual | Tolerance rescaled to the starting residual each call; a test checks the reduction |
 | Thread sanitizer with uninstrumented HDF5 | False reports | No threads in this milestone; reports are triaged, never suppressed silently |
@@ -377,3 +381,8 @@ skipped case is reported as skipped, never as passed.
 | 2026-11-17 | 1.1 closed: both reviews approved after two rounds; nodes `ToolchainPin`, `BuildPresets`, `LocalCi`, `RuntimeChecks` and `Tooling` implemented; merged into `milestone-1`. |
 | 2026-11-18 | The Captain chose a public Zenodo record as the statepoints' backup (§1.2); the archive is staged and its upload is hers. |
 | 2026-11-18 | Reversed the same day: the present library serves only as a code-path exercise, so the Captain accepted the risk for milestone 1; the statepoints go to Zenodo with the DM1 data (Project plan §5.2). |
+| 2026-11-18 | 1.2 started on `milestone-1.2`; contract frozen as `docs/contracts/nodal_library.md`. Details the plan left open: one composition set `beavrs_full_core` (7650 compositions); quantity groups holding `value` and `std_dev`; every quantity has an entry rule (§3.3 of the contract), extending the writer rule above to Σ₁₂ ≤ 0 (an exact zero is an empty tally, TM §19.3), 1/v, β, λ and σ; the writer restores the ±1.8 × 10³⁰⁸ that `openmc.mgxs` substitutes for ±∞; the water density is read from each run's materials, not from its directory name; provenance per entry through a run index. |
+| 2026-11-18 | 1.2 DBC: the library's own rules are checked when it is read, by the new node `LibraryReader` (under `NodalLibrary`); `InputValidation` keeps only the check of the compositions a problem uses and stays planned until 1.3. The plan's 1.2 DBC line named `InputValidation`; corrected. |
+| 2026-11-18 | 1.2 contract wording after the freeze, behaviour unchanged: items 3–5 of §4 are checked only for format version 1 with 2 energy and 8 delayed groups; in §5 the entry part is left out with its separator where none applies; at most 20 diagnostics per dataset (the check of used compositions included), then the number not listed. |
+| 2026-11-18 | 1.2 results: the writer (run with 16 parallel jobs at the Captain's request) reproduced all 13 raw datasets of the old library bit for bit (7 435 800 values, NaN at the same entries) and replaced it (85 MB). Invalid entries per quantity: D₁ 46, D₂ 79, Σ_a1 41, Σ_a2 77, effective Σ₁₂ 222, 1/v₁ 41, 1/v₂ 77, others 0; 227 invalid entries, all in corner columns. The acceptance's "same counts as TM §19.3" holds for every quantity TM §19.3 counts; the effective Σ₁₂ has 222 against the raw 220 because Eq. (3.5) makes two corner entries slightly negative (−3.4 × 10⁻⁴ ± 9.1 × 10⁻³ and −4.0 × 10⁻⁴ ± 1.4 × 10⁻² cm⁻¹, within one σ of zero); no rule changed. |
+| 2026-11-19 | 1.2 review: the writer approved in round 1 after four fixes (water density units, −∞ in the rule tests, quotes, the DBC line above); the reader and its tests needed changes in round 1 (no overflow in the delayed-fraction sum, the cap per dataset, float64 checks, an HDF5 failure on one dataset reported there, entry rules beside structural problems, space-padded strings; tests from the contract rather than the code, every §4 rule with its location and message, all four axes). Round 2, reviewers run one at a time: the reader needed entry rules beside validity flags other than 0 and 1; the tests gained a flag named in the fuel, a uint16 flag case, the broken rule asserted in every sweep case and the sets left unchecked after a bad version; the writer's tests gained +∞ through the delayed-fraction and decay-constant rules; all three approved in round 2. The C++ reader and tests were written by the orchestrator after the delegated worker failed. 1.2 closed: nodes `LibraryContract`, `FullCoreReference` and `LibraryReader` implemented, and with them `NodalLibrary`; merged into `milestone-1`. |
