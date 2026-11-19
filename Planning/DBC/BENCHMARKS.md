@@ -4,7 +4,8 @@ Verification and validation cases, mapped to [CONCEPTS](CONCEPTS.md), [CODE](COD
 [DEFINITIONS](DEFINITIONS.md) and [TESTS](TESTS.md). Each section is one case family from the
 theory manual's matrix (TM §19.2). "Equations checked" means a throwaway script on 2026-11-16
 tested the printed equations (TM §19.1); it is not a test of the engine, and every case must
-become a real test or run when its concept is built. No case has been run on engine code.
+become a real test or run when its concept is built. A case is run on engine code where its
+Comments say so; the others have not been run.
 
 ## Bare homogeneous slab and cuboid
 **Concepts:** `CmfdSolve`, `EigenvalueSolve`
@@ -38,7 +39,7 @@ Becomes an acceptance test only with the reference powers.
 
 ## Cross-section table interpolation
 **Concepts:** `CrossSectionModel`, `BranchGrid`
-**Comments:** 2026-11-16, orchestrator: from TM §19.2. Not run. 2026-11-17, orchestrator: round-off quantified (milestone 1 plan §5).
+**Comments:** 2026-11-16, orchestrator: from TM §19.2. Not run. 2026-11-17, orchestrator: round-off quantified (milestone 1 plan §5). 2026-11-19, orchestrator: run on engine code as `tests/verification/cross_section_interpolation_test.cpp`, in every preset. The reference is a four-axis non-uniform table (√T_D, ρ_m, T_m, C_B; 4×3×2×3 points) of designed multilinear functions with cross terms, different for every component of a family within a composition; 1/(3D) is the designed quantity for D. All 72 table points and 200 seeded interior states within 1e-14 relative; clamps exact per node, axis and side, end points never clamped, a missing axis never clamps, a length-one axis clamps every other value. 16 of 16 pass. No iteration is involved. Review fix: the designed weights first repeated every five components (a swap of components k and k+5 would have passed); the reference now has a self-check that they differ.
 **Reference:** The table itself, and data linear in every axis (linear in 1/(3D) for the diffusion coefficients).
 **Tolerance:** Every table point and linear data within 1e-14 relative (a multilinear evaluation rounds within a few machine epsilons); every state outside the table counted as a clamp, exactly, per node, axis and side; an axis of length one clamps every other value.
 

@@ -11,6 +11,13 @@ add_executable(nts_unit_tests
     common/invariant_test.cpp
     io/library_fixture.cpp
     io/nodal_library_test.cpp
+    io/problem_fixture.cpp
+    io/problem_binding_test.cpp
+    io/problem_geometry_test.cpp
+    io/problem_position_test.cpp
+    io/problem_state_test.cpp
+    io/problem_test.cpp
+    xs/cross_section_model_test.cpp
 )
 target_link_libraries(nts_unit_tests
     PRIVATE nts_core GTest::gtest nts_warnings hdf5::hdf5_cpp hdf5::hdf5)

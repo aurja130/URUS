@@ -34,7 +34,7 @@ O1–O14 the decisions recorded in TM §20.2 and §21. The notation of the equat
 | nodal update | One recomputation of the coupling corrections from the current fluxes. | TM §6.1, §11.7 |
 | cross section | A macroscopic reaction rate per unit flux of a node and group, interpolated at the node's state. | TM §7 |
 | multilinear interpolation | Interpolation that is linear in each table axis at once, keeping cross terms between axes; reproduces every table point. | D2, 2026-11-16; TM §7.2 |
-| table clamp | A node state outside the library table, set to the nearest edge and counted. A clamped converged state is not a valid result. | TM §7.2 |
+| table clamp | A node state outside the library table, set to the nearest edge and counted per node, state axis and side (below the first point or above the last). A clamped converged state is not a valid result. Changed 2026-11-19; was "A node state outside the library table, set to the nearest edge and counted." | TM §7.2; Milestone 1 plan §3 |
 | critical boron | The uniform boron concentration that makes the core exactly critical, found by a search. | TM §6.3 |
 | boron | Soluble boron in the coolant, in ppm by mass. | TM §0.5, §7.1 |
 | rod bank | A group of control rods moving together, its position given in steps; each rod is a stack of absorber zones. | TM §8.1 |
@@ -113,11 +113,18 @@ O1–O14 the decisions recorded in TM §20.2 and §21. The notation of the equat
 | Term | Meaning | Decision |
 | --- | --- | --- |
 | problem input | The single HDF5 file that defines a run. | Vision §1 |
-| reactor description | Geometry, composition map, rod banks, channels and loop of the reactor; nothing about BEAVRS is built into the engine. | Vision §5 |
+| reactor description | Geometry, composition map, boundary conditions, rod banks, channels and loop of the reactor; nothing about BEAVRS is built into the engine. Changed 2026-11-19; was "Geometry, composition map, rod banks, channels and loop of the reactor; nothing about BEAVRS is built into the engine." | Vision §5; Problem input contract §3–§4, 2026-11-19 |
 | composition map | The node-by-node assignment of compositions. A position may be excluded, outside the domain, so a core need not be rectangular. | Vision §5; Milestone 1 plan §3 |
-| operating state | The power, pressure, inlet conditions, boron and rod positions a run starts from. | Vision §1 |
+| excluded position | A position of the composition map that lies outside the domain: it has no node, no node state and no data. | Problem input contract §3, 2026-11-19 |
+| bounding face | One of the six faces of the box the composition map fills; a node face lying on it takes its boundary condition. | Problem input contract §4, 2026-11-19 |
+| exterior face | A node face next to an excluded position; all exterior faces take one boundary condition given in the input. | Milestone 1 plan §3; Problem input contract §4, 2026-11-19 |
+| input composition | One entry of the problem input's composition list, naming a composition set of the library and a composition in it; the composition map points into this list. Several entries may name the same library composition. | Problem input contract §5, 2026-11-19 |
+| node state | The Doppler temperature, moderator density, moderator temperature and boron of one node, at which its cross sections are interpolated; given in the input until the thermal-hydraulics computes it. | TM §7.1; Problem input contract §6, 2026-11-19 |
+| operating state | The power, pressure, inlet conditions, boron and rod positions a run starts from; without thermal-hydraulics, the power and the node state of every node. Changed 2026-11-19; was "The power, pressure, inlet conditions, boron and rod positions a run starts from." | Vision §1; Problem input contract §6, 2026-11-19 |
 | solver options | Tolerances, iteration limits and method choices given in the input. | Vision §1 |
 | input validation | The checks an input must pass before anything is solved. | Vision §5 |
+| problem input contract | The documented layout, units, defaults and validation rules of the problem input, versioned like the library contract. | Milestone 1 plan §3, 2026-11-19 |
+| input writer | The Python program that writes a problem input from a description in code; it does not validate, the engine does. | Milestone 1 plan §3, 2026-11-19 |
 | knob | One of the four student controls: rods, boron, primary flow, heat load. | Vision §3 |
 | knob schedule | The value of a knob over time, a constant or a table; a jump is a discontinuity a step must land on. | Vision §3; TM §11.8 |
 | nodal library | The HDF5 file of nodal data the engine reads. | Vision §4 |

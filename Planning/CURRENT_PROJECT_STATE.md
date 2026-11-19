@@ -23,7 +23,7 @@ the commit that changes any of them. Terms: [DEFINITIONS](DBC/DEFINITIONS.md).
 |---|---|---|
 | 1.1 Foundations | `milestone-1.1` | Done 2026-11-17; merged into `milestone-1` |
 | 1.2 Library contract and the present library | `milestone-1.2` | Done 2026-11-19; merged into `milestone-1` ([nodal library contract](../docs/contracts/nodal_library.md), format version 1) |
-| 1.3 Problem input and cross-section model | — | Not started |
+| 1.3 Problem input and cross-section model | `milestone-1.3` | Done 2026-11-19; merged into `milestone-1` ([problem input contract](../docs/contracts/problem_input.md), format version 1) |
 | 1.4 CMFD with zero coupling corrections, eigenvalue, output | — | Not started |
 | 1.5 Nodal kernels and the interface solve | — | Not started |
 | 1.6 Transverse leakage and the three-dimensional nodal solution | — | Not started |
@@ -71,9 +71,9 @@ States: open, done (with date), waived (by the Captain, with date).
 
 ## 3. Last gate results
 
-1.2 close, 2026-11-19, on the snapshot the reviewers approved (code unchanged since the run;
+1.3 close, 2026-11-19, on the snapshot the reviewers approved (code unchanged since the run;
 only `Planning/` documents changed afterwards): `python3 -m tools.ci.local_ci` passed all 14
-steps in 178.9 s.
+steps in 258.4 s.
 
 | Step | Result |
 |---|---|
@@ -82,15 +82,16 @@ steps in 178.9 s.
 | clang-format | No change needed |
 | ruff check, ruff format | Clean |
 | basedpyright | 0 errors |
-| pytest | 91 passed |
+| pytest | 156 passed |
 | dbc | `check_dbc.py` ok |
-| preset `dev-gcc` | 730 of 730 tests passed |
-| preset `dev-clang` | 730 of 730 tests passed |
-| preset `asan-ubsan-clang` | 730 of 730 tests passed |
-| preset `tsan-gcc` | 730 of 730 tests passed |
-| preset `release-gcc` | 730 of 730 tests passed |
+| preset `dev-gcc` | 1044 of 1044 tests passed |
+| preset `dev-clang` | 1044 of 1044 tests passed |
+| preset `asan-ubsan-clang` | 1044 of 1044 tests passed |
+| preset `tsan-gcc` | 1044 of 1044 tests passed |
+| preset `release-gcc` | 1044 of 1044 tests passed |
 | clang-tidy | No finding on every engine source in the `dev-clang` database |
 
-Submodule `external/BEAVRS_minimal` at `4bf2d26`: `pytest` 25 passed, `ruff check` clean.
-Library reproduction (writer, 16 parallel jobs): 13 raw datasets, 7 435 800 values
-bit-identical with the replaced library, NaN at the same entries (tolerance 0).
+Cross-section table interpolation benchmark (BENCHMARKS), in every preset: all 72 table points
+and 200 seeded interior states within 1e-14 relative; clamp counts and sides exact; 16 of 16
+pass. The model has no iteration, so there is no convergence state to report.
+Submodule `external/BEAVRS_minimal` unchanged at `4bf2d26`.
