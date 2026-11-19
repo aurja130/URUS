@@ -889,14 +889,18 @@ The library gives each quantity $X$ of a composition on a tensor-product grid of
 interpolation coordinates
 
 $$
-\mathbf s=\left(\sqrt{T_D},\ \rho_m,\ C_B\right).
+\mathbf s=\left(\sqrt{T_D},\ \rho_m,\ T_m,\ C_B\right),
 \tag{7.1}
 $$
 
-Between grid points $X$ is multilinear:
+restricted to the axes the composition set has; an axis the set lacks is not interpolated and
+never clamps. (Changed 2026-11-19 to match the milestone 1 plan §1.3; was
+$\mathbf s=(\sqrt{T_D},\rho_m,C_B)$ with three axes.)
+
+Between grid points $X$ is multilinear over the $n$ axes of the set:
 
 $$
-X(\mathbf s)=\sum_{c\in\text{corners}}\Big[\prod_{a=1}^{3}w_a^{c}\Big]X_c,\qquad
+X(\mathbf s)=\sum_{c\in\text{corners}}\Big[\prod_{a=1}^{n}w_a^{c}\Big]X_c,\qquad
 w_a^{c}=\begin{cases}1-t_a&\text{lower corner}\\t_a&\text{upper corner}\end{cases},\quad
 t_a=\frac{s_a-s_a^\text{lo}}{s_a^\text{hi}-s_a^\text{lo}} .
 \tag{7.2}
@@ -937,7 +941,7 @@ model.
 
 In this order (PARCS §9.2, Eqs. (9.2)–(9.4); §9.6, Eq. (9.31); §10.1.2):
 
-1. Interpolate the unrodded composition at the node's $(T_D,\rho_m,C_B)$ with (7.2).
+1. Interpolate the unrodded composition at the node's $(T_D,\rho_m,T_m,C_B)$ with (7.2).
 2. If $\zeta>0$, interpolate the rodded composition the same way and mix with (8.2).
 3. Add xenon and samarium absorption with (10.9).
 4. Form $\Sigma_{r1}=\Sigma_{a1}+\Sigma_{12}$, $\Sigma_{r2}=\Sigma_{a2}$, $D_g$, and recompute

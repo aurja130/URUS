@@ -48,7 +48,8 @@ struct InterpolatedComposition {
 
 // TM Eq. (7.2): composition `composition` of `set` at `state`, multilinear over the axes of
 // the set in the coordinates √T_D, ρ_m, T_m and C_B; a coordinate outside an axis is clamped
-// to its nearest end point. Precondition: every entry of the composition is valid.
+// to its nearest end point. Preconditions: every entry of the composition is valid; no state
+// value is NaN.
 [[nodiscard]] InterpolatedComposition
 interpolate_composition(const CompositionSet& set, std::size_t composition, const NodeState& state);
 

@@ -167,13 +167,15 @@ not listed. The rules checked, in this order, all of them on every run:
 
 1. The file exists and opens as HDF5.
 2. `format_version` (§2); on failure nothing else.
-3. Root members (§2); unknown members (§1).
+3. Root members (§2); unknown root members (§1). Unknown members of a named group are
+   reported with its section.
 4. Geometry (§3): types, shapes, units, widths, map shape and values, at least one node.
 5. Boundary conditions (§4), the `exterior` face when the map excludes a position.
 6. Library path (§5); the library itself (library contract §4).
 7. Input compositions (§5): types, lengths, resolution against the library, validity of every
-   used one. Skipped when the library could not be read; an unresolved composition is not
-   checked for validity.
+   used one. Resolution and validity are skipped when the library could not be read; types,
+   lengths and unknown members are still checked. An unresolved composition is not checked
+   for validity; every used one that resolves is, whatever happens to the others.
 8. Operating state (§6), at every node.
 9. Solver options (§7).
 
@@ -191,3 +193,5 @@ needs format version 2.
 | Date | Change |
 |---|---|
 | 2026-11-19 | First version, written at the start of sub-milestone 1.3. |
+| 2026-11-19 | §8 item 7 wording after review, behaviour unchanged: only resolution and validity are skipped when the library could not be read; a used composition that resolves is checked even when another does not. |
+| 2026-11-19 | §8 item 3 wording after review, behaviour unchanged: item 3 names the unknown root members; unknown members of a named group are reported with that group's section. |

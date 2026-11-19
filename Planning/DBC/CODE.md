@@ -1,8 +1,7 @@
 # Code
 
 Code links to [CONCEPTS](CONCEPTS.md), [DEFINITIONS](DEFINITIONS.md), [TESTS](TESTS.md) and
-[BENCHMARKS](BENCHMARKS.md). Only implemented and partial nodes have rows; every physics node
-is still planned and absent here.
+[BENCHMARKS](BENCHMARKS.md). Only implemented and partial nodes have rows.
 
 | Node | Code | Notes |
 | --- | --- | --- |
@@ -11,6 +10,7 @@ is still planned and absent here.
 | `BuildPresets` | `src/CMakeLists.txt` `nts_core` | The engine library. |
 | `BuildPresets` | `tests/unit/CMakeLists.txt` `nts_unit_tests` `gtest_discover_tests` | The unit-test executable; CTest discovers each test. |
 | `BuildPresets` | `tests/end_to_end/CMakeLists.txt` `nts_end_to_end_tests` `NTS_PRESENT_LIBRARY` | The end-to-end test executable; reads the library committed in the submodule. |
+| `BuildPresets` | `tests/verification/CMakeLists.txt` `nts_verification_tests` | The verification-test executable; shares the unit tests' main and fixtures. |
 | `LocalCi` | `tools/ci/local_ci.py` `STEPS` `PRESETS` `Step` `select_steps` `run_steps` `clang_tidy_check` `clang_format_check` `main` | Run as `python3 -m tools.ci.local_ci`; cheapest step first, clang-tidy last; stops at the first failed step; an `--only` run that leaves a step out prints `SKIP` for it and never reports a full pass. |
 | `LocalCi` | `tools/ci/license_headers.py` `header_problem` `candidate_files` `check_files` | The license-header step. |
 | `LocalCi` | `tools/ci/__init__.py` `repository_files` | The files of ours: tracked plus untracked, not ignored. |
@@ -31,9 +31,25 @@ is still planned and absent here.
 | `LibraryContract` | `docs/contracts/nodal_library.md` | The library contract, format version 1. |
 | `LibraryContract` | `external/BEAVRS_minimal/beavrs_kinetics_library.hdf5` | The present library under the contract: set `beavrs_full_core`, 7650 compositions, 36 branch states. |
 | `LibraryReader` | `src/nts/io/nodal_library.hpp` `read_nodal_library` `NodalLibrary` `CompositionSet` `QuantityTable` `AxisPoints` `StateAxis` `Quantity` `QuantitySpec` `EntryRule` `quantity_specs` `quantity_spec` `state_axis_name` `state_axis_units` | The library in memory and the contract's vocabulary: state axes, quantities with their units, shapes and entry rules. |
-| `LibraryReader` | `src/nts/io/nodal_library.cpp` `read_root_attributes` `read_axes` `read_names` `read_quantity` `read_valid` `check_valid_entries` `component_rule_message` `delayed_sum_message` `std_dev_message` `EntryReporter` `guarded_read` `fixed_length_text` | Reading and every check of contract §4; all problems collected, an HDF5 failure on one dataset or attribute reported there; at most 20 diagnostics per dataset, then the number not listed. |
+| `LibraryReader` | `src/nts/io/nodal_library.cpp` `read_root_attributes` `read_axes` `read_names` `read_quantity` `read_valid` `check_valid_entries` `component_rule_message` `delayed_sum_message` `std_dev_message` `EntryReporter` `guarded_read` | Reading and every check of contract §4; all problems collected, an HDF5 failure on one dataset or attribute reported there; at most 20 diagnostics per dataset, then the number not listed. |
+| `LibraryReader` | `src/nts/io/hdf5_reading.hpp` `Reporter` `EntryReporter` `guarded_read` `max_entry_diagnostics` `read_doubles` `read_strings` `read_integer_attribute` `read_float_attribute` `read_string_attribute` `check_units` | HDF5 reading shared by the library and problem readers: collected diagnostics, the cap per dataset, typed reads. |
+| `LibraryReader` | `src/nts/io/hdf5_reading.cpp` `fixed_length_text` `member_names` `is_float64` `dimensions` | NUL- and space-padded fixed-length strings; members of a group; the float64 check. |
 | `LibraryReader` | `src/nts/io/nodal_library.cpp` `breaks_entry_rule` `count_rule_violations` `check_compositions_usable` `invalid_entry_message` `describe_entry` `describe_component` | Entry rules applied to entries of any flag; the check of the compositions a problem uses, naming each invalid entry and the rules it breaks. |
 | `LibraryReader` | `src/nts/common/diagnostic.hpp` `Diagnostic` `Diagnostics` `to_string` | One problem: file, dataset or attribute, entry, message. |
+| `ReactorDescription` | `src/nts/io/problem.hpp` `ReactorDescription` `Face` `BoundaryCondition` `BoundaryKind` `reflective_albedo` `vacuum_albedo` `zero_flux_albedo` `node_count` `position_count` | The node mesh, composition map with excluded positions and node numbering, the six bounding faces and the exterior face as albedos. |
+| `ReactorDescription` | `src/nts/io/problem.cpp` `GeometryUsability` `read_geometry` `read_width` `read_composition_map` `check_map_values` `map_value_message` `fill_nodes` `read_boundary_conditions` `read_face` `read_albedo` `fixed_albedo` | Reading and checking geometry and boundary conditions (problem input contract §3–§4); whether the widths and the map are usable, which decides the checks skipped later. |
+| `OperatingState` | `src/nts/io/problem.hpp` `OperatingState` `NodeState` | Thermal power and the node state of every node. |
+| `OperatingState` | `src/nts/io/problem.cpp` `read_operating_state` `read_thermal_power` `read_node_field` `node_values_of_array` `position_entry` `field_message` | A scalar or `[z][y][x]` array per node-state field, values at excluded positions unread (contract §6). |
+| `SolverOptions` | `src/nts/io/problem.hpp` `SolverOptions` `KernelChoice` | The options and their defaults (contract §7). |
+| `SolverOptions` | `src/nts/io/problem.cpp` `read_solver_options` `read_kernel` `parse_kernel` `read_float_options` `read_integer_options` `read_adjoint` | Each option checked against its rule; unknown options rejected. |
+| `LibraryBinding` | `src/nts/io/problem.hpp` `LibraryBinding` `InputComposition` `BoundComposition` | The library path and the composition set and composition of each input composition. |
+| `LibraryBinding` | `src/nts/io/problem.cpp` `read_library` `read_input_compositions` `input_composition_count` `resolve_compositions` | Reading the binding, the library relative to the input, and resolving every input composition. |
+| `InputValidation` | `docs/contracts/problem_input.md` | The problem input contract, format version 1, with the validation order of §8. |
+| `InputValidation` | `src/nts/io/problem.hpp` `load_problem` `Problem` `ProblemInput` | One call reads, checks and binds a problem input; every problem returned together. |
+| `InputValidation` | `src/nts/io/problem.cpp` `load_problem` `check_members` `RootGroups` `open_root_groups` `check_used_compositions` | The contract order, the root groups opened and checked once before the sections, unknown members rejected, the check of the compositions the map uses. |
+| `InputWriter` | `tools/inputs/problem_input.py` `ProblemInput` `ReactorDescription` `LibraryBinding` `OperatingState` `SolverOptions` `write_problem_input` `read_problem_input` | Run from Python; writes and reads a problem input without validating it. |
+| `CrossSectionModel` | `src/nts/xs/cross_section_model.hpp` `interpolate_composition` `evaluate_cross_sections` `NodeCrossSections` `InterpolatedComposition` `CrossSectionField` `StateClamps` `ClampSide` | The cross sections of one composition at one node state and of every node of a problem, with the clamps per node, axis and side. |
+| `CrossSectionModel` | `src/nts/xs/cross_section_model.cpp` `coordinate` `axis_weights` `corners_of` `interpolated_diffusion` `fill_cross_sections` `count_clamps` `required_table` | Multilinear interpolation (TM Eq. 7.2) in √T_D, ρ_m, T_m and C_B on the axes the set has; D from interpolated 1/(3D); Σ_r1 = Σ_a1 + Σ_12 (TM Eq. 3.5). |
 | `ToolchainPin` | `tools/toolchain/check_toolchain.py` `TOOL_SPECS` `run_checks` `compare_manifest` `render_manifest` | Run as `python3 -m tools.toolchain.check_toolchain`. |
 | `ToolchainPin` | `manifests/toolchain.txt` | The pinned versions. |
 | `UsageGuard` | `tools/agent/usage_guard.py` `read_reports` `evaluate_reports` `main` | Reads omp's cached usage; never calls a usage API. |
