@@ -117,6 +117,8 @@ deviation is non-finite or negative.
 All failures are collected and reported together; each diagnostic names the file, the
 dataset or attribute, the entry where there is one, and the rule. At most 20 entry
 diagnostics are listed per dataset, followed by one diagnostic giving the number not listed.
+Items 3 to 5 are checked only when item 2 finds format version 1, 2 energy groups and 8
+delayed groups, because every set's layout depends on them.
 
 1. The file opens as HDF5.
 2. Root attributes of §2: present, of the stated type, with the stated value or bound.
@@ -136,8 +138,8 @@ unused composition may hold invalid entries.
 
 ## 5. Diagnostic naming
 
-A diagnostic reads `<file>: <dataset or attribute>: <entry>: <message>`, the entry part empty
-where none applies. An entry is written as
+A diagnostic reads `<file>: <dataset or attribute>: <entry>: <message>`; where no entry
+applies, the entry part is left out with its separator. An entry is written as
 `composition <c> '<name>', <axis>[<i>] = <point> <units>, …` followed, for a quantity with
 extra dimensions, by `delayed group <k>` or `face <face>, group <g>`.
 

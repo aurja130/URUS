@@ -28,6 +28,7 @@ if(NTS_SANITIZERS)
 endif()
 
 include(CTest)
+find_package(HDF5 1.14 REQUIRED COMPONENTS C CXX)
 add_subdirectory(src)
 if(BUILD_TESTING)
     add_subdirectory(tests)

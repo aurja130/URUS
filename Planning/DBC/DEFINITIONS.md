@@ -124,6 +124,7 @@ O1–O14 the decisions recorded in TM §20.2 and §21. The notation of the equat
 | library contract | The documented layout, units and validity rules of the nodal library. | Vision §4; TM §19.3 |
 | composition | A material description of a node that has its own set of library data, such as an assembly type with or without rods, or a reflector. | TM §7.4 |
 | branch state | One combination of fuel temperature, moderator state, boron and rod state at which data are generated. | TM §7.1, §19.3 |
+| rod state | Whether the control rods of a branch state are out or in; the present library has all banks out or all in, and its rodded and unrodded data are separate compositions. | TM §7.1; Library contract §7.2, 2026-11-18 |
 | tensor grid | Branch states forming every combination of the values on each axis. | D2; TM §7.2 |
 | lattice calculation | A single-assembly calculation with reflective boundaries that produces the nodal data of one assembly type at one branch state. | O1, 2026-11-16; TM §19.3 |
 | OpenMC | The Monte Carlo transport code that generates the nodal data. | Vision §4 |

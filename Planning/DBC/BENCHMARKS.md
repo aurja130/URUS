@@ -152,7 +152,7 @@ Becomes an acceptance test only with the reference powers.
 
 ## Present-library reproduction
 **Concepts:** `LibraryContract`, `FullCoreReference`
-**Comments:** 2026-11-17, orchestrator: the library writer re-extracts the present library from its 72 statepoints before its contract file replaces the old one (milestone 1 plan §3, 1.2). Not run.
+**Comments:** 2026-11-17, orchestrator: the library writer re-extracts the present library from its 72 statepoints before its contract file replaces the old one (milestone 1 plan §3, 1.2). 2026-11-18, orchestrator: run; passed. 72 runs, 13 raw datasets (D, Σa, raw Σ12, νΣf, κΣf in eV, 1/v per group; β and λ over eight delayed groups), 7 435 800 values bit-identical with NaN at the same entries; the result is stored in the library's provenance. The replaced library holds 227 invalid entries of 275 400, all in corner columns; per quantity D1 46, D2 79, Σa1 41, Σa2 77 (TM §19.3), effective Σ12 222 (the 220 raw zeros plus 2 corner entries made negative by Eq. (3.5), each within its standard deviation), 1/v 41 and 77.
 **Reference:** The present library file.
 **Tolerance:** Every raw quantity bit-identical, with NaN at the same entries: the same extraction code reads the same statepoints.
 

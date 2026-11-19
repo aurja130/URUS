@@ -3,10 +3,18 @@
 #   readability-identifier-length: short names are idiomatic for physics symbols.
 #   bugprone-easily-swappable-parameters: numeric kernels take many same-typed quantities.
 #   readability-magic-numbers: physical constants are named where they carry meaning.
+# Check options with a reason:
+#   misc-include-cleaner.IgnoreHeaders: HDF5's C++ API is included only through its umbrella
+#     header H5Cpp.h; its component headers are not self-contained.
+#   misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic:
+#     plain aggregates (all members public, no invariant) are the standards' data records.
+#   readability-function-cognitive-complexity.IgnoreMacros: GoogleTest assertion macros expand
+#     to branches that are not the test's own logic.
 Checks: 'bugprone-*,performance-*,modernize-*,readability-*,misc-*,clang-analyzer-*,-modernize-use-trailing-return-type,-readability-identifier-length,-bugprone-easily-swappable-parameters,-readability-magic-numbers'
 WarningsAsErrors: '*'
 HeaderFilterRegex: '.*/(src|tests|app)/.*'
 CheckOptions:
+  misc-include-cleaner.IgnoreHeaders: 'H5[A-Za-z]*\.h'
   readability-identifier-naming.ClassCase: CamelCase
   readability-identifier-naming.StructCase: CamelCase
   readability-identifier-naming.EnumCase: CamelCase
