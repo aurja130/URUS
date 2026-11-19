@@ -23,7 +23,7 @@ the commit that changes any of them. Terms: [DEFINITIONS](DBC/DEFINITIONS.md).
 |---|---|---|
 | 1.1 Foundations | `milestone-1.1` | Done 2026-11-17; merged into `milestone-1` |
 | 1.2 Library contract and the present library | `milestone-1.2` | Done 2026-11-19; merged into `milestone-1` ([nodal library contract](../docs/contracts/nodal_library.md), format version 1) |
-| 1.3 Problem input and cross-section model | — | Not started |
+| 1.3 Problem input and cross-section model | `milestone-1.3` | In progress since 2026-11-19 ([problem input contract](../docs/contracts/problem_input.md), format version 1, frozen 2026-11-19) |
 | 1.4 CMFD with zero coupling corrections, eigenvalue, output | — | Not started |
 | 1.5 Nodal kernels and the interface solve | — | Not started |
 | 1.6 Transverse leakage and the three-dimensional nodal solution | — | Not started |

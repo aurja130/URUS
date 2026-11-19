@@ -37,17 +37,18 @@ Coupling -.->|iterates to convergence| CoreThermalHydraulics
 Coupling -.->|iterates to convergence| PrimaryLoop
 Coupling -->|converged state| Results["Results"]
 Tooling["Development tooling"]
-class ProblemInput,Knobs,Neutronics,CoreThermalHydraulics,PrimaryLoop,Coupling,Results planned
+class Knobs,CoreThermalHydraulics,PrimaryLoop,Coupling,Results planned
+class ProblemInput,Neutronics partial
 class NodalLibrary implemented
 class Tooling implemented
 ```
 
 | Node | Meaning | Terms | Status |
 | --- | --- | --- | --- |
-| `ProblemInput` | Everything a run is given: the reactor description, the operating state, the knob settings or schedules and the solver options, read from one input file and checked before anything is solved. | problem input, reactor description, operating state, solver options | planned |
+| `ProblemInput` | Everything a run is given: the reactor description, the operating state, the knob settings or schedules and the solver options, read from one input file and checked before anything is solved. | problem input, reactor description, operating state, solver options | partial |
 | `Knobs` | The four controls a student may change: control rod insertion, boron, primary coolant flow and steam generator heat load, each a constant or a schedule in time. | knob, knob schedule | planned |
 | `NodalLibrary` | Homogenized cross sections and kinetics data for every composition and branch state, how they are generated with OpenMC, and the full-core reference solutions that check the nodal results. | nodal library, branch state, composition, OpenMC | implemented |
-| `Neutronics` | Two-group nodal diffusion with eight delayed-neutron precursor groups: eigenvalue and critical boron, transient kinetics, xenon and samarium, decay heat, control rods, edits and pin powers. | two-group nodal diffusion, delayed-neutron precursor, eigenvalue | planned |
+| `Neutronics` | Two-group nodal diffusion with eight delayed-neutron precursor groups: eigenvalue and critical boron, transient kinetics, xenon and samarium, decay heat, control rods, edits and pin powers. | two-group nodal diffusion, delayed-neutron precursor, eigenvalue | partial |
 | `CoreThermalHydraulics` | Fuel rod conduction and one coolant channel per assembly on the neutronic axial mesh, giving the Doppler temperature, moderator density and boron of every node. | fuel rod, coolant channel, Doppler temperature, moderator density | planned |
 | `PrimaryLoop` | The closed coolant path outside the core: plena, hot and cold legs, steam generator primary side and pump. It sets the core inlet temperature, flow and boron. | primary loop, heat load | planned |
 | `Coupling` | The fixed-point iteration that brings neutronics, core thermal-hydraulics and loop to one consistent state, at steady state and in every time step, and the choice of the time steps. | Picard iteration, time step | planned |
@@ -65,16 +66,18 @@ ReactorDescription["Reactor description"] -->|geometry, maps, banks| InputValida
 OperatingState["Operating state"] -->|initial conditions| InputValidation
 SolverOptions["Solver options"] -->|tolerances, method choices| InputValidation
 LibraryBinding["Library binding"] -->|compositions, group structure| InputValidation
-class ReactorDescription,OperatingState,SolverOptions,LibraryBinding,InputValidation planned
+InputWriter["Input writer"] -.->|writes the input file| InputValidation
+class ReactorDescription,OperatingState,SolverOptions,LibraryBinding,InputValidation,InputWriter partial
 ```
 
 | Node | Meaning | Terms | Status |
 | --- | --- | --- | --- |
-| `ReactorDescription` | The reactor as built: core layout, node mesh, composition map, rod banks and their absorber zones, channel geometry and loop geometry. | reactor description, node, composition, rod bank | planned |
-| `OperatingState` | The state a run starts from: power level, system pressure, core inlet temperature and flow, boron and rod positions. | operating state, system pressure | planned |
-| `SolverOptions` | Tolerances, iteration limits and method choices, such as the nodal kernel, the kernel switch threshold, the fine-mesh resolution of the cusping correction and the coupling sequence. | solver options, tolerance | planned |
-| `LibraryBinding` | Which nodal library the run uses and which library composition each node of the composition map refers to. | nodal library, composition | planned |
-| `InputValidation` | Rejects an inconsistent input before solving, including a problem that uses a library composition with an invalid entry at some branch state. Changed 2026-11-18; was "Rejects an inconsistent input before solving, including any library whose group structure is not two energy groups and eight delayed groups." The library's own rules, its group structure among them, are now checked when it is read (`LibraryReader`). | input validation, library entry, validity flag | planned |
+| `ReactorDescription` | The reactor as built: core layout, node mesh, composition map with its excluded positions, the boundary conditions of the bounding and exterior faces, rod banks and their absorber zones, channel geometry and loop geometry. Changed 2026-11-19; was "The reactor as built: core layout, node mesh, composition map, rod banks and their absorber zones, channel geometry and loop geometry." | reactor description, node, composition, rod bank, excluded position, boundary condition, bounding face, exterior face | partial |
+| `OperatingState` | The state a run starts from: power level, system pressure, core inlet temperature and flow, boron and rod positions; without thermal-hydraulics, the node state of every node. Changed 2026-11-19; was "The state a run starts from: power level, system pressure, core inlet temperature and flow, boron and rod positions." | operating state, system pressure, node state | partial |
+| `SolverOptions` | Tolerances, iteration limits and method choices, such as the nodal kernel, the kernel switch threshold, the fine-mesh resolution of the cusping correction and the coupling sequence. | solver options, tolerance | partial |
+| `LibraryBinding` | Which nodal library the run uses and which composition of which composition set each input composition refers to. Changed 2026-11-19; was "Which nodal library the run uses and which library composition each node of the composition map refers to." | nodal library, composition, input composition, composition set | partial |
+| `InputValidation` | Rejects an inconsistent input before solving, including a problem that uses a library composition with an invalid entry at some branch state. Changed 2026-11-18; was "Rejects an inconsistent input before solving, including any library whose group structure is not two energy groups and eight delayed groups." The library's own rules, its group structure among them, are now checked when it is read (`LibraryReader`). | input validation, library entry, validity flag, problem input contract | partial |
+| `InputWriter` | The tool that writes a problem input from a description in code, without validating it; the engine is the authority on what is valid. | input writer, problem input contract | partial |
 
 ### L2 · Operator knobs (`Knobs`)
 ```mermaid
@@ -146,12 +149,13 @@ Kinetics["Kinetics"] -->|transient source and terms| CmfdSolve
 CmfdSolve -->|node fluxes| XenonSamarium
 CmfdSolve -->|fission power| DecayHeat["Decay heat"]
 CmfdSolve -->|node fluxes, face currents| PinPower["Pin power"]
-class ControlRods,XenonSamarium,CrossSectionModel,CmfdSolve,NodalKernels,EigenvalueSolve,CriticalBoron,AdjointEdits,Kinetics,DecayHeat,PinPower planned
+class ControlRods,XenonSamarium,CmfdSolve,NodalKernels,EigenvalueSolve,CriticalBoron,AdjointEdits,Kinetics,DecayHeat,PinPower planned
+class CrossSectionModel partial
 ```
 
 | Node | Meaning | Terms | Status |
 | --- | --- | --- | --- |
-| `CrossSectionModel` | The cross sections of every node at its state: multilinear interpolation in the library table, rodded mixing and the xenon and samarium absorption. A state outside the table is clamped and counted. | cross section, multilinear interpolation, table clamp | planned |
+| `CrossSectionModel` | The cross sections of every node at its state: multilinear interpolation in the library table, rodded mixing and the xenon and samarium absorption. A state outside the table is clamped and counted. | cross section, multilinear interpolation, table clamp, node state | partial |
 | `ControlRods` | Rod banks inside the core: where the tips are, how a partly rodded node is homogenized, and the correction that removes rod cusping. | rod bank, rodded fraction, rod cusping | planned |
 | `CmfdSolve` | The global coarse-mesh finite-difference problem over all nodes, made exact by the coupling corrections from the nodal kernels. | CMFD, coupling correction | planned |
 | `NodalKernels` | Two-node problems across every interface that give the accurate face currents, and from them the coupling corrections. | nodal kernel, transverse leakage, coupling correction | planned |
