@@ -9,7 +9,7 @@ the commit that changes any of them. Terms: [DEFINITIONS](DBC/DEFINITIONS.md).
 | Milestone | Branch | State |
 |---|---|---|
 | 1 Core engine | `milestone-1` | In progress since 2026-11-17 ([plan](MILESTONE_1/MILESTONE_1_PLAN.md), approved 2026-11-17) |
-| DM1 Single-assembly library | — | Not started; may start: the library contract froze when 1.2 closed (2026-11-19); its start decisions P2 and O5 were made 2026-11-19 |
+| DM1 Single-assembly library | — | In progress since 2026-11-20: the sizing campaign (scope 1) runs on galactica until 2026-11-23 10:00; the DM1 plan follows from its results. Work in `external/BEAVRS_minimal`, directory `dm1_sizing/` |
 | DM2 Full-core references | — | Not started |
 | 2 Coupled steady state | — | Not started |
 | 3 Kinetics | — | Not started |
@@ -43,6 +43,7 @@ States: open, done (with date), waived (by the Captain, with date).
 | 1 | Obtain | IAEA 2D and 3D PWR specifications, reference eigenvalues and assembly powers | Scope 5 | Open |
 | DM1 | Decide | P2: reflector data, discontinuity factors, form functions and rodded data generated now | Start | Decided 2026-11-19: yes |
 | DM1 | Decide | O5: effective or physical delayed-neutron fractions | Start | Decided 2026-11-19: effective fractions tallied into the library |
+| DM1 | Run | Machine time for the sizing campaign | Scope 1 | Done 2026-11-20: galactica, 64 cores, until 2026-11-23 10:00 |
 | DM1 | Obtain | Decay-heat curve and its group fits | Scope 2 | Open |
 | DM1 | Approve data | Decay-heat group constants (L8) | Scope 2 | Open |
 | DM1 | Run | Run list | Scope 3 | Open |
@@ -97,4 +98,7 @@ Cross-section table interpolation benchmark (BENCHMARKS), in every preset, its p
 allowing table clamps in its settings document: all 72 table points and 200 seeded interior
 states within 1e-14 relative; clamp counts and sides exact; 16 of 16 pass. The model has no
 iteration, so there is no convergence state to report.
-Submodule `external/BEAVRS_minimal` unchanged at `4bf2d26`.
+Submodule `external/BEAVRS_minimal` at `aedc5a8` since 2026-11-20 (was `4bf2d26`): adds the
+DM1 sizing campaign (`dm1_sizing/`), reviewed and approved; local end-to-end test with OpenMC
+0.15.3 (setup, data subset of 94 files verified, two-shard smoke runs, copy-back with removal).
+Smoke runs have 2 active batches of 2000 histories and are not converged; they test the chain only.

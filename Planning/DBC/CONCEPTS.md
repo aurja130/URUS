@@ -38,14 +38,15 @@ Coupling -.->|iterates to convergence| PrimaryLoop
 Coupling -->|converged state| Results["Results"]
 Tooling["Development tooling"]
 class Knobs,CoreThermalHydraulics,PrimaryLoop,Coupling,Results planned
-class Neutronics,NodalLibrary,ProblemInput,Tooling implemented
+class Neutronics,ProblemInput,Tooling implemented
+class NodalLibrary partial
 ```
 
 | Node | Meaning | Terms | Status |
 | --- | --- | --- | --- |
 | `ProblemInput` | Everything a run is given: the reactor description, the operating state, the knob settings or schedules and the solver options, read from four input documents (reactor, initial state, control signals, settings), in one input file or in document files linked from it, and checked before anything is solved. Changed 2026-11-20; was "Everything a run is given: the reactor description, the operating state, the knob settings or schedules and the solver options, read from one input file and checked before anything is solved." | problem input, reactor description, operating state, solver options, input document | implemented |
 | `Knobs` | The four controls a student may change: control rod insertion, boron, primary coolant flow and steam generator heat load, each a constant or a schedule in time. | knob, knob schedule | planned |
-| `NodalLibrary` | Homogenized cross sections and kinetics data for every composition and branch state, how they are generated with OpenMC, and the full-core reference solutions that check the nodal results. | nodal library, branch state, composition, OpenMC | implemented |
+| `NodalLibrary` | Homogenized cross sections and kinetics data for every composition and branch state, how they are generated with OpenMC, and the full-core reference solutions that check the nodal results. | nodal library, branch state, composition, OpenMC | partial |
 | `Neutronics` | Two-group nodal diffusion with eight delayed-neutron precursor groups: eigenvalue and critical boron, transient kinetics, xenon and samarium, decay heat, control rods, edits and pin powers. | two-group nodal diffusion, delayed-neutron precursor, eigenvalue | implemented |
 | `CoreThermalHydraulics` | Fuel rod conduction and one coolant channel per assembly on the neutronic axial mesh, giving the Doppler temperature, moderator density and boron of every node. | fuel rod, coolant channel, Doppler temperature, moderator density | planned |
 | `PrimaryLoop` | The closed coolant path outside the core: plena, hot and cold legs, steam generator primary side and pump. It sets the core inlet temperature, flow and boron. | primary loop, heat load | planned |
@@ -116,13 +117,14 @@ FullCoreReference -->|present library| LibraryContract
 FullCoreReference -.->|reference powers and eigenvalues| LibraryContract
 LibraryContract -->|library file| LibraryReader["Library reader"]
 class BranchGrid,FullCoreReference,LibraryContract,LibraryReader implemented
-class LatticeGeneration,ReflectorData planned
+class LatticeGeneration partial
+class ReflectorData planned
 ```
 
 | Node | Meaning | Terms | Status |
 | --- | --- | --- | --- |
 | `BranchGrid` | The set of branch states data are generated at: a tensor grid in fuel temperature, moderator state, boron and rod state. The present grid has no boron axis. | branch state, tensor grid | implemented |
-| `LatticeGeneration` | Single-assembly OpenMC calculations with reflective boundaries, one per assembly type and branch state, giving cross sections, kinetics data, discontinuity factors and form functions. | lattice calculation, OpenMC, discontinuity factor, form function | planned |
+| `LatticeGeneration` | Single-assembly OpenMC calculations with reflective boundaries, one per assembly type and branch state, giving cross sections, kinetics data, discontinuity factors and form functions. The sizing campaign runs the same lattice model at the nominal state and along scans of the branch-state axes first, to set the statistics target and the branch-grid spacing. | lattice calculation, OpenMC, discontinuity factor, form function, sizing campaign, statistics target | partial |
 | `ReflectorData` | Cross sections of the radial, top and bottom reflectors from fuel-and-reflector models. | reflector, composition | planned |
 | `FullCoreReference` | Full-core OpenMC runs at library states with node-wise tallies. Their library writer re-extracts the statepoints into the present library under the library contract, after a reproduction check against the library it replaces; the runs are kept as the reference solution the nodal results must reproduce. (2026-11-18; before: "They produced the present library and are kept as the reference solution the nodal results must reproduce.") | full-core reference, OpenMC, tally, statepoint, library writer, reproduction check | implemented |
 | `LibraryContract` | The file layout the engine reads: quantities per composition and branch state, units, statistical uncertainties and validity flags for empty tallies. | nodal library, library contract, validity flag | implemented |

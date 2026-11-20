@@ -142,6 +142,9 @@ O1–O14 the decisions recorded in TM §20.2 and §21. The notation of the equat
 | rod state | Whether the control rods of a branch state are out or in; the present library has all banks out or all in, and its rodded and unrodded data are separate compositions. | TM §7.1; Library contract §7.2, 2026-11-18 |
 | tensor grid | Branch states forming every combination of the values on each axis. | D2; TM §7.2 |
 | lattice calculation | A single-assembly calculation with reflective boundaries that produces the nodal data of one assembly type at one branch state. | O1, 2026-11-16; TM §19.3 |
+| sizing campaign | Lattice calculations run before the DM1 plan is approved, at the nominal state and along one- and two-dimensional scans of the branch-state axes, that give the statistics target, the compute estimate and the branch-grid spacing. They produce no library data. | Project plan §4, DM1 scope 1; Captain, 2026-11-20 |
+| statistics target | The number of histories per lattice calculation that brings the tallies the library needs within their required uncertainty. | Project plan §4, DM1 scope 1 |
+| shard | One of N runners that share a campaign's run list, each taking every N-th run, so that they run side by side on one machine without taking the same run. | Captain, 2026-11-20 |
 | OpenMC | The Monte Carlo transport code that generates the nodal data. | Vision §4 |
 | tally | An OpenMC estimate of a reaction rate or flux, with a statistical uncertainty. | TM §19.3 |
 | statepoint | The output file of an OpenMC run, holding each tally's sum and sum of squares, from which its mean and standard deviation follow. | TM §19.3 |

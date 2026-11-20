@@ -225,10 +225,13 @@ under the library contract. Work happens in `external/BEAVRS_minimal` through it
 commits, then a pointer update here.
 
 **Scope.**
-1. The milestone plan, approved before any OpenMC run: the assembly types (nine in BEAVRS
-   cycle 1, NUREG Table 2-3); the tensor grid with a boron axis and separate moderator
-   temperature and density (L4, L5), sized so that D2 needs no fallback; rodded data per
-   composition and absorber type (L6); statistics target; run count and compute estimate.
+1. The milestone plan, approved before any OpenMC run except the sizing campaign: the assembly
+   types (nine in BEAVRS cycle 1, NUREG Table 2-3); the tensor grid with a boron axis and
+   separate moderator temperature and density (L4, L5), sized so that D2 needs no fallback;
+   rodded data per composition and absorber type (L6); statistics target; run count and
+   compute estimate. The sizing campaign supplies the last four: lattice calculations at the
+   nominal state, along one-dimensional scans of each branch-state axis and on two-dimensional
+   patches, for each unrodded assembly type and with each absorber; it produces no library data.
    The decisions deferred to it are made here: Doppler weight (O9), direct heating fraction
    (O10); it also plans the tally of effective delayed fractions (O5, decided 2026-11-19).
 2. Generator changes producing L1–L3, L6–L8, L10, L12–L14 of TM §19.3. The decay-heat fits
@@ -313,6 +316,7 @@ and is not repeated in the tables.
 | Decide | O5: effective or physical delayed-neutron fractions in the library | Start |
 | Obtain | The decay-heat curve and its group fits (PARCS §9.5 Reference [24], or a decay-heat standard) | Scope 2 |
 | Approve data | The decay-heat group constants (L8) | Scope 2 |
+| Run | Machine time for the sizing campaign | Scope 1 |
 | Run | The run list: assembly types, branch grid, statistics target, the tallies for O9 and O10, compute estimate | Scope 3 |
 | Run | Machine time for the pilot | Scope 3 |
 | Run | Machine time for the production runs and the reflector models | Scope 4 |
@@ -398,3 +402,4 @@ each one is due.
 | 2026-11-19 | DM1 start decisions: P2 yes (reflector data, discontinuity factors, form functions and rodded data generated in DM1); O5 (a), effective (adjoint-weighted) delayed fractions tallied into the library (TM §21). |
 | 2026-11-20 | The Captain's decision: each milestone's documents live in its own folder, `Planning/MILESTONE_<n>/`; the milestone 1 plan moved to `Planning/MILESTONE_1/MILESTONE_1_PLAN.md`. |
 | 2026-11-20 | The Captain's decision: the problem input becomes four input documents, one responsibility each (reactor, initial state, control signals, settings), stored in one file or as separate files linked from it; Vision §1 amended. Milestone 1 gains sub-milestone 1.3a before 1.4 (milestone 1 plan §9). |
+| 2026-11-20 | The Captain's decision: DM1 starts with a sizing campaign before its plan is approved (scope 1, §5.2), on the university server galactica, 2026-11-20 to 2026-11-23 10:00. Photon transport is left out of it: with the JEFF-4.0 library in use, the photon heating tally gives 0.06 % of the neutron heating, so it cannot give the direct heating fraction (O10); the DM1 plan must find another way. |
