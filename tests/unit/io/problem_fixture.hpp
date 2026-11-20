@@ -40,9 +40,17 @@ struct FixtureDataset {
     std::map<std::string, FixtureAttribute> attributes;
 };
 
+// An HDF5 external link: the object `object` of the file `file` (as written; a relative name
+// resolves against the directory of the file holding the link when the link is read).
+struct FixtureExternalLink {
+    std::string file;
+    std::string object = "/";
+};
+
 struct FixtureGroup {
     std::map<std::string, FixtureGroup> groups;
     std::map<std::string, FixtureDataset> datasets;
+    std::map<std::string, FixtureExternalLink> external_links;
     std::map<std::string, FixtureAttribute> attributes;
 };
 
@@ -54,8 +62,9 @@ float64_array(std::vector<double> values, std::vector<std::size_t> shape, const 
 [[nodiscard]] FixtureDataset string_scalar(const std::string& value);
 [[nodiscard]] FixtureDataset string_array(std::vector<std::string> values);
 
-// A valid problem input bound to the library of make_valid_fixture() (set "test_set"):
-// - geometry nx = 3 (widths 10, 21.5, 10 cm), ny = 2 (15, 15 cm), nz = 2 (20, 30 cm);
+// A valid version 2 problem input bound to the library of make_valid_fixture() (set "test_set"),
+// with the reactor and the initial state written in place and no settings or control signals:
+// - (reactor) geometry nx = 3 (widths 10, 21.5, 10 cm), ny = 2 (15, 15 cm), nz = 2 (20, 30 cm);
 // - input compositions 0 = ("test_set", "fuel"), 1 = ("test_set", "reflector");
 // - composition_map int32 [2][2][3]: 0 everywhere except position (0, 0, z) = -1 for both
 //   z (excluded) and position (2, 1, 1) = 1; so 10 nodes;
@@ -63,7 +72,7 @@ float64_array(std::vector<double> values, std::vector<std::size_t> shape, const 
 //   [0.3, 0.6], z_minus vacuum, z_plus reflective; exterior vacuum;
 // - thermal_power 1e6 W; scalar node states doppler_temperature 700 K, moderator_density
 //   700 kg m^-3, moderator_temperature 560 K, boron 500 ppm;
-// - no /solver_options group;
+// - no settings or control_signals group (the tests add them);
 // - /library@path = `library_path` as given.
 [[nodiscard]] FixtureGroup make_valid_problem(const std::string& library_path);
 

@@ -108,8 +108,23 @@ private:
     std::size_t left_out_ = 0;
 };
 
-// True when `name` is a member of `group` of the type `type`.
+// True when `name` is a member of `group` of the type `type`. An external link is followed to
+// classify it; callers that must not follow one check is_external_link first.
 bool is_child(const H5::Group& group, const std::string& name, H5O_type_t type);
+
+// The target of an external link as written in the link: the file name and the object path.
+struct ExternalLinkTarget {
+    std::string file;
+    std::string object;
+};
+
+// True when `name` is an external link of `group`. The link is classified, never followed.
+bool is_external_link(const H5::Group& group, const std::string& name);
+
+// The target of `name` when it is an external link of `group`; nullopt otherwise. The link is
+// classified, never followed.
+std::optional<ExternalLinkTarget> external_link_target(const H5::Group& group,
+                                                       const std::string& name);
 
 // The sizes of the dimensions of `dataset`; empty for a scalar.
 std::vector<std::size_t> dimensions(const H5::DataSet& dataset);

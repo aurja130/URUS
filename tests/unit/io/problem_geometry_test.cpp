@@ -3,7 +3,7 @@
 // Licensed under the GNU GPL v3 or later, WITHOUT ANY WARRANTY; see LICENSE.
 
 // Checks 4 and 5 of the problem input (docs/contracts/problem_input.md §3 and §4): the geometry
-// and the boundary conditions.
+// and the boundary conditions, in the reactor document.
 
 #include "nts/common/diagnostic.hpp"
 #include "nts/io/problem.hpp"
@@ -63,11 +63,11 @@ std::vector<std::int64_t> valid_map() {
 }
 
 std::string width_location(const std::string& width) {
-    return "/geometry/" + width;
+    return "/reactor/geometry/" + width;
 }
 
 std::string face_location(std::size_t face) {
-    return "/boundary_conditions/" + std::string(faces[face]);
+    return "/reactor/boundary_conditions/" + std::string(faces[face]);
 }
 
 // The condition of bounding face `index`, or of the exterior face for index face_count.
@@ -79,14 +79,14 @@ const BoundaryCondition& condition_of(const Problem& result, std::size_t index) 
 class ProblemGeometryTest : public ProblemTest {
 protected:
     FixtureDataset& geometry(std::string_view name) {
-        return problem().groups["geometry"].datasets[std::string(name)];
+        return reactor().groups["geometry"].datasets[std::string(name)];
     }
     FixtureDataset& composition_map() { return geometry("composition_map"); }
     FixtureGroup& face(std::string_view name) {
-        return problem().groups["boundary_conditions"].groups[std::string(name)];
+        return reactor().groups["boundary_conditions"].groups[std::string(name)];
     }
     void erase_face(std::string_view name) {
-        problem().groups["boundary_conditions"].groups.erase(std::string(name));
+        reactor().groups["boundary_conditions"].groups.erase(std::string(name));
     }
     FixtureDataset& albedo() { return face(albedo_face).datasets["albedo"]; }
 
@@ -105,7 +105,7 @@ protected:
 class WidthTest : public ProblemGeometryTest, public testing::WithParamInterface<std::string> {};
 
 TEST_P(WidthTest, RejectsAMissingWidth) {
-    problem().groups["geometry"].datasets.erase(GetParam());
+    reactor().groups["geometry"].datasets.erase(GetParam());
     expect_one(rejected(), width_location(GetParam()), "dataset is missing");
 }
 
@@ -162,8 +162,8 @@ TEST_P(WidthTest, ReportsOnlyTheWidthWhenTheMapShapeCannotBeChecked) {
 }
 
 TEST_F(ProblemGeometryTest, RejectsAWidthStoredAsAGroup) {
-    problem().groups["geometry"].datasets.erase("width_x");
-    problem().groups["geometry"].groups["width_x"] = FixtureGroup{};
+    reactor().groups["geometry"].datasets.erase("width_x");
+    reactor().groups["geometry"].groups["width_x"] = FixtureGroup{};
     expect_one(rejected(), width_location("width_x"), "not a dataset");
 }
 
@@ -183,13 +183,13 @@ TEST_F(ProblemGeometryTest, AcceptsNonUniformWidths) {
 // ----- Geometry: the composition map (§3) -----------------------------------------------------
 
 TEST_F(ProblemGeometryTest, RejectsAMissingCompositionMap) {
-    problem().groups["geometry"].datasets.erase("composition_map");
-    expect_one(rejected(), "/geometry/composition_map", "dataset is missing");
+    reactor().groups["geometry"].datasets.erase("composition_map");
+    expect_one(rejected(), "/reactor/geometry/composition_map", "dataset is missing");
 }
 
 TEST_F(ProblemGeometryTest, RejectsACompositionMapThatIsNotAnInteger) {
     composition_map().type = FixtureType::float64;
-    expect_one(rejected(), "/geometry/composition_map", "not an integer dataset");
+    expect_one(rejected(), "/reactor/geometry/composition_map", "not an integer dataset");
 }
 
 // §1: integers are read as signed 64-bit and their range checked. uint64 holds no -1, so the
@@ -199,7 +199,8 @@ TEST_F(ProblemGeometryTest, RejectsAMapValueBeyondTheSignedRange) {
     composition_map().type = FixtureType::uint64;
     composition_map().numbers = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                                  0.0, 0.0, 0.0, 0.0, 0.0, beyond_signed_range};
-    expect_one(rejected(), "/geometry/composition_map", "a value exceeds the signed 64-bit range");
+    expect_one(rejected(), "/reactor/geometry/composition_map",
+               "a value exceeds the signed 64-bit range");
 }
 
 TEST_F(ProblemGeometryTest, AcceptsAnInt64CompositionMap) {
@@ -222,16 +223,16 @@ TEST_F(ProblemGeometryTest, AcceptsAUint8CompositionMapWithoutExcludedPositions)
 
 TEST_F(ProblemGeometryTest, RejectsACompositionMapOfTheTransposedShape) {
     composition_map().shape = {2U, 3U, 2U};
-    expect_one(rejected(), "/geometry/composition_map", "does not match [nz][ny][nx]");
+    expect_one(rejected(), "/reactor/geometry/composition_map", "does not match [nz][ny][nx]");
 }
 
 // Pins the x-fastest [z][y][x] ordering: position (1, 0, 1) is the 8th of the array.
 TEST_F(ProblemGeometryTest, RejectsAMapValueBelowMinusOneAtItsPosition) {
     composition_map().numbers[position_one_zero_one] = -2.0;
     const Diagnostics diagnostics = rejected();
-    expect_one(diagnostics, "/geometry/composition_map", "value -2 is below -1");
-    EXPECT_TRUE(has_entry_diagnostic(diagnostics, "/geometry/composition_map", "position (1, 0, 1)",
-                                     "value -2 is below -1"))
+    expect_one(diagnostics, "/reactor/geometry/composition_map", "value -2 is below -1");
+    EXPECT_TRUE(has_entry_diagnostic(diagnostics, "/reactor/geometry/composition_map",
+                                     "position (1, 0, 1)", "value -2 is below -1"))
         << all_text(diagnostics);
 }
 
@@ -239,20 +240,20 @@ TEST_F(ProblemGeometryTest, RejectsAMapValueBelowMinusOneAtItsPosition) {
 TEST_F(ProblemGeometryTest, RejectsAMapValueAboveTheLastCompositionAtItsPosition) {
     composition_map().numbers[position_one_zero_one] = 2.0;
     const Diagnostics diagnostics = rejected();
-    expect_one(diagnostics, "/geometry/composition_map",
+    expect_one(diagnostics, "/reactor/geometry/composition_map",
                "value 2 is not -1 or an input composition index below 2");
-    EXPECT_TRUE(has_entry_diagnostic(diagnostics, "/geometry/composition_map", "position (1, 0, 1)",
-                                     "value 2 is not -1"))
+    EXPECT_TRUE(has_entry_diagnostic(diagnostics, "/reactor/geometry/composition_map",
+                                     "position (1, 0, 1)", "value 2 is not -1"))
         << all_text(diagnostics);
 }
 
 TEST_F(ProblemGeometryTest, RejectsAMapWithoutNodes) {
     std::ranges::fill(composition_map().numbers, -1.0);
-    expect_one(rejected(), "/geometry/composition_map", "no position is a node");
+    expect_one(rejected(), "/reactor/geometry/composition_map", "no position is a node");
 }
 
 // A 5 x 5 x 1 box whose 25 positions hold 7, no composition index of K = 2: 20 entries are
-// listed, then one diagnostic gives the 5 not listed (§8).
+// listed, then one diagnostic gives the 5 not listed (§9).
 TEST_F(ProblemGeometryTest, ListsAtMostTwentyInvalidMapValuesOfADataset) {
     constexpr std::size_t side = 5;
     constexpr double invalid_value = 7.0;
@@ -269,13 +270,15 @@ TEST_F(ProblemGeometryTest, ListsAtMostTwentyInvalidMapValuesOfADataset) {
     };
     const Diagnostics diagnostics = rejected();
     const auto listed = std::ranges::count_if(diagnostics, [](const Diagnostic& diagnostic) {
-        return diagnostic.location == "/geometry/composition_map" && !diagnostic.entry.empty();
+        return diagnostic.location == "/reactor/geometry/composition_map" &&
+               !diagnostic.entry.empty();
     });
     EXPECT_EQ(listed, static_cast<std::ptrdiff_t>(listed_limit)) << all_text(diagnostics);
-    EXPECT_TRUE(has_entry_diagnostic(diagnostics, "/geometry/composition_map", "position (0, 0, 0)",
+    EXPECT_TRUE(has_entry_diagnostic(diagnostics, "/reactor/geometry/composition_map",
+                                     "position (0, 0, 0)",
                                      "is not -1 or an input composition index"))
         << all_text(diagnostics);
-    EXPECT_TRUE(has_diagnostic(diagnostics, "/geometry/composition_map",
+    EXPECT_TRUE(has_diagnostic(diagnostics, "/reactor/geometry/composition_map",
                                "5 more diagnostics are not listed"))
         << all_text(diagnostics);
 }
@@ -290,14 +293,14 @@ TEST_F(ProblemGeometryTest, NumbersTheNodesInPositionOrderSkippingExcludedPositi
 }
 
 TEST_F(ProblemGeometryTest, RejectsAnUnknownGeometryMember) {
-    problem().groups["geometry"].datasets["extra"] = float64_scalar(1.0, "cm");
-    expect_one(rejected(), "/geometry/extra", "not a member of the problem input contract");
+    reactor().groups["geometry"].datasets["extra"] = float64_scalar(1.0, "cm");
+    expect_one(rejected(), "/reactor/geometry/extra", "not a member of the problem input contract");
 }
 
 TEST_F(ProblemGeometryTest, RejectsTheGeometryStoredAsADataset) {
-    problem().groups.erase("geometry");
-    problem().datasets["geometry"] = float64_scalar(1.0, "cm");
-    expect_one(rejected(), "/geometry", "not a group");
+    reactor().groups.erase("geometry");
+    reactor().datasets["geometry"] = float64_scalar(1.0, "cm");
+    expect_one(rejected(), "/reactor/geometry", "not a group");
 }
 
 // ----- Boundary conditions: the bounding and exterior faces (§4) -----------------------------
@@ -446,9 +449,9 @@ INSTANTIATE_TEST_SUITE_P(FixedKinds, FixedKindTest,
                                                    .albedo = zero_flux_alpha}));
 
 TEST_F(ProblemGeometryTest, RejectsAnUnknownFaceGroup) {
-    problem().groups["boundary_conditions"].groups["w_minus"].attributes["kind"] =
+    reactor().groups["boundary_conditions"].groups["w_minus"].attributes["kind"] =
         std::string{"vacuum"};
-    expect_one(rejected(), "/boundary_conditions/w_minus",
+    expect_one(rejected(), "/reactor/boundary_conditions/w_minus",
                "not a member of the problem input contract");
 }
 
@@ -466,7 +469,7 @@ TEST_F(ProblemGeometryTest, AcceptsAZeroAlbedoInBothGroups) {
 
 TEST_F(ProblemGeometryTest, RejectsAMissingExteriorWhenAPositionIsExcluded) {
     erase_face("exterior");
-    expect_one(rejected(), "/boundary_conditions/exterior", "group is missing");
+    expect_one(rejected(), "/reactor/boundary_conditions/exterior", "group is missing");
 }
 
 TEST_F(ProblemGeometryTest, AcceptsAMissingExteriorWithoutExcludedPositions) {
@@ -479,7 +482,7 @@ TEST_F(ProblemGeometryTest, AcceptsAMissingExteriorWithoutExcludedPositions) {
 TEST_F(ProblemGeometryTest, ChecksAnExteriorFacePresentWithoutExcludedPositions) {
     std::ranges::fill(composition_map().numbers, 0.0);
     face("exterior").attributes["kind"] = std::string{"mirror"};
-    expect_one(rejected(), "/boundary_conditions/exterior@kind", "unknown kind 'mirror'");
+    expect_one(rejected(), "/reactor/boundary_conditions/exterior@kind", "unknown kind 'mirror'");
 }
 
 } // namespace

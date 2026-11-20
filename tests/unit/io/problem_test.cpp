@@ -22,6 +22,7 @@ namespace {
 using nts::BoundaryKind;
 using nts::Face;
 using nts::face_name;
+using nts::InputDocument;
 using nts::KernelChoice;
 using nts::load_problem;
 using nts::Problem;
@@ -77,6 +78,17 @@ TEST_F(ProblemTest, ReadsEveryFieldOfTheValidProblem) {
     const Problem loaded = accepted();
     const auto& reactor = loaded.input.reactor;
 
+    // Documents (§2): the reactor and the initial state are in place; the others are absent.
+    const auto reactor_index = static_cast<std::size_t>(InputDocument::reactor);
+    const auto initial_state_index = static_cast<std::size_t>(InputDocument::initial_state);
+    EXPECT_EQ(loaded.input.document_files[reactor_index], problem_file());
+    EXPECT_EQ(loaded.input.document_files[initial_state_index], problem_file());
+    EXPECT_TRUE(
+        loaded.input.document_files[static_cast<std::size_t>(InputDocument::control_signals)]
+            .empty());
+    EXPECT_TRUE(
+        loaded.input.document_files[static_cast<std::size_t>(InputDocument::settings)].empty());
+
     // Geometry (§3).
     EXPECT_EQ(reactor.width_x_cm, (std::vector<double>{10.0, 21.5, 10.0}));
     EXPECT_EQ(reactor.width_y_cm, (std::vector<double>{15.0, 15.0}));
@@ -119,7 +131,7 @@ TEST_F(ProblemTest, ReadsEveryFieldOfTheValidProblem) {
     ASSERT_FALSE(loaded.library.composition_sets.empty());
     EXPECT_EQ(loaded.library.composition_sets.front().name, "test_set");
 
-    // Operating state (§6): a scalar state applies to every node.
+    // Initial state (§6): a scalar state applies to every node.
     const auto& state = loaded.input.operating_state;
     EXPECT_DOUBLE_EQ(state.thermal_power_w, 1.0e6);
     ASSERT_EQ(state.node_states.size(), valid_node_count);
@@ -130,8 +142,9 @@ TEST_F(ProblemTest, ReadsEveryFieldOfTheValidProblem) {
         EXPECT_DOUBLE_EQ(node.boron_ppm, 500.0);
     }
 
-    // Solver options (§7): no group, so every default.
+    // Settings (§7): no settings document, so every default.
     const auto& options = loaded.input.solver_options;
+    EXPECT_FALSE(loaded.input.allow_table_clamps);
     EXPECT_EQ(options.kernel, KernelChoice::hybrid);
     EXPECT_DOUBLE_EQ(options.kernel_switch_threshold, 0.01);
     EXPECT_DOUBLE_EQ(options.wielandt_shift, 0.04);
@@ -154,7 +167,7 @@ TEST_F(ProblemTest, ResolvesARelativeLibraryPathAgainstTheProblemDirectory) {
 }
 
 TEST_F(ProblemTest, ReadsAnAbsoluteLibraryPathAsWritten) {
-    problem().groups["library"].attributes["path"] = library_file().string();
+    problem().groups["reactor"].groups["library"].attributes["path"] = library_file().string();
     const Problem loaded = accepted();
     EXPECT_EQ(loaded.input.binding.library_file, library_file());
 }
@@ -165,7 +178,7 @@ TEST_F(ProblemTest, IgnoresARootAttributeTheContractDoesNotName) {
     EXPECT_EQ(loaded.input.reactor.node_count(), valid_node_count);
 }
 
-// ----- Check 1: the file exists and opens as HDF5 (§8) --------------------------------------
+// ----- Check 1: the file exists and opens as HDF5 (§9) --------------------------------------
 
 TEST_F(ProblemTest, RejectsAMissingFile) {
     // Nothing is written: the problem input does not exist.
@@ -183,28 +196,29 @@ TEST_F(ProblemTest, RejectsAFileThatIsNotHdf5) {
     expect_one(result.error(), "/", "not an HDF5 file");
 }
 
-// ----- Check 2: format_version; on failure nothing else is checked (§2, §8) -----------------
+// ----- Check 2: format_version; on failure nothing else is checked (§2, §9) -----------------
 
-// The geometry is erased as well: nothing else may be reported once the version fails.
+// The reactor is erased as well: nothing else may be reported once the version fails.
 TEST_F(ProblemTest, RejectsAMissingFormatVersion) {
     problem().attributes.erase("format_version");
-    problem().groups.erase("geometry");
+    problem().groups.erase("reactor");
     expect_one(rejected(), "/@format_version", "attribute is missing");
 }
 
 TEST_F(ProblemTest, RejectsAFormatVersionThatIsNotAnInteger) {
-    problem().attributes["format_version"] = std::string{"1"};
-    problem().groups.erase("geometry");
+    problem().attributes["format_version"] = std::string{"2"};
+    problem().groups.erase("reactor");
     expect_one(rejected(), "/@format_version", "attribute is not an integer");
 }
 
 TEST_F(ProblemTest, RejectsAnUnsupportedFormatVersion) {
-    problem().attributes["format_version"] = std::int64_t{2};
-    problem().groups.erase("geometry");
-    expect_one(rejected(), "/@format_version", "format version 2 is not supported");
+    problem().attributes["format_version"] = std::int64_t{1};
+    problem().groups.erase("reactor");
+    expect_one(rejected(), "/@format_version",
+               "format version 1 is not supported; this engine reads version 2");
 }
 
-// ----- Check 3: root members (§2) and unknown members (§1, §8) ------------------------------
+// ----- Check 3: root members (§2) and unknown members (§1, §9) ------------------------------
 
 TEST_F(ProblemTest, RejectsAnUnknownRootGroup) {
     problem().groups["extra"] = FixtureGroup{};
@@ -216,57 +230,71 @@ TEST_F(ProblemTest, RejectsAnUnknownRootDataset) {
     expect_one(rejected(), "/extra", "not a member of the problem input contract");
 }
 
-TEST_F(ProblemTest, RejectsEachMissingRequiredRootGroup) {
-    // A missing compositions group also leaves the map's upper bound unchecked, so the count of
-    // diagnostics is not asserted; the missing group itself must be reported.
-    for (const std::string group :
-         {"geometry", "boundary_conditions", "library", "compositions", "operating_state"}) {
-        SCOPED_TRACE(group);
+TEST_F(ProblemTest, RejectsAMissingRequiredDocument) {
+    for (const std::string document : {"reactor", "initial_state"}) {
+        SCOPED_TRACE(document);
         problem() = make_valid_problem("library.h5");
-        problem().groups.erase(group);
-        EXPECT_TRUE(has_diagnostic(rejected(), "/" + group, "group is missing"));
+        problem().groups.erase(document);
+        EXPECT_TRUE(has_diagnostic(rejected(), "/" + document, "document is missing"));
     }
 }
 
-TEST_F(ProblemTest, ReportsAMissingRootGroupBeforeTheGeometry) {
-    // §8 item 3 (root members) precedes item 4 (geometry): the missing group is reported first.
-    problem().groups["geometry"].datasets["width_x"].numbers[1] = -1.0;
-    problem().groups.erase("operating_state");
+TEST_F(ProblemTest, ReportsAMissingDocumentBeforeTheGeometry) {
+    // §9 item 3 (root members) precedes item 4 (geometry): the missing document is reported first.
+    problem().groups["reactor"].groups["geometry"].datasets["width_x"].numbers[1] = -1.0;
+    problem().groups.erase("initial_state");
     const auto diagnostics = rejected();
     ASSERT_EQ(diagnostics.size(), 2U) << all_text(diagnostics);
-    EXPECT_EQ(diagnostics[0].location, "/operating_state");
-    EXPECT_EQ(diagnostics[0].message, "group is missing");
-    EXPECT_EQ(diagnostics[1].location, "/geometry/width_x");
-    EXPECT_TRUE(has_entry_diagnostic(diagnostics, "/geometry/width_x", "index 1",
+    EXPECT_EQ(diagnostics[0].location, "/initial_state");
+    EXPECT_EQ(diagnostics[0].message, "document is missing");
+    EXPECT_EQ(diagnostics[1].location, "/reactor/geometry/width_x");
+    EXPECT_TRUE(has_entry_diagnostic(diagnostics, "/reactor/geometry/width_x", "index 1",
                                      "width -1 cm is not finite and positive"));
 }
 
-TEST_F(ProblemTest, ReportsARootMemberOfTheWrongKindOnce) {
-    // §2: boundary_conditions must be a group; its section does not report the defect again.
-    problem().groups.erase("boundary_conditions");
-    problem().datasets["boundary_conditions"] = integer_scalar(1);
-    expect_one(rejected(), "/boundary_conditions", "not a group");
+TEST_F(ProblemTest, ReportsARootMemberOfTheWrongKind) {
+    // §2: a document member must be a group or an external link.
+    problem().groups.erase("reactor");
+    problem().datasets["reactor"] = integer_scalar(1);
+    EXPECT_TRUE(has_diagnostic(rejected(), "/reactor", "not a group or an external link"));
 }
 
-// ----- Collection: every failure is reported, in contract §8 order -------------------------
+TEST_F(ProblemTest, RejectsADocumentWhoseKindIsWrong) {
+    // §2: the `document` attribute names the member the document is read as.
+    problem().groups["initial_state"].attributes["document"] = std::string{"settings"};
+    expect_one(rejected(), "/initial_state@document",
+               "document kind 'settings' is not 'initial_state'");
+}
+
+TEST_F(ProblemTest, RejectsADocumentWhoseFormatVersionIsUnsupported) {
+    // §2: a document is not read further when its format_version is wrong.
+    problem().groups["reactor"].attributes["format_version"] = std::int64_t{1};
+    expect_one(rejected(), "/reactor@format_version",
+               "format version 1 is not supported; this engine reads version 2");
+}
+
+// ----- Collection: every failure is reported, in contract §9 order -------------------------
 
 TEST_F(ProblemTest, ReportsTheDefectsOfThreeSectionsInContractOrder) {
     // Geometry (§3): width_x[1] is not positive.
-    problem().groups["geometry"].datasets["width_x"].numbers[1] = -1.0;
-    // Operating state (§6): boron is not non-negative.
-    problem().groups["operating_state"].datasets["boron"] = float64_scalar(-1.0, "ppm");
-    // Solver options (§7): an unknown kernel.
-    problem().groups["solver_options"].datasets["kernel"] = string_scalar("bogus");
+    problem().groups["reactor"].groups["geometry"].datasets["width_x"].numbers[1] = -1.0;
+    // Initial state (§6): boron is not non-negative.
+    problem().groups["initial_state"].datasets["boron"] = float64_scalar(-1.0, "ppm");
+    // Settings (§7): an unknown kernel.
+    FixtureGroup& settings = problem().groups["settings"];
+    settings.attributes["document"] = std::string{"settings"};
+    settings.attributes["format_version"] = std::int64_t{2};
+    settings.datasets["kernel"] = string_scalar("bogus");
 
     const auto diagnostics = rejected();
     ASSERT_EQ(diagnostics.size(), 3U) << all_text(diagnostics);
-    EXPECT_EQ(diagnostics[0].location, "/geometry/width_x");
-    EXPECT_EQ(diagnostics[1].location, "/operating_state/boron");
-    EXPECT_EQ(diagnostics[2].location, "/solver_options/kernel");
-    EXPECT_TRUE(has_entry_diagnostic(diagnostics, "/geometry/width_x", "index 1",
+    EXPECT_EQ(diagnostics[0].location, "/reactor/geometry/width_x");
+    EXPECT_EQ(diagnostics[1].location, "/initial_state/boron");
+    EXPECT_EQ(diagnostics[2].location, "/settings/kernel");
+    EXPECT_TRUE(has_entry_diagnostic(diagnostics, "/reactor/geometry/width_x", "index 1",
                                      "width -1 cm is not finite and positive"));
-    EXPECT_TRUE(has_diagnostic(diagnostics, "/operating_state/boron", "-1 ppm"));
-    EXPECT_TRUE(has_diagnostic(diagnostics, "/solver_options/kernel", "unknown kernel 'bogus'"));
+    EXPECT_TRUE(has_diagnostic(diagnostics, "/initial_state/boron", "-1 ppm"));
+    EXPECT_TRUE(has_diagnostic(diagnostics, "/settings/kernel", "unknown kernel 'bogus'"));
 }
 
 } // namespace

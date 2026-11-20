@@ -452,8 +452,9 @@ std::vector<NodeRow> node_rows() {
     };
 }
 
-// Writes the node states of `rows` as the operating state of the problem, with the grid of
-// the valid problem: positions 0 and 6 are excluded and hold NaN, which is never read.
+// Writes the node states of `rows` as the initial state of the problem, with the grid of
+// the valid problem: positions 0 and 6 are excluded and hold NaN, which is never read. The
+// rows include states outside the tables, so the settings allow table clamps.
 void use_node_rows(nts::test::FixtureGroup& problem_root, const std::vector<NodeRow>& rows) {
     constexpr std::size_t nz = 2;
     constexpr std::size_t ny = 2;
@@ -471,11 +472,15 @@ void use_node_rows(nts::test::FixtureGroup& problem_root, const std::vector<Node
         boron[row.position] = row.state.boron_ppm;
     }
     const std::vector<std::size_t> shape{nz, ny, nx};
-    nts::test::FixtureGroup& state = problem_root.groups.at("operating_state");
+    nts::test::FixtureGroup& state = problem_root.groups.at("initial_state");
     state.datasets["doppler_temperature"] = nts::test::float64_array(doppler, shape, "K");
     state.datasets["moderator_density"] = nts::test::float64_array(density, shape, "kg m^-3");
     state.datasets["moderator_temperature"] = nts::test::float64_array(moderator, shape, "K");
     state.datasets["boron"] = nts::test::float64_array(boron, shape, "ppm");
+    nts::test::FixtureGroup& settings = problem_root.groups["settings"];
+    settings.attributes["document"] = std::string{"settings"};
+    settings.attributes["format_version"] = std::int64_t{2};
+    settings.datasets["allow_table_clamps"] = nts::test::integer_scalar(1);
 }
 
 class CrossSectionInterpolationBenchmark : public nts::test::ProblemTest {

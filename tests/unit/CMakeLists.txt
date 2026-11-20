@@ -13,6 +13,7 @@ add_executable(nts_unit_tests
     io/nodal_library_test.cpp
     io/problem_fixture.cpp
     io/problem_binding_test.cpp
+    io/problem_document_test.cpp
     io/problem_geometry_test.cpp
     io/problem_position_test.cpp
     io/problem_state_test.cpp

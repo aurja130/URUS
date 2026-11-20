@@ -62,8 +62,49 @@ std::string join(std::span<const std::size_t> values) {
     return text + "]";
 }
 
+namespace {
+
+// The info of the link `name` of `group`, classified without following it; nullopt when there is
+// no such link.
+std::optional<H5L_info_t> link_info(const H5::Group& group, const std::string& name) {
+    if (!group.nameExists(name)) {
+        return std::nullopt;
+    }
+    H5L_info_t info{};
+    if (H5Lget_info(group.getId(), name.c_str(), &info, H5P_DEFAULT) < 0) {
+        throw H5::Exception("H5Lget_info", "the link '" + name + "' cannot be classified");
+    }
+    return info;
+}
+
+} // namespace
+
 bool is_child(const H5::Group& group, const std::string& name, H5O_type_t type) {
     return group.nameExists(name) && group.childObjType(name) == type;
+}
+
+bool is_external_link(const H5::Group& group, const std::string& name) {
+    const std::optional<H5L_info_t> info = link_info(group, name);
+    return info && info->type == H5L_TYPE_EXTERNAL;
+}
+
+std::optional<ExternalLinkTarget> external_link_target(const H5::Group& group,
+                                                       const std::string& name) {
+    const std::optional<H5L_info_t> info = link_info(group, name);
+    if (!info || info->type != H5L_TYPE_EXTERNAL) {
+        return std::nullopt;
+    }
+    std::vector<char> value(info->u.val_size);
+    if (H5Lget_val(group.getId(), name.c_str(), value.data(), value.size(), H5P_DEFAULT) < 0) {
+        throw H5::Exception("H5Lget_val", "the link '" + name + "' cannot be read");
+    }
+    const char* file = nullptr;
+    const char* object = nullptr;
+    unsigned flags = 0;
+    if (H5Lunpack_elink_val(value.data(), value.size(), &flags, &file, &object) < 0) {
+        throw H5::Exception("H5Lunpack_elink_val", "the link '" + name + "' cannot be decoded");
+    }
+    return ExternalLinkTarget{.file = file, .object = object};
 }
 
 std::vector<std::size_t> dimensions(const H5::DataSet& dataset) {

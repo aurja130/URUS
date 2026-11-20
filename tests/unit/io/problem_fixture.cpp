@@ -204,6 +204,15 @@ void write_dataset(const H5::Group& parent, const std::string& name,
     write_attributes(create_dataset(parent, name, dataset), dataset.attributes);
 }
 
+void write_external_link(const H5::Group& parent, const std::string& name,
+                         const FixtureExternalLink& link) {
+    if (H5Lcreate_external(link.file.c_str(), link.object.c_str(), parent.getId(), name.c_str(),
+                           H5P_DEFAULT, H5P_DEFAULT) < 0) {
+        throw std::runtime_error(
+            std::format("problem fixture: cannot create the external link '{}'", name));
+    }
+}
+
 // Writes the tree without recursion: a stack holds each group still to write, with its handle.
 void write_tree(const H5::Group& root_group, const FixtureGroup& root) {
     struct Pending {
@@ -221,6 +230,9 @@ void write_tree(const H5::Group& root_group, const FixtureGroup& root) {
         }
         for (const auto& [name, dataset] : current.fixture->datasets) {
             write_dataset(current.group, name, dataset);
+        }
+        for (const auto& [name, link] : current.fixture->external_links) {
+            write_external_link(current.group, name, link);
         }
     }
 }
@@ -272,9 +284,13 @@ FixtureDataset string_array(std::vector<std::string> values) {
 
 FixtureGroup make_valid_problem(const std::string& library_path) {
     FixtureGroup root;
-    root.attributes["format_version"] = std::int64_t{1};
+    root.attributes["format_version"] = std::int64_t{2};
 
-    FixtureGroup& geometry = root.groups["geometry"];
+    FixtureGroup& reactor = root.groups["reactor"];
+    reactor.attributes["document"] = std::string{"reactor"};
+    reactor.attributes["format_version"] = std::int64_t{2};
+
+    FixtureGroup& geometry = reactor.groups["geometry"];
     geometry.datasets["width_x"] = float64_array({10.0, 21.5, 10.0}, {3}, "cm");
     geometry.datasets["width_y"] = float64_array({15.0, 15.0}, {2}, "cm");
     geometry.datasets["width_z"] = float64_array({20.0, 30.0}, {2}, "cm");
@@ -284,7 +300,7 @@ FixtureGroup make_valid_problem(const std::string& library_path) {
     composition_map.numbers = {-1.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
     geometry.datasets["composition_map"] = composition_map;
 
-    FixtureGroup& boundaries = root.groups["boundary_conditions"];
+    FixtureGroup& boundaries = reactor.groups["boundary_conditions"];
     boundaries.groups["x_minus"] = kind_group("vacuum");
     boundaries.groups["x_plus"] = kind_group("reflective");
     boundaries.groups["y_minus"] = kind_group("zero_flux");
@@ -295,18 +311,21 @@ FixtureGroup make_valid_problem(const std::string& library_path) {
     boundaries.groups["z_plus"] = kind_group("reflective");
     boundaries.groups["exterior"] = kind_group("vacuum");
 
-    root.groups["library"].attributes["path"] = library_path;
+    reactor.groups["library"].attributes["path"] = library_path;
 
-    FixtureGroup& operating_state = root.groups["operating_state"];
-    operating_state.datasets["thermal_power"] = float64_scalar(1.0e6, "W");
-    operating_state.datasets["doppler_temperature"] = float64_scalar(700.0, "K");
-    operating_state.datasets["moderator_density"] = float64_scalar(700.0, "kg m^-3");
-    operating_state.datasets["moderator_temperature"] = float64_scalar(560.0, "K");
-    operating_state.datasets["boron"] = float64_scalar(500.0, "ppm");
-
-    FixtureGroup& compositions = root.groups["compositions"];
+    FixtureGroup& compositions = reactor.groups["compositions"];
     compositions.datasets["library_set"] = string_array({"test_set", "test_set"});
     compositions.datasets["library_composition"] = string_array({"fuel", "reflector"});
+
+    FixtureGroup& initial_state = root.groups["initial_state"];
+    initial_state.attributes["document"] = std::string{"initial_state"};
+    initial_state.attributes["format_version"] = std::int64_t{2};
+    initial_state.attributes["source"] = std::string{"stated"};
+    initial_state.datasets["thermal_power"] = float64_scalar(1.0e6, "W");
+    initial_state.datasets["doppler_temperature"] = float64_scalar(700.0, "K");
+    initial_state.datasets["moderator_density"] = float64_scalar(700.0, "kg m^-3");
+    initial_state.datasets["moderator_temperature"] = float64_scalar(560.0, "K");
+    initial_state.datasets["boron"] = float64_scalar(500.0, "ppm");
     return root;
 }
 
