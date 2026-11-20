@@ -397,3 +397,4 @@ each one is due.
 | 2026-11-18 | §5.2: DM1 closes with a Zenodo record of its statepoints and the present ones; the Captain accepted the risk of keeping the present statepoints without a backup during milestone 1. |
 | 2026-11-19 | DM1 start decisions: P2 yes (reflector data, discontinuity factors, form functions and rodded data generated in DM1); O5 (a), effective (adjoint-weighted) delayed fractions tallied into the library (TM §21). |
 | 2026-11-20 | The Captain's decision: each milestone's documents live in its own folder, `Planning/MILESTONE_<n>/`; the milestone 1 plan moved to `Planning/MILESTONE_1/MILESTONE_1_PLAN.md`. |
+| 2026-11-20 | The Captain's decision: the problem input becomes four input documents, one responsibility each (reactor, initial state, control signals, settings), stored in one file or as separate files linked from it; Vision §1 amended. Milestone 1 gains sub-milestone 1.3a before 1.4 (milestone 1 plan §9). |

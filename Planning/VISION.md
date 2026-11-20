@@ -14,9 +14,13 @@ reactor behavior through a small set of operator controls.
 
 - The engine is a command-line program until the polishing stage. No GUI, no
   embedded scripting, and no Python bindings into the engine internals.
-- HDF5 is the only input and output format. An input file contains the reactor
-  description, the operating state, the knob settings or schedules, and solver
-  options. An output file contains the solution fields and time histories.
+- HDF5 is the only input and output format. An input consists of four documents,
+  one responsibility each: the reactor (its description and nodal library), the
+  initial state, the control signals (knob settings or schedules) and the
+  settings (solver options). They are one file or separate files linked from it,
+  so a reactor is described once and combined with any initial state, control
+  signals and settings. An output file contains the solution fields and time
+  histories.
 - The future Python package depends only on the HDF5 file contract. The C++ side
   must not need changes to support it.
 

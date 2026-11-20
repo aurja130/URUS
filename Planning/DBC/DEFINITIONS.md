@@ -125,6 +125,14 @@ O1–O14 the decisions recorded in TM §20.2 and §21. The notation of the equat
 | input validation | The checks an input must pass before anything is solved. | Vision §5 |
 | problem input contract | The documented layout, units, defaults and validation rules of the problem input, versioned like the library contract. | Milestone 1 plan §3, 2026-11-19 |
 | input writer | The Python program that writes a problem input from a description in code; it does not validate, the engine does. | Milestone 1 plan §3, 2026-11-19 |
+| input document | One of the four parts of a problem input, one responsibility each: the reactor document, the initial state document, the control signals document and the settings document. Each carries its kind and its own format version, and is stored either as a group of the problem input or as a document file linked from it. | Vision §1; Captain, 2026-11-20; Milestone 1 plan §3 (1.3a) |
+| reactor document | The input document of the reactor as built: its reactor description and its library binding. Written once and used by every run of that reactor. | Captain, 2026-11-20; Milestone 1 plan §3 (1.3a) |
+| initial state document | The input document of the operating state a run starts from, stated value by value; starting from an earlier output comes later. | Captain, 2026-11-20; Milestone 1 plan §3 (1.3a) |
+| control signals document | The input document of the knob schedules applied during a run. | Captain, 2026-11-20; Milestone 1 plan §3 (1.3a) |
+| settings document | The input document of how a run is computed: the solver options, whether table clamps are allowed, and later the run length and time-step controls. It does not change what is simulated. | Captain, 2026-11-20; Milestone 1 plan §3 (1.3a) |
+| document file | An HDF5 file holding one input document at its root, linked from a problem input. | Milestone 1 plan §3 (1.3a), 2026-11-20 |
+| external link | An HDF5 link in one file to an object in another. The engine follows only the four document links of a problem input and resolves them against the problem input's directory, never the working directory. | Milestone 1 plan §3 (1.3a), 2026-11-20 |
+| library coverage | The range a composition set's table spans: from the first to the last point of each of its state axes. An initial node state outside it is rejected unless the settings allow table clamps. | Captain, 2026-11-20; Milestone 1 plan §3 (1.3a) |
 | knob | One of the four student controls: rods, boron, primary flow, heat load. | Vision §3 |
 | knob schedule | The value of a knob over time, a constant or a table; a jump is a discontinuity a step must land on. | Vision §3; TM §11.8 |
 | nodal library | The HDF5 file of nodal data the engine reads. | Vision §4 |

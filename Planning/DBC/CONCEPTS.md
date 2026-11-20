@@ -65,8 +65,10 @@ ReactorDescription["Reactor description"] -->|geometry, maps, banks| InputValida
 OperatingState["Operating state"] -->|initial conditions| InputValidation
 SolverOptions["Solver options"] -->|tolerances, method choices| InputValidation
 LibraryBinding["Library binding"] -->|compositions, group structure| InputValidation
+InputDocuments["Input documents"] -->|reactor, initial state, control signals, settings| InputValidation
 InputWriter["Input writer"] -.->|writes the input file| InputValidation
 class ReactorDescription,OperatingState,SolverOptions,LibraryBinding,InputValidation,InputWriter implemented
+class InputDocuments planned
 ```
 
 | Node | Meaning | Terms | Status |
@@ -77,6 +79,7 @@ class ReactorDescription,OperatingState,SolverOptions,LibraryBinding,InputValida
 | `LibraryBinding` | Which nodal library the run uses and which composition of which composition set each input composition refers to. Changed 2026-11-19; was "Which nodal library the run uses and which library composition each node of the composition map refers to." | nodal library, composition, input composition, composition set | implemented |
 | `InputValidation` | Rejects an inconsistent input before solving, including a problem that uses a library composition with an invalid entry at some branch state. Changed 2026-11-18; was "Rejects an inconsistent input before solving, including any library whose group structure is not two energy groups and eight delayed groups." The library's own rules, its group structure among them, are now checked when it is read (`LibraryReader`). | input validation, library entry, validity flag, problem input contract | implemented |
 | `InputWriter` | The tool that writes a problem input from a description in code, without validating it; the engine is the authority on what is valid. | input writer, problem input contract | implemented |
+| `InputDocuments` | The four parts a problem input is made of, one responsibility each: reactor, initial state, control signals and settings. Each is a group of the problem input or its own file linked from it, with its own kind and format version, so a reactor is written once and combined with any initial state, control signals and settings. | input document, reactor document, initial state document, control signals document, settings document, document file, external link, library coverage | planned |
 
 ### L2 · Operator knobs (`Knobs`)
 ```mermaid

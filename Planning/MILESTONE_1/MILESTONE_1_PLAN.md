@@ -22,6 +22,7 @@ core of Project plan §2 item 3.
 | 1.1 Foundations | Build, test and check every change with one command, on two compilers, with sanitizers and in release, with invariant checks and floating-point traps on | `ToolchainPin`, `BuildPresets`, `LocalCi`, `RuntimeChecks` |
 | 1.2 Library contract and the present library | Hand the engine the present BEAVRS library, re-extracted from its statepoints into the versioned library format and checked against every library rule when it is read | `LibraryContract`, `FullCoreReference` (the writer), `LibraryReader` |
 | 1.3 Problem input and cross-section model | Describe a core in a problem input written from Python, have it checked before anything is solved, and get the cross sections of every node at its state | `ReactorDescription`, `OperatingState`, `SolverOptions`, `LibraryBinding`, `InputValidation`, `InputWriter`, `CrossSectionModel` |
+| 1.3a Input documents | Write a reactor once and run it from any initial state its library covers, under any control signals and settings, from one file or from four linked ones | `InputDocuments`; `ProblemInput`, `OperatingState`, `SolverOptions`, `InputValidation` and `InputWriter` change |
 | 1.4 CMFD with zero coupling corrections, eigenvalue, output | Run `urus` on a problem and get k_eff, node fluxes and powers and a run record from the finite-difference (CMFD) solution | `CmfdSolve`, `EigenvalueSolve`, `FieldOutput`, `RunRecord` |
 | 1.5 Nodal kernels and the interface solve | Solve one-dimensional problems with the nodal expansion method (NEM), the analytic nodal method (ANM) or the hybrid of both, with discontinuity factors | `NodalKernels`, `NemKernel`, `AnmKernel`, `KernelSwitch`, `DiscontinuityFactors`, `InterfaceSolve` |
 | 1.6 Transverse leakage and the three-dimensional nodal solution | Solve two- and three-dimensional cores with the nodal method, checked on the IAEA 2D and 3D benchmarks | `TransverseLeakage`; `NodalKernels` and `CmfdSolve` change |
@@ -248,6 +249,73 @@ entered with ρ_m (TM §7.3).
 **Acceptance.** Cross-section table interpolation benchmark (§5); validation rejection tests
 for every rule above, for interior, edge and corner nodes and for every face.
 
+### 1.3a Input documents
+
+**State.** Not started. Added 2026-11-20 by the Captain's decision (§9; Project plan §7).
+
+**Why.** A reactor and its nodal library are written once; initial states, control signals
+and settings vary from run to run. Version 1 puts all of them in one file, so every new
+combination copies the reactor. Version 2 splits the problem input into four input
+documents, one responsibility each, that combine freely. It comes before 1.4 because 1.4 to
+1.7 write the benchmark inputs; only the 1.3 tests and the input writer use version 1.
+
+**Contract** (`docs/contracts/problem_input.md`, format version 2; the engine stops reading
+version 1):
+- The problem input has the root groups `reactor`, `initial_state`, `control_signals` and
+  `settings`, plus `format_version` = 2. Each root group is either the document itself or an
+  HDF5 external link to the root group of a document file. Both forms read the same. The four
+  root members are the only external links the engine follows; an external link anywhere
+  else is rejected.
+- Every document's root carries `document` (its kind: `reactor`, `initial_state`,
+  `control_signals` or `settings`) and its own `format_version` = 2. A document of the wrong
+  kind or an unsupported version is rejected, naming its file.
+- External links resolve against the directory of the problem input, never the working
+  directory (the engine sets HDF5's external link prefix). Diagnostics name the file as well
+  as the path inside it.
+- **Reactor** (required): the geometry, boundary conditions, library binding and composition
+  list of version 1 (later rod banks, channels and loop). The library path resolves against
+  the directory of the file that holds the reactor document.
+- **Initial state** (required): the thermal power and node state of version 1 (later
+  pressure, inlet conditions and rod positions). Attribute `source` = `stated`, the only value
+  version 2 accepts; starting from an earlier output is added once the output contract exists
+  (1.4 or later), as an additive change. Node-state arrays must have the reactor's shape.
+- **Control signals** (optional): the knob schedules of milestones 3 and 4. Version 2 accepts
+  only an empty document.
+- **Settings** (optional; absent means all defaults): the solver options of version 1 with
+  their names and defaults, and `allow_table_clamps` (integer 0 or 1, default 0). Later the
+  run length and time-step controls (milestone 3).
+
+**Input validation**, added to 1.3's:
+- **Library coverage.** Every node state lies within the first and last point of each state
+  axis its composition's set has. A value outside is rejected, naming node, axis and side,
+  unless `allow_table_clamps` = 1; then the cross-section model clamps and counts it as in
+  1.3. This replaces version 1 §6, where a state outside the table was not an input error.
+- A required document missing; a linked file missing or unreadable; a wrong document kind; an
+  unsupported version; an external link outside the four root members; a non-empty control
+  signals document; an unknown `source`.
+
+**Python input writer**: one dataclass per document; writes the four documents into one
+problem input, or each into its own document file plus a problem input that links them by
+relative path. It still does not validate.
+
+**Not in 1.3a.** Starting from an earlier output; knob schedules; run length and time steps.
+The cross-section model is unchanged.
+
+**DBC.** New node `InputDocuments`. Changed: `ProblemInput` (four documents),
+`OperatingState` (the initial state document), `SolverOptions` (the settings document),
+`InputValidation` (library coverage, document checks), `InputWriter` (both forms).
+
+**Acceptance.** Every 1.3 test passes on version 2 inputs. One file and four linked files
+give the same problem, compared field by field. Rejection tests for every rule above,
+including: each document missing, of the wrong kind and of an unsupported version, and
+linked to a missing file; a link resolved against the problem input's directory when the
+working directory differs; the library path resolved against the reactor document's
+directory when that differs from the problem input's; node-state arrays of the wrong shape.
+Library coverage: a state below and above each of the four axes, at interior, edge and
+corner nodes, rejected by default and clamped and counted when allowed; a one-point axis;
+an axis the set lacks is not checked. Writer round trip in both forms. The cross-section
+table interpolation benchmark (§5) still passes.
+
 ### 1.4 CMFD with zero coupling corrections, eigenvalue, output
 
 **Builds.** TM §3.3 normalization; §4.1–§4.3 assembly with Eq. (4.6) in the corrected form of
@@ -261,9 +329,10 @@ rescaled at each call. Convergence by Eq. (4.10) plus the residual.
 **Output contract** (`docs/contracts/output.md`): k_eff; flux `[2][z][y][x]`; node power (W)
 and power density; the run record: convergence state (outer and inner iterations, nodal
 updates, δ_k, δ_L2, δ_L∞, residual, largest D̂ change), clamp counts by axis and side, methods
-and every solver option as used, SHA-256 of input and library, engine version and commit,
-preset, wall time; a valid/invalid flag with the reason. `urus <input> -o <output>`. Exit
-status: 0 valid result; 2 input or library rejected; 3 not converged; 4 converged with clamps.
+and every solver option as used, SHA-256 of the problem input, of every linked document file
+and of the library, engine version and commit, preset, wall time; a valid/invalid flag with
+the reason. `urus <input> -o <output>`. Exit status: 0 valid result; 2 input or library
+rejected; 3 not converged; 4 converged with clamps.
 The output is written in the cases 0, 3 and 4.
 
 **DBC.** Nodes: `CmfdSolve`, `EigenvalueSolve`, `FieldOutput`, `RunRecord`. An L3 rule
@@ -383,6 +452,7 @@ skipped case is reported as skipped, never as passed.
 | Eigen's stopping criterion differs from PARCS's | Inner iterations stop at the wrong residual | Tolerance rescaled to the starting residual each call; a test checks the reduction |
 | Thread sanitizer with uninstrumented HDF5 | False reports | No threads in this milestone; reports are triaged, never suppressed silently |
 | Verification tolerances too tight for 3D runs | Long runs | Only on small problems; IAEA 3D at verification tolerances runs once per gate |
+| HDF5 resolves external links against the working directory by default | A run reads another document file than the one beside its problem input | The engine sets the external link prefix to the problem input's directory; a test runs from another working directory (1.3a) |
 
 ## 9. Changes
 
@@ -406,3 +476,4 @@ skipped case is reported as skipped, never as passed.
 | 2026-11-19 | 1.3 review, reviewers run one at a time. Problem input reader, round 1: changes required, five blockers (a used composition that resolves left unchecked while another did not; array shapes and units left unchecked while the geometry was unusable; the exterior face missing from the per-face tests; a missing root group reported after the sections that need it; untested rules: 64-bit overflow of the map and the integer options, a group stored as a dataset and the reverse, an extra member of an albedo face) and three notes; round 2 approved. Cross-section model: approved in round 1; its three notes acted on (the NaN guard; benchmark weights that repeated every five components, now every thirteen with a self-check; the benchmark entry), then a fourth (the new death test left temporary files; its sets are now built in memory). Input writer: approved in round 1; its five notes acted on (float64 storage of integer and float32 inputs, values checked under their own names, exact group members, two docstrings). |
 | 2026-11-19 | 1.3 closed after all three re-reviews approved the final snapshot; local CI passed all 14 steps (1044 tests per preset). Nodes `ReactorDescription`, `OperatingState`, `SolverOptions`, `LibraryBinding`, `InputValidation`, `InputWriter` and `CrossSectionModel` implemented, and with them `ProblemInput` and `Neutronics` by the parent rule. Not yet built under them: rod banks, channel and loop geometry (`ReactorDescription`), rodded mixing and xenon and samarium (`CrossSectionModel`); each node becomes `partial` again when the sub-milestone that builds them starts. Merged into `milestone-1`. |
 | 2026-11-20 | At the Captain's request: a sub-milestone overview table added after "Closes on"; the plan moved to `Planning/MILESTONE_1/`, the folder for every milestone 1 document (Project plan §7, 2026-11-20). |
+| 2026-11-20 | The Captain's decision: the problem input becomes four input documents (reactor, initial state, control signals, settings), each a group of the problem input or a linked document file. Sub-milestone 1.3a added before 1.4. Settled with it: the library path resolves against the reactor document's directory; the solver options go to the settings document; an initial state outside the library's coverage is rejected unless the settings allow table clamps; starting from an earlier output waits for the output contract. Project plan §7 and Vision §1 amended. |
