@@ -1487,8 +1487,8 @@ is in equilibrium (PARCS Eq. (9.17)), $D_i^\infty=\alpha_iq_f/\zeta_i$, and $q_T
 from a shut-down state needs $D_i$ as input.
 
 For (12.1) to conserve energy, $\kappa$ must be the total recoverable energy per fission,
-delayed part included. Whether OpenMC's `kappa-fission` with the JEFF-4.0 data satisfies that
-is a check of the data generation, not an assumption of the engine (data item L8).
+delayed part included. Whether OpenMC's `kappa-fission` with the nuclear data library in use
+satisfies that is a check of the data generation, not an assumption of the engine (data item L8).
 
 ### 12.2 Time integration [PARCS, DEPARTURE D4]
 

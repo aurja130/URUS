@@ -231,7 +231,9 @@ commits, then a pointer update here.
    rodded data per composition and absorber type (L6); statistics target; run count and
    compute estimate. The sizing campaign supplies the last four: lattice calculations at the
    nominal state, along one-dimensional scans of each branch-state axis and on two-dimensional
-   patches, for each unrodded assembly type and with each absorber; it produces no library data.
+   patches, for each unrodded assembly type and with each absorber, and one with photon
+   transport for the direct heating fraction; it produces no library data. The lattice
+   calculations use ENDF/B-VII.1, the official OpenMC library (Captain, 2026-11-20).
    The decisions deferred to it are made here: Doppler weight (O9), direct heating fraction
    (O10); it also plans the tally of effective delayed fractions (O5, decided 2026-11-19).
 2. Generator changes producing L1–L3, L6–L8, L10, L12–L14 of TM §19.3. The decay-heat fits
@@ -402,4 +404,5 @@ each one is due.
 | 2026-11-19 | DM1 start decisions: P2 yes (reflector data, discontinuity factors, form functions and rodded data generated in DM1); O5 (a), effective (adjoint-weighted) delayed fractions tallied into the library (TM §21). |
 | 2026-11-20 | The Captain's decision: each milestone's documents live in its own folder, `Planning/MILESTONE_<n>/`; the milestone 1 plan moved to `Planning/MILESTONE_1/MILESTONE_1_PLAN.md`. |
 | 2026-11-20 | The Captain's decision: the problem input becomes four input documents, one responsibility each (reactor, initial state, control signals, settings), stored in one file or as separate files linked from it; Vision §1 amended. Milestone 1 gains sub-milestone 1.3a before 1.4 (milestone 1 plan §9). |
-| 2026-11-20 | The Captain's decision: DM1 starts with a sizing campaign before its plan is approved (scope 1, §5.2), on the university server galactica, 2026-11-20 to 2026-11-23 10:00. Photon transport is left out of it: with the JEFF-4.0 library in use, the photon heating tally gives 0.06 % of the neutron heating, so it cannot give the direct heating fraction (O10); the DM1 plan must find another way. |
+| 2026-11-20 | The Captain's decision: DM1 starts with a sizing campaign before its plan is approved (scope 1, §5.2), on the university server galactica, 2026-11-20 to 2026-11-23 10:00. Photon transport is left out of it: with the JEFF-4.0 library in use, the photon heating tally gives 0.06 % of the neutron heating, so it cannot give the direct heating fraction (O10); the DM1 plan must find another way. (Corrected the same day, next row.) |
+| 2026-11-20 | Correction: the 0.06 % photon finding was a tally error. A photon hands most of its energy to electrons and positrons, which score their own heating; with them counted, photon, electron and positron heating is 9.95 % of the total (A16 nominal, JEFF-4.0, 2e5 active histories, relative σ 0.2 %). Photon transport costs 2.5 times the wall time, so the sizing campaign gains one photon-transport run for the direct heating fraction (O10) (Captain). The Captain's decision: the lattice calculations use ENDF/B-VII.1 in place of JEFF-4.0 (scope 1). |

@@ -63,6 +63,7 @@ O1–O14 the decisions recorded in TM §20.2 and §21. The notation of the equat
 | fuel rod | The average pin of a node: fuel pellet, gas gap and cladding, with radial conduction only. | TM §14.1 |
 | gap conductance | The heat transfer coefficient across the pellet–cladding gap. | TM §14.8 |
 | Doppler temperature | The effective fuel temperature the cross sections are interpolated at, a weighted mix of centreline and surface temperatures; the weight is set with the lattice calculations. | O9; TM §14.6 |
+| direct heating fraction | The fraction of the reactor power deposited directly in the coolant, by neutrons slowing down in it and by photons and the electrons and positrons they set moving, rather than conducted out of the fuel; an input value taken from an OpenMC heating tally with photon transport. | O10; TM §14.2, §21; Captain, 2026-11-20 |
 | moderator density | The density of the coolant in a node, the moderator axis of the library table. | TM §7.1, §7.3 |
 | coolant channel | One flow path per assembly with the axial layers of the neutronic nodes, solving mass, energy and momentum. | Vision §2.2; TM §15.1 |
 | drift-flux model | The two-phase model in which vapour and liquid share one momentum equation and the vapour moves with a drift velocity. No slip until a correlation valid at PWR pressure is chosen. **Open:** the correlation is chosen when fidelity work starts. | O13; TM §15.3, §16.4 |
@@ -142,10 +143,11 @@ O1–O14 the decisions recorded in TM §20.2 and §21. The notation of the equat
 | rod state | Whether the control rods of a branch state are out or in; the present library has all banks out or all in, and its rodded and unrodded data are separate compositions. | TM §7.1; Library contract §7.2, 2026-11-18 |
 | tensor grid | Branch states forming every combination of the values on each axis. | D2; TM §7.2 |
 | lattice calculation | A single-assembly calculation with reflective boundaries that produces the nodal data of one assembly type at one branch state. | O1, 2026-11-16; TM §19.3 |
-| sizing campaign | Lattice calculations run before the DM1 plan is approved, at the nominal state and along one- and two-dimensional scans of the branch-state axes, that give the statistics target, the compute estimate and the branch-grid spacing. They produce no library data. | Project plan §4, DM1 scope 1; Captain, 2026-11-20 |
+| sizing campaign | Lattice calculations run before the DM1 plan is approved, at the nominal state and along one- and two-dimensional scans of the branch-state axes, that give the statistics target, the compute estimate and the branch-grid spacing, plus one with photon transport that gives the direct heating fraction. They produce no library data. (2026-11-20: the photon-transport calculation added; before, the campaign had none.) | Project plan §4, DM1 scope 1; Captain, 2026-11-20 |
 | statistics target | The number of histories per lattice calculation that brings the tallies the library needs within their required uncertainty. | Project plan §4, DM1 scope 1 |
 | shard | One of N runners that share a campaign's run list, each taking every N-th run, so that they run side by side on one machine without taking the same run. | Captain, 2026-11-20 |
 | OpenMC | The Monte Carlo transport code that generates the nodal data. | Vision §4 |
+| nuclear data library | The evaluated cross-section data, processed for OpenMC, that the lattice calculations read: ENDF/B-VII.1, the official OpenMC library (until 2026-11-20 the campaign was set up with JEFF-4.0). | Project plan §4, DM1 scope 1; Captain, 2026-11-20 |
 | tally | An OpenMC estimate of a reaction rate or flux, with a statistical uncertainty. | TM §19.3 |
 | statepoint | The output file of an OpenMC run, holding each tally's sum and sum of squares, from which its mean and standard deviation follow. | TM §19.3 |
 | library writer | The program in the BEAVRS data submodule that turns OpenMC output into a nodal library under the library contract. | Project plan §3, 2026-11-17 |

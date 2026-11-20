@@ -9,7 +9,7 @@ the commit that changes any of them. Terms: [DEFINITIONS](DBC/DEFINITIONS.md).
 | Milestone | Branch | State |
 |---|---|---|
 | 1 Core engine | `milestone-1` | In progress since 2026-11-17 ([plan](MILESTONE_1/MILESTONE_1_PLAN.md), approved 2026-11-17) |
-| DM1 Single-assembly library | — | In progress since 2026-11-20: the sizing campaign (scope 1) runs on galactica until 2026-11-23 10:00; the DM1 plan follows from its results. Work in `external/BEAVRS_minimal`, directory `dm1_sizing/` |
+| DM1 Single-assembly library | — | In progress since 2026-11-20: the sizing campaign (scope 1; 653 runs on ENDF/B-VII.1, one with photon transport for the direct heating fraction) runs on galactica until 2026-11-23 10:00; the DM1 plan follows from its results. Work in `external/BEAVRS_minimal`, directory `dm1_sizing/` |
 | DM2 Full-core references | — | Not started |
 | 2 Coupled steady state | — | Not started |
 | 3 Kinetics | — | Not started |
@@ -98,7 +98,14 @@ Cross-section table interpolation benchmark (BENCHMARKS), in every preset, its p
 allowing table clamps in its settings document: all 72 table points and 200 seeded interior
 states within 1e-14 relative; clamp counts and sides exact; 16 of 16 pass. The model has no
 iteration, so there is no convergence state to report.
-Submodule `external/BEAVRS_minimal` at `aedc5a8` since 2026-11-20 (was `4bf2d26`): adds the
-DM1 sizing campaign (`dm1_sizing/`), reviewed and approved; local end-to-end test with OpenMC
-0.15.3 (setup, data subset of 94 files verified, two-shard smoke runs, copy-back with removal).
-Smoke runs have 2 active batches of 2000 histories and are not converged; they test the chain only.
+Submodule `external/BEAVRS_minimal` at `f041ee7` since 2026-11-20 (was `4bf2d26`, then
+`aedc5a8`): adds the DM1 sizing campaign (`dm1_sizing/`) on ENDF/B-VII.1 with one
+photon-transport run, reviewed and approved; local end-to-end test with OpenMC 0.15.3 (setup,
+data subset of 119 files verified, smoke runs of two replicas and the photon run, copy-back with
+removal at `aedc5a8`). Smoke runs have 2 active batches of 2000 histories and are not converged;
+they test the chain only. Caveats for the analysis: fuel temperatures between the six neutron
+data temperatures, and moderator temperatures between the nine thermal-scattering temperatures
+(294–800 K in 50 K steps up to 650 K), are OpenMC's stochastic interpolation, so the scans there
+show the data grid, not physics; the moderator-temperature spacing found holds for ENDF/B-VII.1
+with interpolation only. The photon cost factor (2.5) was measured with JEFF-4.0; the photon
+run's wall time re-measures it.
