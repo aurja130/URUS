@@ -2,6 +2,9 @@
 // Copyright (C) 2026 Aurora Jahan
 // Licensed under the GNU GPL v3 or later, WITHOUT ANY WARRANTY; see LICENSE.
 
+// Checks 8 and 9 of the problem input (docs/contracts/problem_input.md §6 and §7), and the
+// table-clamp rule of check 11 (§9) as it applies to the initial state.
+
 #include "nts/io/problem.hpp"
 
 #include <gtest/gtest.h>
@@ -47,7 +50,11 @@ constexpr std::size_t position_count = 12;
 constexpr std::array<std::size_t, 2> excluded_positions{0, 6};
 constexpr std::array<std::size_t, 10> node_positions{1, 2, 3, 4, 5, 7, 8, 9, 10, 11};
 
-// A node-state field of /operating_state (§6): its units, the rule its values hold (completing
+// The fuel-temperature and boron axes of the valid library end at 900 K and 1000 ppm (§9).
+constexpr double last_fuel_temperature_k = 900.0;
+constexpr double last_boron_ppm = 1000.0;
+
+// A node-state field of /initial_state (§6): its units, the rule its values hold (completing
 // "is not <rule>" in a diagnostic), the NodeState member it fills, the base of an array (the value
 // at position p is base + p) and a scalar that breaks the rule.
 struct NodeField {
@@ -123,12 +130,12 @@ constexpr std::array kernel_names{
 
 // The location of a node-state field.
 std::string state_location(const NodeField& field) {
-    return std::format("/operating_state/{}", field.name);
+    return std::format("/initial_state/{}", field.name);
 }
 
-// The location of a solver option.
+// The location of a solver option, in place in the settings document.
 std::string option_location(std::string_view name) {
-    return std::format("/solver_options/{}", name);
+    return std::format("/settings/{}", name);
 }
 
 // The values of a [2][2][3] array: position p holds base + p; NaN at the excluded positions when
@@ -186,9 +193,12 @@ void expect_defaults(const SolverOptions& options) {
     EXPECT_FALSE(options.adjoint);
 }
 
-// ----- Check 8: /operating_state (§6) ------------------------------------------------------------
+// The state tests use the documents and option helpers of ProblemTest.
+using StateTest = ProblemTest;
 
-TEST_F(ProblemTest, ReadsScalarStatesAtEveryNode) {
+// ----- Check 8: /initial_state (§6) ---------------------------------------------------------
+
+TEST_F(StateTest, ReadsScalarStatesAtEveryNode) {
     const Problem loaded = accepted();
     const OperatingState& state = loaded.input.operating_state;
     EXPECT_DOUBLE_EQ(state.thermal_power_w, 1.0e6);
@@ -201,67 +211,62 @@ TEST_F(ProblemTest, ReadsScalarStatesAtEveryNode) {
     }
 }
 
-TEST_F(ProblemTest, RejectsAMissingThermalPower) {
-    problem().groups["operating_state"].datasets.erase("thermal_power");
-    expect_one(rejected(), "/operating_state/thermal_power", "dataset is missing");
+TEST_F(StateTest, RejectsAMissingThermalPower) {
+    initial_state().datasets.erase("thermal_power");
+    expect_one(rejected(), "/initial_state/thermal_power", "dataset is missing");
 }
 
-TEST_F(ProblemTest, RejectsAThermalPowerThatIsNotAScalar) {
-    auto& datasets = problem().groups["operating_state"].datasets;
-    datasets["thermal_power"] = float64_array({1.0e6}, {1}, "W");
-    expect_one(rejected(), "/operating_state/thermal_power", "is not a scalar");
+TEST_F(StateTest, RejectsAThermalPowerThatIsNotAScalar) {
+    initial_state().datasets["thermal_power"] = float64_array({1.0e6}, {1}, "W");
+    expect_one(rejected(), "/initial_state/thermal_power", "is not a scalar");
 }
 
-TEST_F(ProblemTest, RejectsAThermalPowerInTheWrongUnits) {
-    auto& datasets = problem().groups["operating_state"].datasets;
-    datasets["thermal_power"] = float64_scalar(1.0e6, "MW");
-    expect_one(rejected(), "/operating_state/thermal_power@units", "are not the accepted 'W'");
+TEST_F(StateTest, RejectsAThermalPowerInTheWrongUnits) {
+    initial_state().datasets["thermal_power"] = float64_scalar(1.0e6, "MW");
+    expect_one(rejected(), "/initial_state/thermal_power@units", "are not the accepted 'W'");
 }
 
-TEST_F(ProblemTest, RejectsAThermalPowerThatIsNotFloat64) {
-    auto& datasets = problem().groups["operating_state"].datasets;
+TEST_F(StateTest, RejectsAThermalPowerThatIsNotFloat64) {
     FixtureDataset power = float64_scalar(1.0e6, "W");
     power.type = FixtureType::float32;
-    datasets["thermal_power"] = power;
-    expect_one(rejected(), "/operating_state/thermal_power", "not a float64 dataset");
+    initial_state().datasets["thermal_power"] = power;
+    expect_one(rejected(), "/initial_state/thermal_power", "not a float64 dataset");
 }
 
-TEST_F(ProblemTest, RejectsAThermalPowerThatIsNotFiniteAndPositive) {
-    auto& datasets = problem().groups["operating_state"].datasets;
+TEST_F(StateTest, RejectsAThermalPowerThatIsNotFiniteAndPositive) {
     for (const double value : {0.0, -1.0, not_a_number, infinity_value}) {
         SCOPED_TRACE(value);
-        datasets["thermal_power"] = float64_scalar(value, "W");
-        expect_one(rejected(), "/operating_state/thermal_power", "is not finite and positive");
+        initial_state().datasets["thermal_power"] = float64_scalar(value, "W");
+        expect_one(rejected(), "/initial_state/thermal_power", "is not finite and positive");
     }
 }
 
 // Thermal power is in W and finite and positive: a wrong unit and a non-positive value are both
 // reported, each once (§6).
-TEST_F(ProblemTest, ReportsTheThermalPowerUnitsAndValueTogether) {
-    problem().groups["operating_state"].datasets["thermal_power"] = float64_scalar(-1.0, "MW");
+TEST_F(StateTest, ReportsTheThermalPowerUnitsAndValueTogether) {
+    initial_state().datasets["thermal_power"] = float64_scalar(-1.0, "MW");
     const auto diagnostics = rejected();
     EXPECT_EQ(diagnostics.size(), 2U) << all_text(diagnostics);
-    EXPECT_TRUE(has_diagnostic(diagnostics, "/operating_state/thermal_power@units",
+    EXPECT_TRUE(has_diagnostic(diagnostics, "/initial_state/thermal_power@units",
                                "are not the accepted 'W'"))
         << all_text(diagnostics);
-    EXPECT_TRUE(has_diagnostic(diagnostics, "/operating_state/thermal_power",
+    EXPECT_TRUE(has_diagnostic(diagnostics, "/initial_state/thermal_power",
                                "-1 W is not finite and positive"))
         << all_text(diagnostics);
 }
 
 // The node-state fields: each is checked on its own, so each runs as its own parameter.
-class NodeStateField : public ProblemTest, public testing::WithParamInterface<NodeField> {};
+class NodeStateField : public StateTest, public testing::WithParamInterface<NodeField> {};
 
 TEST_P(NodeStateField, RejectsAMissingState) {
     const NodeField& field = GetParam();
-    problem().groups["operating_state"].datasets.erase(std::string(field.name));
+    initial_state().datasets.erase(std::string(field.name));
     expect_one(rejected(), state_location(field), "dataset is missing");
 }
 
 TEST_P(NodeStateField, RejectsAStateInTheWrongUnits) {
     const NodeField& field = GetParam();
-    problem().groups["operating_state"].datasets[std::string(field.name)] =
-        float64_scalar(field.base, "1");
+    initial_state().datasets[std::string(field.name)] = float64_scalar(field.base, "1");
     expect_one(rejected(), state_location(field) + "@units",
                std::format("are not the accepted '{}'", field.units));
 }
@@ -270,16 +275,16 @@ TEST_P(NodeStateField, RejectsAStateThatIsNotFloat64) {
     const NodeField& field = GetParam();
     FixtureDataset value = float64_scalar(field.base, std::string(field.units));
     value.type = FixtureType::float32;
-    problem().groups["operating_state"].datasets[std::string(field.name)] = value;
+    initial_state().datasets[std::string(field.name)] = value;
     expect_one(rejected(), state_location(field), "not a float64 dataset");
 }
 
 TEST_P(NodeStateField, RejectsAScalarThatBreaksItsRule) {
     const NodeField& field = GetParam();
-    auto& datasets = problem().groups["operating_state"].datasets;
     for (const double value : {not_a_number, field.breaking}) {
         SCOPED_TRACE(value);
-        datasets[std::string(field.name)] = float64_scalar(value, std::string(field.units));
+        initial_state().datasets[std::string(field.name)] =
+            float64_scalar(value, std::string(field.units));
         expect_one(rejected(), state_location(field), std::format("is not {}", field.rule));
     }
 }
@@ -288,7 +293,7 @@ TEST_P(NodeStateField, RejectsAnArrayValueThatBreaksItsRuleAtANode) {
     const NodeField& field = GetParam();
     std::vector<double> values = position_values(field.base);
     values[4] = field.breaking; // position (1, 1, 0) = 1 + 3 * 1 + 6 * 0, a node
-    problem().groups["operating_state"].datasets[std::string(field.name)] =
+    initial_state().datasets[std::string(field.name)] =
         position_array(std::move(values), field.units);
     const auto diagnostics = rejected();
     EXPECT_EQ(diagnostics.size(), 1U) << all_text(diagnostics);
@@ -302,7 +307,7 @@ TEST_P(NodeStateField, RejectsAnArrayOfTheWrongShape) {
     for (const std::vector<std::size_t>& shape :
          {std::vector<std::size_t>{2, 3, 2}, std::vector<std::size_t>{12}}) {
         SCOPED_TRACE(shape.size());
-        problem().groups["operating_state"].datasets[std::string(field.name)] =
+        initial_state().datasets[std::string(field.name)] =
             float64_array(position_values(field.base), shape, std::string(field.units));
         expect_one(rejected(), state_location(field),
                    "is not a scalar or [nz][ny][nx] = [2, 2, 3]");
@@ -313,12 +318,12 @@ TEST_P(NodeStateField, RejectsAnArrayOfTheWrongShape) {
 // not read (§8).
 TEST_P(NodeStateField, ChecksArrayUnitsWhileTheGeometryIsUnusable) {
     const NodeField& field = GetParam();
-    problem().groups["geometry"].datasets["width_x"] = float64_array({10.0, -1.0, 10.0}, {3}, "cm");
-    problem().groups["operating_state"].datasets[std::string(field.name)] =
+    geometry().datasets["width_x"] = float64_array({10.0, -1.0, 10.0}, {3}, "cm");
+    initial_state().datasets[std::string(field.name)] =
         position_array(position_values(field.base), "1");
     const auto diagnostics = rejected();
     EXPECT_EQ(diagnostics.size(), 2U) << all_text(diagnostics);
-    EXPECT_TRUE(has_entry_diagnostic(diagnostics, "/geometry/width_x", "index 1",
+    EXPECT_TRUE(has_entry_diagnostic(diagnostics, "/reactor/geometry/width_x", "index 1",
                                      "width -1 cm is not finite and positive"))
         << all_text(diagnostics);
     EXPECT_TRUE(has_diagnostic(diagnostics, state_location(field) + "@units",
@@ -330,13 +335,13 @@ TEST_P(NodeStateField, ChecksArrayUnitsWhileTheGeometryIsUnusable) {
 // unusable, yet the array's shape is still checked against the widths (§8).
 TEST_P(NodeStateField, ChecksAnArrayShapeWhileOnlyTheMapIsUnusable) {
     const NodeField& field = GetParam();
-    problem().groups["geometry"].datasets["composition_map"].numbers[0] = -2.0;
-    problem().groups["operating_state"].datasets[std::string(field.name)] =
+    geometry().datasets["composition_map"].numbers[0] = -2.0;
+    initial_state().datasets[std::string(field.name)] =
         float64_array(position_values(field.base), {3, 2, 2}, std::string(field.units));
     const auto diagnostics = rejected();
     EXPECT_EQ(diagnostics.size(), 2U) << all_text(diagnostics);
-    EXPECT_TRUE(has_entry_diagnostic(diagnostics, "/geometry/composition_map", "position (0, 0, 0)",
-                                     "value -2 is below -1"))
+    EXPECT_TRUE(has_entry_diagnostic(diagnostics, "/reactor/geometry/composition_map",
+                                     "position (0, 0, 0)", "value -2 is below -1"))
         << all_text(diagnostics);
     EXPECT_TRUE(has_diagnostic(diagnostics, state_location(field),
                                "shape [3, 2, 2] is not a scalar or [nz][ny][nx] = [2, 2, 3]"))
@@ -345,7 +350,7 @@ TEST_P(NodeStateField, ChecksAnArrayShapeWhileOnlyTheMapIsUnusable) {
 
 TEST_P(NodeStateField, ReadsAnArrayInNodeOrder) {
     const NodeField& field = GetParam();
-    problem().groups["operating_state"].datasets[std::string(field.name)] =
+    initial_state().datasets[std::string(field.name)] =
         position_array(position_values(field.base), field.units);
     const Problem loaded = accepted();
     expect_array_states(loaded.input.operating_state, field);
@@ -354,24 +359,25 @@ TEST_P(NodeStateField, ReadsAnArrayInNodeOrder) {
 // Values at excluded positions are never read, so NaN there is accepted (§6).
 TEST_P(NodeStateField, AcceptsAnArrayWhoseExcludedValuesAreNotRead) {
     const NodeField& field = GetParam();
-    problem().groups["operating_state"].datasets[std::string(field.name)] =
+    initial_state().datasets[std::string(field.name)] =
         position_array(position_values(field.base, true), field.units);
     const Problem loaded = accepted();
     expect_array_states(loaded.input.operating_state, field);
 }
 
-INSTANTIATE_TEST_SUITE_P(OperatingState, NodeStateField, testing::ValuesIn(node_fields),
+INSTANTIATE_TEST_SUITE_P(InitialState, NodeStateField, testing::ValuesIn(node_fields),
                          [](const testing::TestParamInfo<NodeField>& param_info) {
                              return std::string(param_info.param.name);
                          });
 
-// A node state outside the library's table is not an input error: the cross-section model
-// clamps and counts it (§6).
-TEST_F(ProblemTest, AcceptsNodeStatesOutsideTheLibraryTable) {
-    auto& datasets = problem().groups["operating_state"].datasets;
-    datasets["doppler_temperature"] = float64_scalar(2000.0, "K");
-    datasets["boron"] = float64_scalar(3000.0, "ppm");
+// A node state outside the library's table is an input error unless table clamps are allowed
+// (§9): the cross-section model would otherwise clamp and count it.
+TEST_F(StateTest, AcceptsNodeStatesOutsideTheLibraryTableWhenClampsAreAllowed) {
+    initial_state().datasets["doppler_temperature"] = float64_scalar(2000.0, "K");
+    initial_state().datasets["boron"] = float64_scalar(3000.0, "ppm");
+    set_option("allow_table_clamps", integer_scalar(1));
     const Problem loaded = accepted();
+    EXPECT_TRUE(loaded.input.allow_table_clamps);
     ASSERT_EQ(loaded.input.operating_state.node_states.size(), node_positions.size());
     for (const NodeState& node : loaded.input.operating_state.node_states) {
         EXPECT_DOUBLE_EQ(node.doppler_temperature_k, 2000.0);
@@ -379,9 +385,24 @@ TEST_F(ProblemTest, AcceptsNodeStatesOutsideTheLibraryTable) {
     }
 }
 
+TEST_F(StateTest, RejectsNodeStatesOutsideTheLibraryTableWhenClampsAreNotAllowed) {
+    initial_state().datasets["doppler_temperature"] = float64_scalar(2000.0, "K");
+    initial_state().datasets["boron"] = float64_scalar(3000.0, "ppm");
+    const auto diagnostics = rejected();
+    EXPECT_TRUE(
+        has_diagnostic(diagnostics, "/initial_state/doppler_temperature",
+                       std::format("is above the last point {} K", last_fuel_temperature_k)))
+        << all_text(diagnostics);
+    EXPECT_TRUE(has_diagnostic(diagnostics, "/initial_state/boron",
+                               std::format("is above the last point {} ppm", last_boron_ppm)))
+        << all_text(diagnostics);
+    EXPECT_TRUE(has_diagnostic(diagnostics, "/initial_state/boron", "table clamps are not allowed"))
+        << all_text(diagnostics);
+}
+
 // Boron is finite and non-negative: zero is the lower bound and is accepted.
-TEST_F(ProblemTest, AcceptsBoronAtZero) {
-    problem().groups["operating_state"].datasets["boron"] = float64_scalar(0.0, "ppm");
+TEST_F(StateTest, AcceptsBoronAtZero) {
+    initial_state().datasets["boron"] = float64_scalar(0.0, "ppm");
     const Problem loaded = accepted();
     for (const NodeState& node : loaded.input.operating_state.node_states) {
         EXPECT_DOUBLE_EQ(node.boron_ppm, 0.0);
@@ -390,40 +411,33 @@ TEST_F(ProblemTest, AcceptsBoronAtZero) {
 
 // Without usable widths the map's dimensions are unknown: the array's shape and values are not
 // checked (its units still are, §8), so only the width is reported here.
-TEST_F(ProblemTest, RejectsNoArrayStateWhileTheGeometryIsUnusable) {
-    problem().groups["geometry"].datasets["width_x"] = float64_array({10.0, -1.0, 10.0}, {3}, "cm");
-    problem().groups["operating_state"].datasets["doppler_temperature"] =
+TEST_F(StateTest, RejectsNoArrayStateWhileTheGeometryIsUnusable) {
+    geometry().datasets["width_x"] = float64_array({10.0, -1.0, 10.0}, {3}, "cm");
+    initial_state().datasets["doppler_temperature"] =
         position_array(std::vector<double>(position_count, -1.0), "K");
-    expect_one(rejected(), "/geometry/width_x", "is not finite and positive");
+    expect_one(rejected(), "/reactor/geometry/width_x", "is not finite and positive");
 }
 
-TEST_F(ProblemTest, RejectsAnUnknownOperatingStateMember) {
-    problem().groups["operating_state"].datasets["extra"] = float64_scalar(1.0, "K");
-    expect_one(rejected(), "/operating_state/extra", "not a member of the problem input contract");
+TEST_F(StateTest, RejectsAnUnknownInitialStateMember) {
+    initial_state().datasets["extra"] = float64_scalar(1.0, "K");
+    expect_one(rejected(), "/initial_state/extra", "not a member of the problem input contract");
 }
 
-// ----- Check 9: /solver_options (§7) -------------------------------------------------------------
+// ----- Check 9: /settings (§7) --------------------------------------------------------------
 
-class SolverOptionsTest : public ProblemTest {
-protected:
-    void set_option(std::string_view name, FixtureDataset value) {
-        problem().groups["solver_options"].datasets[std::string(name)] = std::move(value);
-    }
+class SolverOptionsTest : public StateTest {};
 
-    void clear_option(std::string_view name) {
-        problem().groups["solver_options"].datasets.erase(std::string(name));
-    }
-};
-
-TEST_F(SolverOptionsTest, AcceptsAnAbsentSolverOptionsGroupWithTheDefaults) {
+TEST_F(SolverOptionsTest, AcceptsAnAbsentSettingsDocumentWithTheDefaults) {
     const Problem loaded = accepted();
     expect_defaults(loaded.input.solver_options);
+    EXPECT_FALSE(loaded.input.allow_table_clamps);
 }
 
-TEST_F(SolverOptionsTest, AcceptsAnEmptySolverOptionsGroupWithTheDefaults) {
-    problem().groups.try_emplace("solver_options");
+TEST_F(SolverOptionsTest, AcceptsAnEmptySettingsDocumentWithTheDefaults) {
+    settings();
     const Problem loaded = accepted();
     expect_defaults(loaded.input.solver_options);
+    EXPECT_FALSE(loaded.input.allow_table_clamps);
 }
 
 TEST_F(SolverOptionsTest, ReadsEveryOptionSetToAValidValue) {
@@ -474,18 +488,17 @@ TEST_F(SolverOptionsTest, AcceptsAFloatOptionWithoutAUnitsAttribute) {
 
 TEST_F(SolverOptionsTest, RejectsAnUnknownKernel) {
     set_option("kernel", string_scalar("magic"));
-    expect_one(rejected(), "/solver_options/kernel", "unknown kernel");
+    expect_one(rejected(), "/settings/kernel", "unknown kernel");
 }
 
 TEST_F(SolverOptionsTest, RejectsANegativeKernelSwitchThreshold) {
     set_option("kernel_switch_threshold", number(-1e-9));
-    expect_one(rejected(), "/solver_options/kernel_switch_threshold",
-               "is not finite and non-negative");
+    expect_one(rejected(), "/settings/kernel_switch_threshold", "is not finite and non-negative");
 }
 
 TEST_F(SolverOptionsTest, RejectsAZeroWielandtShift) {
     set_option("wielandt_shift", number(0.0));
-    expect_one(rejected(), "/solver_options/wielandt_shift", "is not finite and positive");
+    expect_one(rejected(), "/settings/wielandt_shift", "is not finite and positive");
 }
 
 TEST_F(SolverOptionsTest, RejectsANonPositiveTolerance) {
@@ -502,7 +515,7 @@ TEST_F(SolverOptionsTest, RejectsAnInnerReductionOutsideTheOpenInterval) {
     for (const double value : {0.0, 1.0}) {
         SCOPED_TRACE(value);
         set_option("inner_reduction", number(value));
-        expect_one(rejected(), "/solver_options/inner_reduction", "is not in (0, 1)");
+        expect_one(rejected(), "/settings/inner_reduction", "is not in (0, 1)");
         clear_option("inner_reduction");
     }
 }
@@ -512,7 +525,7 @@ TEST_F(SolverOptionsTest, RejectsACouplingRelaxationOutsideTheHalfOpenInterval) 
     for (const double value : {0.0, 1.0000001}) {
         SCOPED_TRACE(value);
         set_option("coupling_relaxation", number(value));
-        expect_one(rejected(), "/solver_options/coupling_relaxation", "is not in (0, 1]");
+        expect_one(rejected(), "/settings/coupling_relaxation", "is not in (0, 1]");
         clear_option("coupling_relaxation");
     }
 }
@@ -537,7 +550,7 @@ TEST_F(SolverOptionsTest, RejectsAnIterationLimitOrPeriodBelowOne) {
 
 TEST_F(SolverOptionsTest, RejectsAnAdjointOtherThanZeroOrOne) {
     set_option("adjoint", integer_scalar(2));
-    expect_one(rejected(), "/solver_options/adjoint", "is not 0 or 1");
+    expect_one(rejected(), "/settings/adjoint", "is not 0 or 1");
 }
 
 TEST_F(SolverOptionsTest, RejectsAFloatOptionThatIsNotFloat64) {
@@ -565,7 +578,7 @@ TEST_F(SolverOptionsTest, RejectsAnIntegerOptionBeyondTheSignedRange) {
                                                        .numbers = {9223372036854775808.0},
                                                        .strings = {},
                                                        .attributes = {}});
-    expect_one(rejected(), "/solver_options/outer_iteration_limit",
+    expect_one(rejected(), "/settings/outer_iteration_limit",
                "a value exceeds the signed 64-bit range");
 }
 
@@ -594,13 +607,24 @@ TEST_F(SolverOptionsTest, RejectsAnOptionThatIsAOneElementArray) {
 
 TEST_F(SolverOptionsTest, RejectsAKernelThatIsANumber) {
     set_option("kernel", number(1.0));
-    expect_one(rejected(), "/solver_options/kernel", "not a string dataset");
+    expect_one(rejected(), "/settings/kernel", "not a string dataset");
 }
 
 TEST_F(SolverOptionsTest, RejectsAnUnknownSolverOption) {
     set_option("tolerance", number(1e-6));
-    expect_one(rejected(), "/solver_options/tolerance",
-               "not a member of the problem input contract");
+    expect_one(rejected(), "/settings/tolerance", "not a member of the problem input contract");
+}
+
+// allow_table_clamps is an integer scalar 0 or 1; its default is 0 (§7).
+TEST_F(SolverOptionsTest, RejectsAllowTableClampsOtherThanZeroOrOne) {
+    set_option("allow_table_clamps", integer_scalar(2));
+    expect_one(rejected(), "/settings/allow_table_clamps", "value 2 is not 0 or 1");
+}
+
+TEST_F(SolverOptionsTest, ReadsAllowTableClampsZeroAsDisallowed) {
+    set_option("allow_table_clamps", integer_scalar(0));
+    const Problem loaded = accepted();
+    EXPECT_FALSE(loaded.input.allow_table_clamps);
 }
 
 } // namespace

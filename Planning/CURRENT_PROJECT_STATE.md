@@ -24,7 +24,7 @@ the commit that changes any of them. Terms: [DEFINITIONS](DBC/DEFINITIONS.md).
 | 1.1 Foundations | `milestone-1.1` | Done 2026-11-17; merged into `milestone-1` |
 | 1.2 Library contract and the present library | `milestone-1.2` | Done 2026-11-19; merged into `milestone-1` ([nodal library contract](../docs/contracts/nodal_library.md), format version 1) |
 | 1.3 Problem input and cross-section model | `milestone-1.3` | Done 2026-11-19; merged into `milestone-1` ([problem input contract](../docs/contracts/problem_input.md), format version 1) |
-| 1.3a Input documents | `milestone-1.3a` | In progress since 2026-11-20 ([problem input contract](../docs/contracts/problem_input.md), format version 2, frozen 2026-11-20) |
+| 1.3a Input documents | `milestone-1.3a` | Done 2026-11-20; merged into `milestone-1` ([problem input contract](../docs/contracts/problem_input.md), format version 2) |
 | 1.4 CMFD with zero coupling corrections, eigenvalue, output | — | Not started |
 | 1.5 Nodal kernels and the interface solve | — | Not started |
 | 1.6 Transverse leakage and the three-dimensional nodal solution | — | Not started |
@@ -72,9 +72,10 @@ States: open, done (with date), waived (by the Captain, with date).
 
 ## 3. Last gate results
 
-1.3 close, 2026-11-19, on the snapshot the reviewers approved (code unchanged since the run;
-only `Planning/` documents changed afterwards): `python3 -m tools.ci.local_ci` passed all 14
-steps in 258.4 s.
+1.3a close, 2026-11-20, on the final snapshot: the engine reader approved by its reviewer with
+two test strengthenings it proposed and checked, applied as proposed; the writer approved; only
+`Planning/` documents changed after the run. `python3 -m tools.ci.local_ci` passed all 14 steps
+in 322.6 s.
 
 | Step | Result |
 |---|---|
@@ -83,16 +84,17 @@ steps in 258.4 s.
 | clang-format | No change needed |
 | ruff check, ruff format | Clean |
 | basedpyright | 0 errors |
-| pytest | 156 passed |
+| pytest | 194 passed |
 | dbc | `check_dbc.py` ok |
-| preset `dev-gcc` | 1044 of 1044 tests passed |
-| preset `dev-clang` | 1044 of 1044 tests passed |
-| preset `asan-ubsan-clang` | 1044 of 1044 tests passed |
-| preset `tsan-gcc` | 1044 of 1044 tests passed |
-| preset `release-gcc` | 1044 of 1044 tests passed |
+| preset `dev-gcc` | 1123 of 1123 tests passed |
+| preset `dev-clang` | 1123 of 1123 tests passed |
+| preset `asan-ubsan-clang` | 1123 of 1123 tests passed |
+| preset `tsan-gcc` | 1123 of 1123 tests passed |
+| preset `release-gcc` | 1123 of 1123 tests passed |
 | clang-tidy | No finding on every engine source in the `dev-clang` database |
 
-Cross-section table interpolation benchmark (BENCHMARKS), in every preset: all 72 table points
-and 200 seeded interior states within 1e-14 relative; clamp counts and sides exact; 16 of 16
-pass. The model has no iteration, so there is no convergence state to report.
+Cross-section table interpolation benchmark (BENCHMARKS), in every preset, its problem now
+allowing table clamps in its settings document: all 72 table points and 200 seeded interior
+states within 1e-14 relative; clamp counts and sides exact; 16 of 16 pass. The model has no
+iteration, so there is no convergence state to report.
 Submodule `external/BEAVRS_minimal` unchanged at `4bf2d26`.

@@ -581,8 +581,9 @@ TEST_F(CrossSectionFieldTest, ClampsAreCountedPerNodeAndAxis) {
     // 1200 K are above it; every other node is at 700 K.
     const std::vector<double> doppler{700.0, 400.0, 400.0, 400.0, 1200.0, 1200.0,
                                       700.0, 700.0, 700.0, 700.0, 700.0,  700.0};
-    problem().groups.at("operating_state").datasets["doppler_temperature"] =
+    initial_state().datasets["doppler_temperature"] =
         nts::test::float64_array(doppler, {2, 2, 3}, "K");
+    allow_table_clamps(1); // the nodes below and above the grid are clamped, not rejected
     const nts::Problem loaded = accepted();
     const nts::CrossSectionField field = nts::evaluate_cross_sections(loaded);
 

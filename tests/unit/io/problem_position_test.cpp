@@ -2,9 +2,9 @@
 // Copyright (C) 2026 Aurora Jahan
 // Licensed under the GNU GPL v3 or later, WITHOUT ANY WARRANTY; see LICENSE.
 
-// The position-dependent rules of the problem input (docs/contracts/problem_input.md §3, §6 and
-// §8) on a 3 x 3 x 3 box, which has interior, face, edge and corner positions. The problem tests
-// use a 2 x 2 x 3 box, which has no interior position.
+// The position-dependent rules of the problem input (docs/contracts/problem_input.md §3, §4, §6
+// and §9) on a 3 x 3 x 3 box, which has interior, face, edge and corner positions. The problem
+// tests use a 2 x 2 x 3 box, which has no interior position.
 
 #include "nts/common/diagnostic.hpp"
 #include "nts/io/problem.hpp"
@@ -62,7 +62,7 @@ constexpr std::array grid_positions{
     Position{.name = "OppositeCorner", .i = 2, .j = 2, .k = 2},
 };
 
-// A node-state field of /operating_state (§6): its units, the rule its values hold (completing
+// A node-state field of /initial_state (§6): its units, the rule its values hold (completing
 // "is not <rule>" in a diagnostic), a valid value at every position and a value that breaks the
 // rule.
 struct NodeField {
@@ -107,7 +107,7 @@ std::string entry_of(const Position& position) {
 }
 
 std::string state_location(const NodeField& field) {
-    return std::format("/operating_state/{}", field.name);
+    return std::format("/initial_state/{}", field.name);
 }
 
 // A [3][3][3] array of the field's valid value, with `value` at `index`.
@@ -122,7 +122,7 @@ protected:
     // The valid problem on the 3 x 3 x 3 box: every position is fuel (map 0) and the exterior
     // face is kept.
     void SetUp() override {
-        nts::test::FixtureGroup& geometry = problem().groups["geometry"];
+        nts::test::FixtureGroup& geometry = problem().groups["reactor"].groups["geometry"];
         geometry.datasets["width_x"] = float64_array({10.0, 21.5, 10.0}, {side}, "cm");
         geometry.datasets["width_y"] = float64_array({15.0, 15.0, 12.0}, {side}, "cm");
         geometry.datasets["width_z"] = float64_array({20.0, 30.0, 20.0}, {side}, "cm");
@@ -136,7 +136,8 @@ protected:
     }
 
     void set_map(std::size_t index, double value) {
-        problem().groups["geometry"].datasets["composition_map"].numbers[index] = value;
+        problem().groups["reactor"].groups["geometry"].datasets["composition_map"].numbers[index] =
+            value;
     }
 };
 
@@ -146,9 +147,9 @@ TEST_P(GridPositionTest, RejectsAMapValueBelowMinusOne) {
     const Position& position = GetParam();
     set_map(index_of(position), -2.0);
     const Diagnostics diagnostics = rejected();
-    expect_one(diagnostics, "/geometry/composition_map", "value -2 is below -1");
-    EXPECT_TRUE(has_entry_diagnostic(diagnostics, "/geometry/composition_map", entry_of(position),
-                                     "value -2 is below -1"))
+    expect_one(diagnostics, "/reactor/geometry/composition_map", "value -2 is below -1");
+    EXPECT_TRUE(has_entry_diagnostic(diagnostics, "/reactor/geometry/composition_map",
+                                     entry_of(position), "value -2 is below -1"))
         << all_text(diagnostics);
 }
 
@@ -158,16 +159,17 @@ TEST_P(GridPositionTest, RejectsAMapValueAboveTheLastComposition) {
     constexpr double first_out_of_range = 2.0;
     set_map(index_of(position), first_out_of_range);
     const Diagnostics diagnostics = rejected();
-    expect_one(diagnostics, "/geometry/composition_map",
+    expect_one(diagnostics, "/reactor/geometry/composition_map",
                "value 2 is not -1 or an input composition index below 2");
-    EXPECT_TRUE(has_entry_diagnostic(diagnostics, "/geometry/composition_map", entry_of(position),
+    EXPECT_TRUE(has_entry_diagnostic(diagnostics, "/reactor/geometry/composition_map",
+                                     entry_of(position),
                                      "value 2 is not -1 or an input composition index below 2"))
         << all_text(diagnostics);
 }
 
 TEST_P(GridPositionTest, RejectsANodeStateThatBreaksItsRuleAtThePosition) {
     const Position& position = GetParam();
-    std::map<std::string, FixtureDataset>& datasets = problem().groups["operating_state"].datasets;
+    std::map<std::string, FixtureDataset>& datasets = problem().groups["initial_state"].datasets;
     for (const NodeField& field : node_fields) {
         SCOPED_TRACE(field.name);
         const std::string name(field.name);
@@ -189,21 +191,21 @@ TEST_P(GridPositionTest, AcceptsANodeStateBreakingItsRuleAtAnExcludedPosition) {
     set_map(index_of(position), excluded_value);
     for (const NodeField& field : node_fields) {
         SCOPED_TRACE(field.name);
-        problem().groups["operating_state"].datasets[std::string(field.name)] =
+        problem().groups["initial_state"].datasets[std::string(field.name)] =
             grid_state(field, index_of(position), field.breaking);
         const Problem loaded = accepted();
         EXPECT_EQ(loaded.input.reactor.node_count(), grid_node_count - 1);
     }
 }
 
-// An excluded position makes the exterior face required (§4, §8).
+// An excluded position makes the exterior face required (§4, §9).
 TEST_P(GridPositionTest, RejectsAnExcludedPositionWithoutTheExteriorFace) {
     const Position& position = GetParam();
     set_map(index_of(position), excluded_value);
-    problem().groups["boundary_conditions"].groups.erase("exterior");
+    problem().groups["reactor"].groups["boundary_conditions"].groups.erase("exterior");
     const Diagnostics diagnostics = rejected();
     ASSERT_EQ(diagnostics.size(), 1U) << all_text(diagnostics);
-    EXPECT_EQ(diagnostics.front().location, "/boundary_conditions/exterior");
+    EXPECT_EQ(diagnostics.front().location, "/reactor/boundary_conditions/exterior");
     EXPECT_TRUE(diagnostics.front().entry.empty()) << all_text(diagnostics);
     EXPECT_TRUE(diagnostics.front().message.contains("group is missing")) << all_text(diagnostics);
 }

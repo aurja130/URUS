@@ -221,8 +221,8 @@ not listed. The rules checked, in this order, all of them on every run:
 3. Root members (§2): unknown members, missing required documents. Each document present:
    a group or an external link; for a link, its object `/` and its file, which must exist and
    open as HDF5; then the document's `document` and `format_version`. A document that fails
-   here is not read further, and checks that need it are skipped. Unknown members of a
-   document or of a named group, and external links, are reported with their section.
+   here is not read further, and checks that need it are skipped. Unknown members and external
+   links of a document's root are reported here; those of a named group, with its section.
 4. Geometry (§3): types, shapes, units, widths, map shape and values, at least one node.
 5. Boundary conditions (§4), the `exterior` face when the map excludes a position.
 6. Library path (§5); the library itself (library contract §4).
@@ -232,7 +232,7 @@ not listed. The rules checked, in this order, all of them on every run:
    for validity; every used one that resolves is, whatever happens to the others.
 8. Initial state (§6): `source`; the five datasets, at every node.
 9. Settings (§7).
-10. Control signals (§8).
+10. Control signals (§8): its members are its root's, reported at item 3.
 11. Library coverage (§6), unless `allow_table_clamps` is 1: per node-state field, at every
     node whose composition resolves, each value outside an axis of its set, naming the node
     position, the axis, the side and the end point. Skipped when the library, the map or that
@@ -257,3 +257,4 @@ problem input.
 | 2026-11-19 | §8 item 7 wording after review, behaviour unchanged: only resolution and validity are skipped when the library could not be read; a used composition that resolves is checked even when another does not. |
 | 2026-11-19 | §8 item 3 wording after review, behaviour unchanged: item 3 names the unknown root members; unknown members of a named group are reported with that group's section. |
 | 2026-11-20 | Version 2, frozen at the start of sub-milestone 1.3a (the Captain's decision, milestone 1 plan §9): four input documents in place or in linked document files (§2); the library path resolves against the reactor document's file (§5); the initial state's `source` (§6); library coverage is an input error unless `allow_table_clamps` is 1, replacing version 1 §6, where a state outside the table was clamped and counted without error (§6, §7); the settings document holds the solver options of version 1 §7 under the same names and defaults; control signals must be empty (§8). Version 1 is no longer read. |
+| 2026-11-20 | §9 items 3 and 10 wording before delivery, from the first implementation: unknown members and external links of a document's root are reported at item 3, so a member of the control signals document is reported there. |

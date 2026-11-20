@@ -4,7 +4,7 @@
 
 #pragma once
 
-// The problem input (docs/contracts/problem_input.md, format version 1) and the problem it
+// The problem input (docs/contracts/problem_input.md, format version 2) and the problem it
 // defines once bound to its nodal library. Section numbers below are the contract's.
 
 #include "nts/common/diagnostic.hpp"
@@ -67,7 +67,7 @@ struct InputComposition {
 };
 
 struct LibraryBinding {
-    std::filesystem::path library_file; // resolved against the input's directory
+    std::filesystem::path library_file; // resolved against the reactor document file's directory
     std::vector<InputComposition> compositions;
 };
 
@@ -108,12 +108,20 @@ struct SolverOptions {
 
 // ----- The problem -------------------------------------------------------------------------
 
+// The four input documents (§2), in the order of the problem input's root table.
+enum class InputDocument : std::uint8_t { reactor, initial_state, control_signals, settings };
+inline constexpr std::size_t input_document_count = 4;
+
 struct ProblemInput {
-    std::filesystem::path file;
+    std::filesystem::path file; // the problem input
+    // The file holding each document, in InputDocument order: `file` for a document in place,
+    // its document file when linked, empty when an optional document is absent.
+    std::array<std::filesystem::path, input_document_count> document_files;
     ReactorDescription reactor;
-    LibraryBinding binding;
-    OperatingState operating_state;
-    SolverOptions solver_options;
+    LibraryBinding binding;          // library_file resolved against the reactor document's file
+    OperatingState operating_state;  // the initial state document (§6)
+    SolverOptions solver_options;    // the settings document (§7)
+    bool allow_table_clamps = false; // the settings document (§7)
 };
 
 // Input composition c is composition `composition` of library.composition_sets[set].
@@ -131,6 +139,8 @@ struct Problem {
 // Reads the problem input and its library and checks every rule of contract §8; all
 // failures are returned together.
 [[nodiscard]] std::expected<Problem, Diagnostics> load_problem(const std::filesystem::path& file);
+
+[[nodiscard]] std::string_view input_document_name(InputDocument document); // "reactor", ...
 
 [[nodiscard]] std::string_view face_name(Face face);                    // "x_minus", ...
 [[nodiscard]] std::string_view boundary_kind_name(BoundaryKind kind);   // "reflective", ...

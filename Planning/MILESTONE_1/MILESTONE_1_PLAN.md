@@ -251,8 +251,8 @@ for every rule above, for interior, edge and corner nodes and for every face.
 
 ### 1.3a Input documents
 
-**State.** In progress on `milestone-1.3a`; contract version 2 frozen 2026-11-20. Added
-2026-11-20 by the Captain's decision (§9; Project plan §7).
+**State.** Done 2026-11-20 on `milestone-1.3a`, merged into `milestone-1`; contract version 2
+frozen 2026-11-20. Added 2026-11-20 by the Captain's decision (§9; Project plan §7).
 
 **Why.** A reactor and its nodal library are written once; initial states, control signals
 and settings vary from run to run. Version 1 puts all of them in one file, so every new

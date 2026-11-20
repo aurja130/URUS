@@ -17,14 +17,17 @@
 #include <H5Cpp.h>
 
 #include <algorithm>
+#include <cstdint>
 #include <expected>
 #include <filesystem>
 #include <format>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <system_error>
 #include <unistd.h>
 #include <utility>
+#include <vector>
 
 #include "library_fixture.hpp"
 #include "problem_fixture.hpp"
@@ -40,6 +43,24 @@ inline std::string all_text(const Diagnostics& diagnostics) {
     return text;
 }
 
+// Makes `directory` the working directory for as long as the object lives.
+class ScopedWorkingDirectory {
+public:
+    explicit ScopedWorkingDirectory(const std::filesystem::path& directory)
+        : previous_(std::filesystem::current_path()) {
+        std::filesystem::current_path(directory);
+    }
+    ~ScopedWorkingDirectory() {
+        std::error_code ignored;
+        std::filesystem::current_path(previous_, ignored);
+    }
+    ScopedWorkingDirectory(const ScopedWorkingDirectory&) = delete;
+    ScopedWorkingDirectory& operator=(const ScopedWorkingDirectory&) = delete;
+
+private:
+    std::filesystem::path previous_;
+};
+
 class ProblemTest : public testing::Test {
 protected:
     void TearDown() override {
@@ -50,6 +71,48 @@ protected:
     // The library and the problem input; a test changes them before loading.
     FixtureLibrary& library() { return library_; }
     FixtureGroup& problem() { return problem_; }
+
+    // The documents of the problem input, by member name. Each is created in place with its
+    // document attributes when absent; a test edits the document before it links the document.
+    FixtureGroup& document(const std::string& name) {
+        FixtureGroup& group = problem_.groups[name];
+        group.attributes.try_emplace("document", name);
+        group.attributes.try_emplace("format_version", std::int64_t{2});
+        return group;
+    }
+    FixtureGroup& reactor() { return document("reactor"); }
+    FixtureGroup& initial_state() { return document("initial_state"); }
+    FixtureGroup& settings() { return document("settings"); }
+    FixtureGroup& control_signals() { return document("control_signals"); }
+
+    // Sets `allow_table_clamps` in the settings document.
+    void allow_table_clamps(std::int64_t value) {
+        settings().datasets["allow_table_clamps"] = integer_scalar(value);
+    }
+
+    // The reactor's geometry group, in place.
+    FixtureGroup& geometry() { return reactor().groups["geometry"]; }
+
+    // Sets or removes one option of the settings document.
+    void set_option(std::string_view name, FixtureDataset value) {
+        settings().datasets[std::string(name)] = std::move(value);
+    }
+    void clear_option(std::string_view name) { settings().datasets.erase(std::string(name)); }
+
+    // Moves the document `member` out of the problem input into the file `file`, and makes the
+    // member an external link to the root of that file. A relative `file` resolves against the
+    // directory of the problem input; the file is written by the next load.
+    void link(const std::string& member, const std::filesystem::path& file) {
+        auto node = problem_.groups.extract(member);
+        if (node.empty()) {
+            throw std::logic_error("ProblemTest::link: no in-place document '" + member + "'");
+        }
+        linked_.emplace_back(file, std::move(node.mapped()));
+        problem_.external_links[member] = FixtureExternalLink{.file = file.string()};
+    }
+
+    // The directory of the problem input; a relative link resolves against it.
+    [[nodiscard]] const std::filesystem::path& directory() const { return directory_; }
 
     // Writes the library and the problem input, then loads the problem.
     std::expected<Problem, Diagnostics> load() {
@@ -84,13 +147,19 @@ protected:
     [[nodiscard]] std::filesystem::path problem_file() const { return directory_ / "problem.h5"; }
     [[nodiscard]] std::filesystem::path library_file() const { return directory_ / "library.h5"; }
 
-private:
+    // Writes the library, the problem input and its linked document files without loading.
     void write_files() {
         std::filesystem::create_directories(directory_);
         write_fixture(library_, library_file());
         write_problem(problem_, problem_file());
+        for (const auto& [file, linked_document] : linked_) {
+            const std::filesystem::path path = directory_ / file;
+            std::filesystem::create_directories(path.parent_path());
+            write_problem(linked_document, path);
+        }
     }
 
+private:
     static Diagnostics failure(const std::expected<Problem, Diagnostics>& result) {
         EXPECT_FALSE(result.has_value()) << "a defective problem input was accepted";
         return result.has_value() ? Diagnostics{} : result.error();
@@ -98,6 +167,7 @@ private:
 
     FixtureLibrary library_ = make_valid_fixture();
     FixtureGroup problem_ = make_valid_problem("library.h5");
+    std::vector<std::pair<std::filesystem::path, FixtureGroup>> linked_;
     std::filesystem::path directory_ = [] {
         std::string name =
             std::format("nts_problem_{}_{}",

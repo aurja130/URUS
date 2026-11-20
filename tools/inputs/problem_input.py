@@ -1,10 +1,21 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Aurora Jahan
 # Licensed under the GNU GPL v3 or later, WITHOUT ANY WARRANTY; see LICENSE.
-"""Problem input files, format version 1 (docs/contracts/problem_input.md).
+"""Problem input files, format version 2 (docs/contracts/problem_input.md).
 
-`write_problem_input` writes a `ProblemInput` without validating it: the engine
-(src/nts/io/problem.hpp) reads and checks every file and is the authority.
+A problem input holds four documents (`DocumentKind`): the reactor, the initial state, the
+control signals and the settings. Each document is written in place in the problem input, or
+in a document file of its own that the problem input links to, so that one reactor can serve
+many initial states and settings.
+
+- `write_problem_input` writes a whole problem input; `document_files` names the documents to
+  write to their own files.
+- `write_document` writes one document alone to a file, for linking from many problem inputs.
+- `link_problem_input` writes a problem input that only links existing document files.
+- `read_problem_input` reads either form, resolving links against the problem input's directory.
+
+The writers do not validate: the engine (src/nts/io/problem.hpp) reads and checks every file
+and is the authority.
 
 Node-state fields and the composition map are NumPy arrays, so `==` on
 `ProblemInput` or `ReactorDescription` is ambiguous. Compare those fields with
@@ -13,19 +24,31 @@ Node-state fields and the composition map are NumPy arrays, so `==` on
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+import os
+from collections.abc import Callable, Iterable, Mapping
+from contextlib import ExitStack
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
-from typing import Protocol, cast
+from typing import ClassVar, Protocol, cast, runtime_checkable
 
 import h5py
 import numpy as np
 from numpy.typing import NDArray
 
-FORMAT_VERSION = 1  # contract section 2
+FORMAT_VERSION = 2  # contract section 2
+INITIAL_STATE_SOURCE = "stated"  # contract section 6
 
 type NodeValue = float | NDArray[np.float64]
+
+
+class DocumentKind(StrEnum):
+    """The input documents, named by their members of the problem input root (contract §2)."""
+
+    REACTOR = "reactor"
+    INITIAL_STATE = "initial_state"
+    CONTROL_SIGNALS = "control_signals"
+    SETTINGS = "settings"
 
 
 class BoundaryKind(StrEnum):
@@ -88,8 +111,9 @@ class InputComposition:
 class LibraryBinding:
     """Nodal library file and the input compositions the map indexes (contract section 5).
 
-    A relative ``library_file`` is written as given and resolved by the engine against the
-    directory that holds the problem input, not the current directory.
+    `library_file` is written as given. The engine resolves a relative path against the
+    directory of the file that holds the reactor document (the problem input, or the reactor's
+    document file when linked), not the current directory.
     """
 
     library_file: Path
@@ -126,13 +150,49 @@ class SolverOptions:
 
 
 @dataclass(frozen=True)
-class ProblemInput:
-    """A whole problem input, format version 1."""
+class ReactorDocument:
+    """The reactor document: geometry, boundary conditions, library and compositions (§3-§5)."""
 
+    kind: ClassVar[DocumentKind] = DocumentKind.REACTOR
     reactor: ReactorDescription
     library: LibraryBinding
+
+
+@dataclass(frozen=True)
+class InitialStateDocument:
+    """The initial state document (contract §6), written with `source` = `stated`."""
+
+    kind: ClassVar[DocumentKind] = DocumentKind.INITIAL_STATE
     operating_state: OperatingState
+
+
+@dataclass(frozen=True)
+class ControlSignalsDocument:
+    """The control signals document (contract §8). Format version 2 writes it empty."""
+
+    kind: ClassVar[DocumentKind] = DocumentKind.CONTROL_SIGNALS
+
+
+@dataclass(frozen=True)
+class SettingsDocument:
+    """The settings document (contract §7). A None `allow_table_clamps` is not written."""
+
+    kind: ClassVar[DocumentKind] = DocumentKind.SETTINGS
     solver_options: SolverOptions = field(default_factory=SolverOptions)
+    allow_table_clamps: bool | None = None
+
+
+type Document = ReactorDocument | InitialStateDocument | ControlSignalsDocument | SettingsDocument
+
+
+@dataclass(frozen=True)
+class ProblemInput:
+    """A whole problem input, format version 2. A None optional document is not written."""
+
+    reactor: ReactorDocument
+    initial_state: InitialStateDocument
+    control_signals: ControlSignalsDocument | None = None
+    settings: SettingsDocument | None = None
 
 
 class _Attrs(Protocol):
@@ -158,39 +218,158 @@ class _Group(Protocol):
 
     def __getitem__(self, name: str, /) -> object: ...
 
+    def __setitem__(self, name: str, value: object, /) -> None: ...
+
+    def get(self, name: str, /, *, getlink: bool) -> object: ...
+
     def create_group(self, name: str, /) -> _Group: ...
 
     def create_dataset(self, name: str, /, *, data: object, dtype: object) -> _Dataset: ...
 
 
-def write_problem_input(problem: ProblemInput, path: Path) -> None:
-    """Write `problem` to `path`, replacing any file there. Nothing is validated."""
+@runtime_checkable
+class _ExternalLink(Protocol):
+    """An `h5py.ExternalLink`; the installed h5py stubs do not declare the class."""
+
+    @property
+    def filename(self) -> str: ...
+
+    @property
+    def path(self) -> str: ...
+
+
+# B009: attribute access would fail basedpyright, since the stubs lack `ExternalLink`.
+_EXTERNAL_LINK = cast(Callable[[str, str], object], getattr(h5py, "ExternalLink"))  # noqa: B009
+
+
+def write_problem_input(
+    problem: ProblemInput,
+    path: Path,
+    *,
+    document_files: Mapping[DocumentKind, Path] | None = None,
+) -> None:
+    """Write `problem` to `path`, replacing any file there. Nothing is validated.
+
+    A document named in `document_files` is written to that file, at its root, and linked from
+    `path`; the other documents are written in place. Each link name is relative to the
+    directory of `path`, or absolute when no relative name exists. A relative library path is
+    resolved against the reactor document's own file, so linking the reactor elsewhere changes
+    which library the engine opens. Raises ValueError, writing nothing, when `document_files`
+    names a document that `problem` does not have, or names one file for two documents.
+    """
+    files = dict(document_files or {})
+    documents = _present_documents(problem)
+    absent = [kind.value for kind in files if kind not in documents]
+    if absent:
+        raise ValueError(f"document file given for absent document {', '.join(absent)}")
+    resolved = [document_file.resolve() for document_file in files.values()]
+    if len(set(resolved)) != len(resolved):
+        raise ValueError("document_files names the same file for two documents")
+    members: dict[DocumentKind, Document | Path] = {}
+    for kind, document in documents.items():
+        if kind in files:
+            write_document(document, files[kind])
+            members[kind] = files[kind]
+        else:
+            members[kind] = document
+    _write_root(path, members)
+
+
+def write_document(document: Document, path: Path) -> None:
+    """Write one document alone to the file `path`, at the file's root, replacing any file there.
+
+    The file is a document file: link it from a problem input with `write_problem_input`'s
+    `document_files` or `link_problem_input`.
+    """
     with h5py.File(str(path), "w") as raw:
-        root = cast(_Group, raw)
-        root.attrs["format_version"] = FORMAT_VERSION
-        _write_geometry(root, problem.reactor)
-        _write_boundary_conditions(root, problem.reactor)
-        _write_library(root, problem.library)
-        _write_operating_state(root, problem.operating_state)
-        if problem.solver_options != SolverOptions():
-            _write_solver_options(root, problem.solver_options)
+        _fill_document(cast(_Group, raw), document)
+
+
+def link_problem_input(path: Path, documents: Mapping[DocumentKind, Path]) -> None:
+    """Write a problem input at `path` whose members link the existing document files.
+
+    Only the links and the format version are written; each file must hold its document (see
+    `write_document`) for the problem input to be read.
+    """
+    _write_root(path, documents)
 
 
 def read_problem_input(path: Path) -> ProblemInput:
-    """Read back a problem input written by ``write_problem_input``.
+    """Read back a problem input written in place, linked, or mixed.
 
-    Only the format version, the boundary kinds and the members this reads are checked; the
-    engine is the authority on what is valid.
+    External links are resolved here, against the directory of `path`. Checks the format
+    versions, the document kinds and the members this reads; the engine is the authority.
     """
-    with h5py.File(str(path), "r") as raw:
+    with h5py.File(str(path), "r") as raw, ExitStack() as files:
         root = cast(_Group, raw)
         _check_format_version(root)
+        reactor = _open_required(root, path, DocumentKind.REACTOR, files)
+        initial_state = _open_required(root, path, DocumentKind.INITIAL_STATE, files)
+        control_signals = _open_document(root, path, DocumentKind.CONTROL_SIGNALS, files)
+        settings = _open_document(root, path, DocumentKind.SETTINGS, files)
         return ProblemInput(
-            reactor=_read_reactor(root),
-            library=_read_library(root),
-            operating_state=_read_operating_state(root),
-            solver_options=_read_solver_options(root),
+            reactor=ReactorDocument(
+                reactor=_read_reactor(reactor),
+                library=_read_library(reactor),
+            ),
+            initial_state=InitialStateDocument(
+                operating_state=_read_operating_state(initial_state),
+            ),
+            control_signals=None if control_signals is None else ControlSignalsDocument(),
+            settings=None if settings is None else _read_settings(settings),
         )
+
+
+def _present_documents(problem: ProblemInput) -> dict[DocumentKind, Document]:
+    """The documents `problem` has, in the order of the problem input's root."""
+    parts = (problem.reactor, problem.initial_state, problem.control_signals, problem.settings)
+    documents: dict[DocumentKind, Document] = {
+        document.kind: document for document in parts if document is not None
+    }
+    return documents
+
+
+def _write_root(path: Path, members: Mapping[DocumentKind, Document | Path]) -> None:
+    """Write the problem input root: a document in place, or a link to a document file."""
+    with h5py.File(str(path), "w") as raw:
+        root = cast(_Group, raw)
+        root.attrs["format_version"] = FORMAT_VERSION
+        for kind, member in members.items():
+            if isinstance(member, Path):
+                root[kind.value] = _EXTERNAL_LINK(_link_name(path, member), "/")
+            else:
+                _fill_document(root.create_group(kind.value), member)
+
+
+def _link_name(problem_path: Path, document_file: Path) -> str:
+    """`document_file` relative to the directory of `problem_path`, absolute if unrelatable.
+
+    Both paths are resolved first, so a symbolic link in either path does not change the name.
+    """
+    document = document_file.resolve()
+    directory = problem_path.parent.resolve()
+    try:
+        return Path(os.path.relpath(document, directory)).as_posix()
+    except ValueError:  # no relative path exists, e.g. on another drive
+        return document.as_posix()
+
+
+def _fill_document(root: _Group, document: Document) -> None:
+    """Write the attributes and members of `document` into its root group `root`."""
+    root.attrs["document"] = document.kind.value
+    root.attrs["format_version"] = FORMAT_VERSION
+    match document:
+        case ReactorDocument():
+            _write_geometry(root, document.reactor)
+            _write_boundary_conditions(root, document.reactor)
+            _write_library(root, document.library)
+        case InitialStateDocument():
+            root.attrs["source"] = INITIAL_STATE_SOURCE
+            _write_operating_state(root, document.operating_state)
+        case SettingsDocument():
+            _write_settings(root, document)
+        case ControlSignalsDocument():
+            pass
 
 
 def _put(
@@ -264,18 +443,17 @@ def _write_library(root: _Group, binding: LibraryBinding) -> None:
 
 
 def _write_operating_state(root: _Group, state: OperatingState) -> None:
-    group = root.create_group("operating_state")
-    _put_float(group, "thermal_power", state.thermal_power_w, units="W")
-    _put_float(group, "doppler_temperature", state.doppler_temperature_k, units="K")
-    _put_float(group, "moderator_density", state.moderator_density_kg_m3, units="kg m^-3")
-    _put_float(group, "moderator_temperature", state.moderator_temperature_k, units="K")
-    _put_float(group, "boron", state.boron_ppm, units="ppm")
+    _put_float(root, "thermal_power", state.thermal_power_w, units="W")
+    _put_float(root, "doppler_temperature", state.doppler_temperature_k, units="K")
+    _put_float(root, "moderator_density", state.moderator_density_kg_m3, units="kg m^-3")
+    _put_float(root, "moderator_temperature", state.moderator_temperature_k, units="K")
+    _put_float(root, "boron", state.boron_ppm, units="ppm")
 
 
-def _write_solver_options(root: _Group, options: SolverOptions) -> None:
-    group = root.create_group("solver_options")
+def _write_settings(root: _Group, settings: SettingsDocument) -> None:
+    options = settings.solver_options
     if options.kernel is not None:
-        _put(group, "kernel", options.kernel.value, dtype=h5py.string_dtype())
+        _put(root, "kernel", options.kernel.value, dtype=h5py.string_dtype())
     for name, threshold in (
         ("kernel_switch_threshold", options.kernel_switch_threshold),
         ("wielandt_shift", options.wielandt_shift),
@@ -286,16 +464,22 @@ def _write_solver_options(root: _Group, options: SolverOptions) -> None:
         ("coupling_relaxation", options.coupling_relaxation),
     ):
         if threshold is not None:
-            _put_float(group, name, threshold)
+            _put_float(root, name, threshold)
     for name, limit in (
         ("inner_iteration_limit", options.inner_iteration_limit),
         ("outer_iteration_limit", options.outer_iteration_limit),
         ("nodal_update_period", options.nodal_update_period),
     ):
         if limit is not None:
-            _put(group, name, np.asarray(limit, dtype=np.int64))
+            _put(root, name, np.asarray(limit, dtype=np.int64))
     if options.adjoint is not None:
-        _put(group, "adjoint", np.asarray(options.adjoint, dtype=np.int64))
+        _put(root, "adjoint", np.asarray(options.adjoint, dtype=np.int64))
+    if settings.allow_table_clamps is not None:
+        _put(
+            root,
+            "allow_table_clamps",
+            np.asarray(settings.allow_table_clamps, dtype=np.int64),
+        )
 
 
 def _check_format_version(root: _Group) -> None:
@@ -304,6 +488,57 @@ def _check_format_version(root: _Group) -> None:
     version = root.attrs["format_version"]
     if not isinstance(version, int | np.integer) or version != FORMAT_VERSION:
         raise ValueError(f"unsupported format_version {version!r}; expected {FORMAT_VERSION}")
+
+
+def _check_document(root: _Group, kind: DocumentKind) -> None:
+    """The document attribute names `kind`, and the document's format version is 2."""
+    if "document" not in root.attrs:
+        raise ValueError(f"{kind.value}: document attribute is missing")
+    name = _text(root.attrs["document"])
+    if name != kind.value:
+        raise ValueError(f"document kind '{name}' is not '{kind.value}'")
+    _check_format_version(root)
+
+
+def _linked_path(problem_path: Path, filename: str) -> Path:
+    """A relative link name is resolved against the directory of the problem input."""
+    link = Path(filename)
+    return link if link.is_absolute() else problem_path.parent / link
+
+
+def _open_document(
+    problem: _Group,
+    problem_path: Path,
+    kind: DocumentKind,
+    files: ExitStack,
+) -> _Group | None:
+    """The root group of document `kind`, in place or in its linked file; None when absent."""
+    member = problem.get(kind.value, getlink=True)
+    if member is None:
+        return None
+    if isinstance(member, _ExternalLink):
+        if member.path != "/":
+            raise ValueError(
+                f"/{kind.value}: the external link must name the root group '/' of a document file"
+            )
+        document_file = _linked_path(problem_path, member.filename)
+        root = cast(_Group, files.enter_context(h5py.File(str(document_file), "r")))
+    else:
+        root = _group(problem, kind.value)
+    _check_document(root, kind)
+    return root
+
+
+def _open_required(
+    problem: _Group,
+    problem_path: Path,
+    kind: DocumentKind,
+    files: ExitStack,
+) -> _Group:
+    root = _open_document(problem, problem_path, kind, files)
+    if root is None:
+        raise ValueError(f"{kind.value} document is missing")
+    return root
 
 
 def _group(parent: _Group, name: str) -> _Group:
@@ -402,13 +637,12 @@ def _read_library(root: _Group) -> LibraryBinding:
 
 
 def _read_operating_state(root: _Group) -> OperatingState:
-    state = _group(root, "operating_state")
     return OperatingState(
-        thermal_power_w=_float_scalar(state, "thermal_power"),
-        doppler_temperature_k=_node_value(state, "doppler_temperature"),
-        moderator_density_kg_m3=_node_value(state, "moderator_density"),
-        moderator_temperature_k=_node_value(state, "moderator_temperature"),
-        boron_ppm=_node_value(state, "boron"),
+        thermal_power_w=_float_scalar(root, "thermal_power"),
+        doppler_temperature_k=_node_value(root, "doppler_temperature"),
+        moderator_density_kg_m3=_node_value(root, "moderator_density"),
+        moderator_temperature_k=_node_value(root, "moderator_temperature"),
+        boron_ppm=_node_value(root, "boron"),
     )
 
 
@@ -426,19 +660,17 @@ def _optional_kernel(group: _Group) -> KernelChoice | None:
     return KernelChoice(_text(_dataset(group, "kernel")[()]))
 
 
-def _optional_adjoint(group: _Group) -> bool | None:
-    if "adjoint" not in group:
+def _optional_flag(group: _Group, name: str) -> bool | None:
+    """A 0/1 integer member, read as a bool; None when absent."""
+    if name not in group:
         return None
-    value = _int_scalar(group, "adjoint")
+    value = _int_scalar(group, name)
     if value not in (0, 1):
-        raise ValueError("adjoint must be 0 or 1")
+        raise ValueError(f"{name} must be 0 or 1")
     return value == 1
 
 
-def _read_solver_options(root: _Group) -> SolverOptions:
-    if "solver_options" not in root:
-        return SolverOptions()
-    group = _group(root, "solver_options")
+def _read_solver_options(group: _Group) -> SolverOptions:
     return SolverOptions(
         kernel=_optional_kernel(group),
         kernel_switch_threshold=_optional_float(group, "kernel_switch_threshold"),
@@ -451,5 +683,12 @@ def _read_solver_options(root: _Group) -> SolverOptions:
         outer_iteration_limit=_optional_int(group, "outer_iteration_limit"),
         nodal_update_period=_optional_int(group, "nodal_update_period"),
         coupling_relaxation=_optional_float(group, "coupling_relaxation"),
-        adjoint=_optional_adjoint(group),
+        adjoint=_optional_flag(group, "adjoint"),
+    )
+
+
+def _read_settings(group: _Group) -> SettingsDocument:
+    return SettingsDocument(
+        solver_options=_read_solver_options(group),
+        allow_table_clamps=_optional_flag(group, "allow_table_clamps"),
     )

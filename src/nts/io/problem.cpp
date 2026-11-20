@@ -94,8 +94,9 @@ using detail::read_string_attribute;
 using detail::read_strings;
 using detail::Reporter;
 
-constexpr std::int64_t supported_format_version = 1;
+constexpr std::int64_t supported_format_version = 2;
 constexpr std::int64_t excluded_position = -1; // a composition_map value: no node there
+constexpr std::size_t node_field_count = 4;    // doppler, density, temperature, boron
 
 constexpr std::string_view unit_cm = "cm";
 constexpr std::string_view unit_dimensionless = "1";
@@ -104,51 +105,78 @@ constexpr std::string_view unit_kelvin = "K";
 constexpr std::string_view unit_kg_per_m3 = "kg m^-3";
 constexpr std::string_view unit_ppm = "ppm";
 
-constexpr std::array<std::string_view, 6> root_members{"geometry",        "boundary_conditions",
-                                                       "library",         "compositions",
-                                                       "operating_state", "solver_options"};
+constexpr std::array<std::string_view, input_document_count> document_names{
+    "reactor", "initial_state", "control_signals", "settings"};
+constexpr std::array<bool, input_document_count> document_required{true, true, false, false};
+constexpr std::array<std::string_view, 4> reactor_members{"geometry", "boundary_conditions",
+                                                          "library", "compositions"};
 constexpr std::array<std::string_view, 4> geometry_members{"width_x", "width_y", "width_z",
                                                            "composition_map"};
 constexpr std::array<std::string_view, face_count + 1> boundary_members{
     "x_minus", "x_plus", "y_minus", "y_plus", "z_minus", "z_plus", "exterior"};
 constexpr std::array<std::string_view, 1> albedo_members{"albedo"};
 constexpr std::array<std::string_view, 2> composition_members{"library_set", "library_composition"};
-constexpr std::array<std::string_view, 5> operating_state_members{
+constexpr std::array<std::string_view, 5> initial_state_members{
     "thermal_power", "doppler_temperature", "moderator_density", "moderator_temperature", "boron"};
-constexpr std::array<std::string_view, 12> solver_option_members{"kernel",
-                                                                 "kernel_switch_threshold",
-                                                                 "wielandt_shift",
-                                                                 "eigenvalue_tolerance",
-                                                                 "fission_source_l2_tolerance",
-                                                                 "fission_source_linf_tolerance",
-                                                                 "inner_reduction",
-                                                                 "inner_iteration_limit",
-                                                                 "outer_iteration_limit",
-                                                                 "nodal_update_period",
-                                                                 "coupling_relaxation",
-                                                                 "adjoint"};
+constexpr std::array<std::string_view, 13> settings_members{"kernel",
+                                                            "kernel_switch_threshold",
+                                                            "wielandt_shift",
+                                                            "eigenvalue_tolerance",
+                                                            "fission_source_l2_tolerance",
+                                                            "fission_source_linf_tolerance",
+                                                            "inner_reduction",
+                                                            "inner_iteration_limit",
+                                                            "outer_iteration_limit",
+                                                            "nodal_update_period",
+                                                            "coupling_relaxation",
+                                                            "adjoint",
+                                                            "allow_table_clamps"};
+// The members each document may hold (§2); the control signals document holds none.
+constexpr std::array<std::span<const std::string_view>, input_document_count> document_members{
+    reactor_members, initial_state_members, std::span<const std::string_view>{}, settings_members};
 constexpr std::int64_t minimum_iteration_count = 1;
+
+constexpr std::size_t index_of(InputDocument document) {
+    return static_cast<std::size_t>(document);
+}
 
 // The location of member `name` of the group at `path`; the root's path is empty.
 std::string child_location(const std::string& path, std::string_view name) {
     return std::format("{}/{}", path, name);
 }
 
-// Reports every link of `group` that `allowed` does not name.
+// The object an attribute of a document root belongs to: "/" for the root of a document file.
+std::string root_object_path(const std::string& root_path) {
+    return root_path.empty() ? "/" : root_path;
+}
+
+// Reports every member of `group` that `allowed` does not name. An external link is reported
+// unless `documents_may_link` holds and it names one of `allowed` (§2: only the four documents of
+// the problem input may be linked).
 void check_members(Reporter& reporter, const H5::Group& group, const std::string& path,
-                   std::span<const std::string_view> allowed) {
+                   std::span<const std::string_view> allowed, bool documents_may_link = false) {
     std::vector<std::string> names;
     if (!guarded_read(reporter, path.empty() ? "/" : path, [&] { names = member_names(group); })) {
         return;
     }
     for (const std::string& name : names) {
-        if (std::ranges::find(allowed, name) == allowed.end()) {
-            reporter.add(child_location(path, name), "not a member of the problem input contract");
+        const std::string location = child_location(path, name);
+        const bool allowed_name = std::ranges::find(allowed, name) != allowed.end();
+        if (detail::is_external_link(group, name)) {
+            if (!documents_may_link || !allowed_name) {
+                reporter.add(location, "an external link; only the four documents of the problem "
+                                       "input may be linked");
+            }
+            continue;
+        }
+        if (!allowed_name) {
+            reporter.add(location, "not a member of the problem input contract");
         }
     }
 }
 
-// The group `name` of `parent` (at `path`), or a diagnostic when it is missing or not a group.
+// The group `name` of `parent` (at `path`), or a diagnostic when it is missing or not a group. An
+// external link is not followed and not reported here: check_members of the parent reports it.
 std::optional<H5::Group> open_group(Reporter& reporter, const H5::Group& parent,
                                     const std::string& path, const std::string& name) {
     const std::string location = child_location(path, name);
@@ -156,6 +184,9 @@ std::optional<H5::Group> open_group(Reporter& reporter, const H5::Group& parent,
     guarded_read(reporter, location, [&] {
         if (!parent.nameExists(name)) {
             reporter.add(location, "group is missing");
+            return;
+        }
+        if (detail::is_external_link(parent, name)) {
             return;
         }
         if (!is_child(parent, name, H5O_TYPE_GROUP)) {
@@ -167,32 +198,8 @@ std::optional<H5::Group> open_group(Reporter& reporter, const H5::Group& parent,
     return group;
 }
 
-// The groups of the root that sections 3 to 9 read (§2). Each is opened once, here, so a missing
-// or not-a-group member is reported once; a member that is nullopt was diagnosed here.
-struct RootGroups {
-    std::optional<H5::Group> geometry;
-    std::optional<H5::Group> boundary_conditions;
-    std::optional<H5::Group> library;
-    std::optional<H5::Group> compositions;
-    std::optional<H5::Group> operating_state;
-    std::optional<H5::Group> solver_options; // optional: nullopt, undiagnosed, when absent
-};
-
-// Check 3: the root's required groups, and solver_options when present.
-RootGroups open_root_groups(Reporter& reporter, const H5::Group& root) {
-    const bool has_solver_options = root.nameExists("solver_options");
-    return RootGroups{
-        .geometry = open_group(reporter, root, "", "geometry"),
-        .boundary_conditions = open_group(reporter, root, "", "boundary_conditions"),
-        .library = open_group(reporter, root, "", "library"),
-        .compositions = open_group(reporter, root, "", "compositions"),
-        .operating_state = open_group(reporter, root, "", "operating_state"),
-        .solver_options =
-            has_solver_options ? open_group(reporter, root, "", "solver_options") : std::nullopt,
-    };
-}
-
 // The dataset `name` of `group` (at `path`), or a diagnostic when it is missing or not a dataset.
+// An external link is not followed and not reported here: check_members of the group reports it.
 std::optional<H5::DataSet> open_dataset(Reporter& reporter, const H5::Group& group,
                                         const std::string& path, const std::string& name) {
     const std::string location = child_location(path, name);
@@ -200,6 +207,9 @@ std::optional<H5::DataSet> open_dataset(Reporter& reporter, const H5::Group& gro
     guarded_read(reporter, location, [&] {
         if (!group.nameExists(name)) {
             reporter.add(location, "dataset is missing");
+            return;
+        }
+        if (detail::is_external_link(group, name)) {
             return;
         }
         if (!is_child(group, name, H5O_TYPE_DATASET)) {
@@ -211,20 +221,179 @@ std::optional<H5::DataSet> open_dataset(Reporter& reporter, const H5::Group& gro
     return dataset;
 }
 
-// K, the number of input compositions: the length of /compositions/library_set when that is a
-// rank-1 dataset of at least one element. Its diagnostics are the business of check 7, so none
-// are reported here; an unknown K leaves the map's upper bound unchecked rather than reporting
-// every node against a bound of zero.
-std::optional<std::size_t> input_composition_count(const H5::Group& root) {
+// A document of the problem input (§2) as found: its root group, the location of that root in
+// the problem input ("/<name>" in place, empty for the root of a document file), and the file
+// holding it. `root` is nullopt when the document is absent or is not read further.
+struct Document {
+    std::optional<H5::Group> root;
+    std::string root_path;
+    std::filesystem::path file;
+};
+
+// The root group of the document file that `link` names (§2). A relative file name resolves
+// against the directory of the problem input; an absolute one is used as written. The opened file
+// is kept in `linked_file` so that the root stays valid.
+Document open_linked_document(Reporter& reporter, const std::filesystem::path& input_file,
+                              const std::string& location, const detail::ExternalLinkTarget& link,
+                              std::optional<H5::H5File>& linked_file) {
+    Document document;
+    if (link.object != "/") {
+        reporter.add(location, "the external link must name the root group '/' of a document file");
+        return document;
+    }
+    const std::filesystem::path linked_path(link.file);
+    const std::filesystem::path resolved =
+        linked_path.is_absolute() ? linked_path : input_file.parent_path() / linked_path;
+    const std::string resolved_text = resolved.string();
+    std::error_code error;
+    if (!std::filesystem::is_regular_file(resolved, error)) {
+        reporter.add(location, std::format("the linked document file '{}' does not exist or is "
+                                           "not a regular file",
+                                           resolved_text));
+        return document;
+    }
+    bool hdf5 = false;
     try {
-        if (!is_child(root, "compositions", H5O_TYPE_GROUP)) {
+        hdf5 = H5::H5File::isHdf5(resolved_text);
+    } catch (const H5::Exception&) {
+        reporter.add(location,
+                     std::format("the linked document file '{}' cannot be read", resolved_text));
+        return document;
+    }
+    if (!hdf5) {
+        reporter.add(location, std::format("the linked document file '{}' is not an HDF5 file",
+                                           resolved_text));
+        return document;
+    }
+    document.file = resolved;
+    guarded_read(reporter, location, [&] {
+        linked_file.emplace(resolved_text, H5F_ACC_RDONLY);
+        document.root.emplace(linked_file->openGroup("/"));
+    });
+    return document;
+}
+
+// The root of document `kind` in the problem input's root (§2): a group in place, or the root of
+// the document file that its external link names. An absent required document is reported; an
+// absent optional document is not.
+Document find_document(Reporter& reporter, const H5::Group& root,
+                       const std::filesystem::path& input_file, InputDocument kind,
+                       std::optional<H5::H5File>& linked_file) {
+    const std::string member(input_document_name(kind));
+    const std::string location = child_location("", member);
+    Document document;
+    bool exists = false;
+    std::optional<detail::ExternalLinkTarget> link;
+    if (!guarded_read(reporter, location, [&] {
+            exists = root.nameExists(member);
+            link = detail::external_link_target(root, member);
+        })) {
+        return document;
+    }
+    if (!exists) {
+        if (document_required[index_of(kind)]) {
+            reporter.add(location, "document is missing");
+        }
+        return document;
+    }
+    if (link) {
+        return open_linked_document(reporter, input_file, location, *link, linked_file);
+    }
+    bool group = false;
+    if (!guarded_read(reporter, location,
+                      [&] { group = is_child(root, member, H5O_TYPE_GROUP); })) {
+        return document;
+    }
+    if (!group) {
+        reporter.add(location, "not a group or an external link");
+        return document;
+    }
+    guarded_read(reporter, location, [&] { document.root.emplace(root.openGroup(member)); });
+    document.root_path = location;
+    document.file = input_file;
+    return document;
+}
+
+// The `document` and `format_version` attributes of a document root (§2); true when both hold.
+bool check_document_attributes(Reporter& reporter, const H5::Group& group,
+                               const std::string& root_path, InputDocument kind) {
+    const std::string object = root_object_path(root_path);
+    const std::string_view name = input_document_name(kind);
+    const auto kind_text = read_string_attribute(reporter, group, object, "document");
+    const bool kind_ok = kind_text && *kind_text == name;
+    if (kind_text && !kind_ok) {
+        reporter.add(object + "@document",
+                     std::format("document kind '{}' is not '{}'", *kind_text, name));
+    }
+    const auto version = read_integer_attribute(reporter, group, object, "format_version");
+    const bool version_ok = version && *version == supported_format_version;
+    if (version && !version_ok) {
+        reporter.add(object + "@format_version",
+                     std::format("format version {} is not supported; this engine reads version {}",
+                                 *version, supported_format_version));
+    }
+    return kind_ok && version_ok;
+}
+
+// Check 3, one document (§2): its root, its attributes, and its members. A document whose
+// attributes fail is not read further, so its root is nullopt on return.
+Document open_document(Reporter& reporter, const H5::Group& root,
+                       const std::filesystem::path& input_file, InputDocument kind,
+                       std::array<std::optional<H5::H5File>, input_document_count>& linked_files) {
+    Document document =
+        find_document(reporter, root, input_file, kind, linked_files[index_of(kind)]);
+    if (!document.root) {
+        return document;
+    }
+    Reporter attributes(document.file.string());
+    if (check_document_attributes(attributes, *document.root, document.root_path, kind)) {
+        check_members(attributes, *document.root, document.root_path,
+                      document_members[index_of(kind)]);
+    } else {
+        document.root.reset();
+    }
+    reporter.append(attributes.take());
+    return document;
+}
+
+// The groups of the reactor document that sections 3 to 5 and 7 read (§3–§5). Each is opened once,
+// here, so a missing or not-a-group member is reported once; nullopt when diagnosed here, or when
+// the reactor document is not read.
+struct ReactorGroups {
+    std::optional<H5::Group> geometry;
+    std::optional<H5::Group> boundary_conditions;
+    std::optional<H5::Group> library;
+    std::optional<H5::Group> compositions;
+};
+
+// Check 3: the reactor document's required groups.
+ReactorGroups open_reactor_groups(Reporter& reporter, const Document& reactor) {
+    if (!reactor.root) {
+        return {};
+    }
+    return ReactorGroups{
+        .geometry = open_group(reporter, *reactor.root, reactor.root_path, "geometry"),
+        .boundary_conditions =
+            open_group(reporter, *reactor.root, reactor.root_path, "boundary_conditions"),
+        .library = open_group(reporter, *reactor.root, reactor.root_path, "library"),
+        .compositions = open_group(reporter, *reactor.root, reactor.root_path, "compositions"),
+    };
+}
+
+// K, the number of input compositions: the length of library_set when that is a rank-1 dataset of
+// at least one element. Its diagnostics are the business of check 7, so none are reported here; an
+// unknown K leaves the map's upper bound unchecked rather than reporting every node against a bound
+// of zero.
+std::optional<std::size_t> input_composition_count(const std::optional<H5::Group>& compositions) {
+    if (!compositions) {
+        return std::nullopt;
+    }
+    try {
+        if (detail::is_external_link(*compositions, "library_set") ||
+            !is_child(*compositions, "library_set", H5O_TYPE_DATASET)) {
             return std::nullopt;
         }
-        const H5::Group compositions = root.openGroup("compositions");
-        if (!is_child(compositions, "library_set", H5O_TYPE_DATASET)) {
-            return std::nullopt;
-        }
-        const H5::DataSet set = compositions.openDataSet("library_set");
+        const H5::DataSet set = compositions->openDataSet("library_set");
         const std::vector<std::size_t> shape = dimensions(set);
         if (shape.size() != 1 || shape[0] == 0) {
             return std::nullopt;
@@ -336,14 +505,14 @@ void fill_nodes(ReactorDescription& reactor) {
     }
 }
 
-// The composition map (row-major [nz][ny][nx]). Its values are checked only when the widths
-// are usable, since a position's index needs the dimensions. The reactor's positions and
-// nodes are filled only when the map is usable; true when it is.
-bool read_composition_map(Reporter& reporter, const H5::Group& geometry,
+// The composition map (row-major [nz][ny][nx]) of the geometry group at `path`. Its values are
+// checked only when the widths are usable, since a position's index needs the dimensions. The
+// reactor's positions and nodes are filled only when the map is usable; true when it is.
+bool read_composition_map(Reporter& reporter, const H5::Group& geometry, const std::string& path,
                           std::optional<std::size_t> composition_count, bool widths_usable,
                           ReactorDescription& reactor) {
-    const std::string location = "/geometry/composition_map";
-    const auto dataset = open_dataset(reporter, geometry, "/geometry", "composition_map");
+    const std::string location = child_location(path, "composition_map");
+    const auto dataset = open_dataset(reporter, geometry, path, "composition_map");
     if (!dataset) {
         return false;
     }
@@ -386,30 +555,28 @@ bool read_composition_map(Reporter& reporter, const H5::Group& geometry,
     return true;
 }
 
-// Which parts of /geometry are usable: the widths make the dimensions known, the map (given the
+// Which parts of the geometry are usable: the widths make the dimensions known, the map (given the
 // widths) makes the nodes known. A check is skipped only when the part it needs is unusable.
 struct GeometryUsability {
     bool widths = false;
     bool map = false;
 };
 
-// Check 4: /geometry. `composition_count` is K (see input_composition_count).
+// Check 4: the geometry group at `path`. `composition_count` is K (see input_composition_count).
 GeometryUsability read_geometry(Reporter& reporter, const std::optional<H5::Group>& geometry,
+                                const std::string& path,
                                 std::optional<std::size_t> composition_count,
                                 ReactorDescription& reactor) {
     if (!geometry) {
         return {};
     }
-    check_members(reporter, *geometry, "/geometry", geometry_members);
-    const bool width_x_ok =
-        read_width(reporter, *geometry, "/geometry", "width_x", reactor.width_x_cm);
-    const bool width_y_ok =
-        read_width(reporter, *geometry, "/geometry", "width_y", reactor.width_y_cm);
-    const bool width_z_ok =
-        read_width(reporter, *geometry, "/geometry", "width_z", reactor.width_z_cm);
+    check_members(reporter, *geometry, path, geometry_members);
+    const bool width_x_ok = read_width(reporter, *geometry, path, "width_x", reactor.width_x_cm);
+    const bool width_y_ok = read_width(reporter, *geometry, path, "width_y", reactor.width_y_cm);
+    const bool width_z_ok = read_width(reporter, *geometry, path, "width_z", reactor.width_z_cm);
     const bool widths_usable = width_x_ok && width_y_ok && width_z_ok;
     const bool map_usable =
-        read_composition_map(reporter, *geometry, composition_count, widths_usable, reactor);
+        read_composition_map(reporter, *geometry, path, composition_count, widths_usable, reactor);
     return {.widths = widths_usable, .map = map_usable};
 }
 
@@ -483,12 +650,11 @@ void read_albedo(Reporter& reporter, const H5::Group& group, const std::string& 
     }
 }
 
-// One face group `name` of /boundary_conditions: its `kind`, and the `albedo` of kind albedo. A
-// group whose kind is missing or unknown still has its members checked, against the albedo kind's
-// members, so a misspelt member is reported too.
-void read_face(Reporter& reporter, const H5::Group& boundary, const std::string& name,
-               BoundaryCondition& condition) {
-    const std::string parent = "/boundary_conditions";
+// One face group `name` of the boundary conditions group at `parent`: its `kind`, and the `albedo`
+// of kind albedo. A group whose kind is missing or unknown still has its members checked, against
+// the albedo kind's members, so a misspelt member is reported too.
+void read_face(Reporter& reporter, const H5::Group& boundary, const std::string& parent,
+               const std::string& name, BoundaryCondition& condition) {
     const auto group = open_group(reporter, boundary, parent, name);
     if (!group) {
         return;
@@ -517,41 +683,46 @@ void read_face(Reporter& reporter, const H5::Group& boundary, const std::string&
     }
 }
 
-// Check 5: /boundary_conditions. The exterior face is read when required, or when present.
+// Check 5: the boundary conditions group at `path`. The exterior face is read when required, or
+// when present.
 void read_boundary_conditions(Reporter& reporter, const std::optional<H5::Group>& boundary,
-                              bool exterior_required, ReactorDescription& reactor) {
+                              const std::string& path, bool exterior_required,
+                              ReactorDescription& reactor) {
     if (!boundary) {
         return;
     }
-    check_members(reporter, *boundary, "/boundary_conditions", boundary_members);
+    check_members(reporter, *boundary, path, boundary_members);
     for (std::size_t f = 0; f < face_count; ++f) {
-        read_face(reporter, *boundary, std::string(face_name(static_cast<Face>(f))),
+        read_face(reporter, *boundary, path, std::string(face_name(static_cast<Face>(f))),
                   reactor.bounding_faces[f]);
     }
     if (exterior_required || boundary->nameExists("exterior")) {
-        read_face(reporter, *boundary, "exterior", reactor.exterior);
+        read_face(reporter, *boundary, path, "exterior", reactor.exterior);
     }
 }
 
-// Check 6: /library, and the nodal library it names. `binding.library_file` is the resolved
-// path; `library` is filled when the library is read and passes its checks.
+// Check 6: the library group at `path`, and the nodal library it names. A relative library path
+// resolves against the directory of the reactor document's file, `reactor_file`.
+// `binding.library_file` is the resolved path; `library` is filled when the library is read and
+// passes its checks.
 void read_library(Reporter& reporter, const std::optional<H5::Group>& group,
-                  const std::filesystem::path& input_file, LibraryBinding& binding,
-                  std::optional<NodalLibrary>& library) {
+                  const std::string& path, const std::filesystem::path& reactor_file,
+                  LibraryBinding& binding, std::optional<NodalLibrary>& library) {
     if (!group) {
         return;
     }
-    check_members(reporter, *group, "/library", std::span<const std::string_view>{});
-    const auto text = read_string_attribute(reporter, *group, "/library", "path");
+    check_members(reporter, *group, path, std::span<const std::string_view>{});
+    const auto text = read_string_attribute(reporter, *group, path, "path");
     if (!text) {
         return;
     }
     if (text->empty()) {
-        reporter.add("/library@path", "the library path is empty");
+        reporter.add(path + "@path", "the library path is empty");
         return;
     }
-    const std::filesystem::path path(*text);
-    binding.library_file = path.is_absolute() ? path : input_file.parent_path() / path;
+    const std::filesystem::path library_path(*text);
+    binding.library_file =
+        library_path.is_absolute() ? library_path : reactor_file.parent_path() / library_path;
     std::expected<NodalLibrary, Diagnostics> loaded = read_nodal_library(binding.library_file);
     if (!loaded) {
         // The library's diagnostics already name the library file.
@@ -599,11 +770,11 @@ bool read_names(Reporter& reporter, const H5::Group& group, const std::string& p
     return guarded_read(reporter, location, [&] { names = read_strings(*dataset); });
 }
 
-// /compositions: `library_set` and `library_composition`, each a string [K] with K >= 1. The
-// binding's input compositions are filled only when both are usable; true when they are.
+// The compositions group at `path`: `library_set` and `library_composition`, each a string [K]
+// with K >= 1. The binding's input compositions are filled only when both are usable; true when
+// they are.
 bool read_input_compositions(Reporter& reporter, const std::optional<H5::Group>& group,
-                             LibraryBinding& binding) {
-    const std::string path = "/compositions";
+                             const std::string& path, LibraryBinding& binding) {
     if (!group) {
         return false;
     }
@@ -632,12 +803,13 @@ bool read_input_compositions(Reporter& reporter, const std::optional<H5::Group>&
 }
 
 // Each input composition's library composition (§5). Each one is resolved on its own: an entry is
-// nullopt when it does not resolve, and a diagnostic says why.
+// nullopt when it does not resolve, and a diagnostic says why. Entries are reported at the
+// compositions group at `path`.
 std::vector<std::optional<BoundComposition>>
-resolve_compositions(Reporter& reporter, const NodalLibrary& library,
+resolve_compositions(Reporter& reporter, const NodalLibrary& library, const std::string& path,
                      const std::vector<InputComposition>& inputs) {
     std::vector<std::optional<BoundComposition>> bound;
-    EntryReporter entries(reporter, "/compositions");
+    EntryReporter entries(reporter, path);
     for (std::size_t c = 0; c < inputs.size(); ++c) {
         const InputComposition& input = inputs[c];
         const auto entry = [c, &input] {
@@ -692,31 +864,25 @@ void check_used_compositions(Reporter& reporter, const NodalLibrary& library,
     }
 }
 
-// Check 7: /compositions. The input compositions resolve when the library is read and their
-// names are usable. Every input composition is resolved and reported, however many fail; the used
-// ones are checked when the map is usable (the nodes are known). Nullopt unless every input
-// composition resolves.
-std::optional<std::vector<BoundComposition>>
+// Check 7: the compositions group at `path`. The input compositions resolve when the library is
+// read and their names are usable. Every input composition is resolved and reported, however many
+// fail; the used ones are checked when the map is usable (the nodes are known). Each entry is
+// nullopt when it does not resolve, or when the names or the library are unusable (no entries).
+std::vector<std::optional<BoundComposition>>
 read_compositions(Reporter& reporter, const std::optional<H5::Group>& group,
-                  const std::optional<NodalLibrary>& library, const GeometryUsability& geometry,
-                  const ReactorDescription& reactor, LibraryBinding& binding) {
-    const bool names_ok = read_input_compositions(reporter, group, binding);
+                  const std::string& path, const std::optional<NodalLibrary>& library,
+                  const GeometryUsability& geometry, const ReactorDescription& reactor,
+                  LibraryBinding& binding) {
+    const bool names_ok = read_input_compositions(reporter, group, path, binding);
     if (!names_ok || !library) {
-        return std::nullopt;
+        return {};
     }
-    const std::vector<std::optional<BoundComposition>> bound =
-        resolve_compositions(reporter, *library, binding.compositions);
+    std::vector<std::optional<BoundComposition>> bound =
+        resolve_compositions(reporter, *library, path, binding.compositions);
     if (geometry.map) {
         check_used_compositions(reporter, *library, reactor, bound);
     }
-    std::vector<BoundComposition> complete;
-    for (const std::optional<BoundComposition>& entry : bound) {
-        if (!entry) {
-            return std::nullopt;
-        }
-        complete.push_back(*entry);
-    }
-    return complete;
+    return bound;
 }
 
 // The one element of `values`, the value of a scalar dataset; a diagnostic and nullopt otherwise.
@@ -839,20 +1005,36 @@ std::optional<double> read_thermal_power(Reporter& reporter, const H5::Group& gr
     return power;
 }
 
-// A node-state field of /operating_state (§6): its units and rule.
+// A node-state field of the initial state (§6): its units, its rule, and the state axis of its
+// composition sets (§6, check 11).
 struct NodeField {
     std::string_view name;
     std::string_view units;
     FloatRule rule;
+    StateAxis axis;
 };
 
-constexpr NodeField doppler_field{
-    .name = "doppler_temperature", .units = unit_kelvin, .rule = positive_rule};
-constexpr NodeField density_field{
-    .name = "moderator_density", .units = unit_kg_per_m3, .rule = positive_rule};
-constexpr NodeField moderator_temperature_field{
-    .name = "moderator_temperature", .units = unit_kelvin, .rule = positive_rule};
-constexpr NodeField boron_field{.name = "boron", .units = unit_ppm, .rule = non_negative_rule};
+constexpr NodeField doppler_field{.name = "doppler_temperature",
+                                  .units = unit_kelvin,
+                                  .rule = positive_rule,
+                                  .axis = StateAxis::fuel_temperature};
+constexpr NodeField density_field{.name = "moderator_density",
+                                  .units = unit_kg_per_m3,
+                                  .rule = positive_rule,
+                                  .axis = StateAxis::moderator_density};
+constexpr NodeField moderator_temperature_field{.name = "moderator_temperature",
+                                                .units = unit_kelvin,
+                                                .rule = positive_rule,
+                                                .axis = StateAxis::moderator_temperature};
+constexpr NodeField boron_field{
+    .name = "boron", .units = unit_ppm, .rule = non_negative_rule, .axis = StateAxis::boron};
+
+// The node-state fields, in the order of their values in NodeValues.
+constexpr std::array<NodeField, node_field_count> node_fields{
+    doppler_field, density_field, moderator_temperature_field, boron_field};
+
+// The values of the node-state fields, in node order; each is filled only when its field is usable.
+using NodeValues = std::array<std::optional<std::vector<double>>, node_field_count>;
 
 std::string field_message(const NodeField& field, double value) {
     return std::format("{} {} is not {}", value, field.units, field.rule.text);
@@ -948,46 +1130,117 @@ std::optional<std::vector<double>> read_node_field(Reporter& reporter, const H5:
     return per_node;
 }
 
-// Check 8: /operating_state. The node states are filled when all four node-state fields are
-// usable and the map is usable (the nodes are known).
-void read_operating_state(Reporter& reporter, const std::optional<H5::Group>& group,
-                          const GeometryUsability& geometry, const ReactorDescription& reactor,
-                          OperatingState& state) {
-    if (!group) {
-        return;
+// Check 8 (§6): the initial state document. Its `source` and its thermal power are read here, and
+// the node-state fields are returned in node order, each nullopt when it is unusable. The node
+// states are filled when all four fields are usable.
+NodeValues read_initial_state(Reporter& reporter, const Document& state,
+                              const GeometryUsability& geometry, const ReactorDescription& reactor,
+                              OperatingState& operating) {
+    if (!state.root) {
+        return {};
     }
-    const std::string path = "/operating_state";
-    check_members(reporter, *group, path, operating_state_members);
-    const std::optional<double> power = read_thermal_power(reporter, *group, path);
-    const auto doppler = read_node_field(reporter, *group, path, doppler_field, geometry, reactor);
-    const auto density = read_node_field(reporter, *group, path, density_field, geometry, reactor);
-    const auto temperature =
-        read_node_field(reporter, *group, path, moderator_temperature_field, geometry, reactor);
-    const auto boron = read_node_field(reporter, *group, path, boron_field, geometry, reactor);
+    const H5::Group& group = *state.root;
+    const std::string object = root_object_path(state.root_path);
+    const auto source = read_string_attribute(reporter, group, object, "source");
+    if (source && *source != "stated") {
+        reporter.add(object + "@source",
+                     std::format("unknown source '{}'; expected stated", *source));
+    }
+    const std::optional<double> power = read_thermal_power(reporter, group, state.root_path);
     if (power) {
-        state.thermal_power_w = *power;
+        operating.thermal_power_w = *power;
     }
-    if (!doppler || !density || !temperature || !boron) {
+    NodeValues values;
+    for (std::size_t f = 0; f < node_field_count; ++f) {
+        values[f] =
+            read_node_field(reporter, group, state.root_path, node_fields[f], geometry, reactor);
+    }
+    std::array<const std::vector<double>*, node_field_count> filled{};
+    for (std::size_t f = 0; f < node_field_count; ++f) {
+        const std::optional<std::vector<double>>& field_values = values[f];
+        if (!field_values) {
+            return values;
+        }
+        filled[f] = &*field_values;
+    }
+    for (std::size_t n = 0; n < filled[0]->size(); ++n) {
+        operating.node_states.push_back(NodeState{
+            .doppler_temperature_k = (*filled[0])[n],
+            .moderator_density_kg_m3 = (*filled[1])[n],
+            .moderator_temperature_k = (*filled[2])[n],
+            .boron_ppm = (*filled[3])[n],
+        });
+    }
+    return values;
+}
+
+// Check 11 (§6): the node-state field `field`, at the node positions, lies within the axis of its
+// composition set. A node whose input composition does not resolve, or whose set has no such axis,
+// is not checked. Reported at `location`, at most the listed limit of entries.
+void check_field_coverage(Reporter& reporter, const std::string& location, const NodeField& field,
+                          const std::vector<double>& values, const NodalLibrary& library,
+                          const std::vector<std::optional<BoundComposition>>& bound,
+                          const ReactorDescription& reactor) {
+    EntryReporter entries(reporter, location);
+    for (std::size_t node = 0; node < values.size(); ++node) {
+        const std::size_t position = reactor.node_positions[node];
+        const auto input = static_cast<std::size_t>(reactor.composition_map[position]);
+        const std::optional<BoundComposition>& composition = bound[input];
+        if (!composition) {
+            continue;
+        }
+        const CompositionSet& set = library.composition_sets[composition->set];
+        const auto axis = std::ranges::find(set.axes, field.axis, &AxisPoints::axis);
+        if (axis == set.axes.end() || axis->points.empty()) {
+            continue;
+        }
+        const double value = values[node];
+        const bool below = std::isless(value, axis->points.front());
+        const bool above = std::isgreater(value, axis->points.back());
+        if (!below && !above) {
+            continue;
+        }
+        const double limit = below ? axis->points.front() : axis->points.back();
+        const std::string_view relation = below ? "below the first point" : "above the last point";
+        entries.add([&reactor, position] { return position_entry(reactor, position); },
+                    [&field, &set, value, limit, relation] {
+                        return std::format(
+                            "{} {} is {} {} {} of axis {} of composition set '{}'; table "
+                            "clamps are not allowed",
+                            value, field.units, relation, limit, field.units,
+                            state_axis_name(field.axis), set.name);
+                    });
+    }
+    entries.finish();
+}
+
+// Check 11 (§6): unless table clamps are allowed, each node-state field that was filled lies
+// within the axes of the composition sets of the nodes it is at. Nothing is checked when the
+// library, the compositions or the node states are unusable.
+void check_library_coverage(Reporter& reporter, const Document& state, const NodeValues& values,
+                            bool allow_table_clamps, const std::optional<NodalLibrary>& library,
+                            const std::vector<std::optional<BoundComposition>>& bound,
+                            const ReactorDescription& reactor) {
+    if (allow_table_clamps || !library || bound.empty()) {
         return;
     }
-    for (std::size_t n = 0; n < doppler->size(); ++n) {
-        state.node_states.push_back(NodeState{
-            .doppler_temperature_k = (*doppler)[n],
-            .moderator_density_kg_m3 = (*density)[n],
-            .moderator_temperature_k = (*temperature)[n],
-            .boron_ppm = (*boron)[n],
-        });
+    for (std::size_t f = 0; f < node_field_count; ++f) {
+        const std::optional<std::vector<double>>& field_values = values[f];
+        if (field_values) {
+            check_field_coverage(reporter, child_location(state.root_path, node_fields[f].name),
+                                 node_fields[f], *field_values, *library, bound, reactor);
+        }
     }
 }
 
-// A float64 option of /solver_options (§7): its rule and its member of SolverOptions.
+// A float64 option of the settings document (§7): its rule and its member of SolverOptions.
 struct FloatOption {
     std::string_view name;
     FloatRule rule;
     double SolverOptions::* member;
 };
 
-// An integer option of /solver_options (§7): its member of SolverOptions; at least 1.
+// An integer option of the settings document (§7): its member of SolverOptions; at least 1.
 struct IntegerOption {
     std::string_view name;
     std::int64_t SolverOptions::* member;
@@ -1106,40 +1359,44 @@ void read_integer_options(Reporter& reporter, const H5::Group& group, const std:
     }
 }
 
-// Check 9, adjoint (§7): 0 (off) or 1 (on).
-void read_adjoint(Reporter& reporter, const H5::Group& group, const std::string& path,
-                  SolverOptions& options) {
-    if (!group.nameExists("adjoint")) {
+// A 0 or 1 integer scalar `name` of the group at `path` (§7) into `flag`. Any other value is
+// reported and leaves `flag` unchanged.
+void read_flag(Reporter& reporter, const H5::Group& group, const std::string& path,
+               const std::string& name, bool& flag) {
+    if (!group.nameExists(name)) {
         return;
     }
-    const std::optional<std::int64_t> value = read_integer_scalar(reporter, group, path, "adjoint");
+    const std::optional<std::int64_t> value = read_integer_scalar(reporter, group, path, name);
     if (!value) {
         return;
     }
     if (*value != 0 && *value != 1) {
-        reporter.add(child_location(path, "adjoint"),
-                     std::format("value {} is not 0 or 1", *value));
+        reporter.add(child_location(path, name), std::format("value {} is not 0 or 1", *value));
         return;
     }
-    options.adjoint = *value == 1;
+    flag = *value == 1;
 }
 
-// Check 9: /solver_options, optional as a whole; an absent member takes its default. A group
-// that is not one is reported at check 3.
-void read_solver_options(Reporter& reporter, const std::optional<H5::Group>& group,
-                         SolverOptions& options) {
-    if (!group) {
+// Check 9 (§7): the settings document. An absent member takes its default. The document's
+// members are checked at check 3.
+void read_settings(Reporter& reporter, const Document& settings, SolverOptions& options,
+                   bool& allow_table_clamps) {
+    if (!settings.root) {
         return;
     }
-    const std::string path = "/solver_options";
-    check_members(reporter, *group, path, solver_option_members);
-    read_kernel(reporter, *group, path, options);
-    read_float_options(reporter, *group, path, options);
-    read_integer_options(reporter, *group, path, options);
-    read_adjoint(reporter, *group, path, options);
+    const H5::Group& group = *settings.root;
+    read_kernel(reporter, group, settings.root_path, options);
+    read_float_options(reporter, group, settings.root_path, options);
+    read_integer_options(reporter, group, settings.root_path, options);
+    read_flag(reporter, group, settings.root_path, "adjoint", options.adjoint);
+    read_flag(reporter, group, settings.root_path, "allow_table_clamps", allow_table_clamps);
 }
 
 } // namespace
+
+std::string_view input_document_name(InputDocument document) {
+    return document_names[index_of(document)];
+}
 
 std::expected<Problem, Diagnostics> load_problem(const std::filesystem::path& file) {
     Reporter reporter(file.string());
@@ -1170,31 +1427,76 @@ std::expected<Problem, Diagnostics> load_problem(const std::filesystem::path& fi
             return std::unexpected(reporter.take());
         }
 
-        check_members(reporter, root, "", root_members);
-        const RootGroups groups = open_root_groups(reporter, root);
-        const std::optional<std::size_t> composition_count = input_composition_count(root);
-        const GeometryUsability geometry =
-            read_geometry(reporter, groups.geometry, composition_count, input.reactor);
+        // Check 3: the root members, then the four documents (§2).
+        check_members(reporter, root, "", document_names, true);
+        std::array<std::optional<H5::H5File>, input_document_count> linked_files;
+        const Document reactor =
+            open_document(reporter, root, file, InputDocument::reactor, linked_files);
+        const Document initial_state =
+            open_document(reporter, root, file, InputDocument::initial_state, linked_files);
+        const Document control_signals =
+            open_document(reporter, root, file, InputDocument::control_signals, linked_files);
+        const Document settings =
+            open_document(reporter, root, file, InputDocument::settings, linked_files);
+
+        // Checks 3 to 7: the reactor document, reported in its own file.
+        Reporter reactor_reporter(reactor.file.string());
+        const ReactorGroups groups = open_reactor_groups(reactor_reporter, reactor);
+        const std::optional<std::size_t> composition_count =
+            input_composition_count(groups.compositions);
+        const GeometryUsability geometry = read_geometry(
+            reactor_reporter, groups.geometry, child_location(reactor.root_path, "geometry"),
+            composition_count, input.reactor);
         const bool exterior_required =
             geometry.map && input.reactor.node_count() < input.reactor.position_count();
-        read_boundary_conditions(reporter, groups.boundary_conditions, exterior_required,
-                                 input.reactor);
-
+        read_boundary_conditions(reactor_reporter, groups.boundary_conditions,
+                                 child_location(reactor.root_path, "boundary_conditions"),
+                                 exterior_required, input.reactor);
         std::optional<NodalLibrary> library;
-        read_library(reporter, groups.library, input.file, input.binding, library);
-        std::optional<std::vector<BoundComposition>> bound = read_compositions(
-            reporter, groups.compositions, library, geometry, input.reactor, input.binding);
-        read_operating_state(reporter, groups.operating_state, geometry, input.reactor,
-                             input.operating_state);
-        read_solver_options(reporter, groups.solver_options, input.solver_options);
+        read_library(reactor_reporter, groups.library, child_location(reactor.root_path, "library"),
+                     reactor.file, input.binding, library);
+        const std::vector<std::optional<BoundComposition>> bound =
+            read_compositions(reactor_reporter, groups.compositions,
+                              child_location(reactor.root_path, "compositions"), library, geometry,
+                              input.reactor, input.binding);
+        reporter.append(reactor_reporter.take());
+
+        // Check 8: the initial state document.
+        Reporter state_reporter(initial_state.file.string());
+        const NodeValues node_values = read_initial_state(state_reporter, initial_state, geometry,
+                                                          input.reactor, input.operating_state);
+        reporter.append(state_reporter.take());
+
+        // Check 9: the settings document.
+        Reporter settings_reporter(settings.file.string());
+        read_settings(settings_reporter, settings, input.solver_options, input.allow_table_clamps);
+        reporter.append(settings_reporter.take());
+
+        // Check 10: the control signals document has no members, checked at check 3.
+
+        // Check 11: the node states against the library's axes.
+        Reporter coverage_reporter(initial_state.file.string());
+        check_library_coverage(coverage_reporter, initial_state, node_values,
+                               input.allow_table_clamps, library, bound, input.reactor);
+        reporter.append(coverage_reporter.take());
+
         if (reporter.count() > 0) {
             return std::unexpected(reporter.take());
         }
-        NTS_ASSERT(library && bound,
+        input.document_files = {reactor.file, initial_state.file, control_signals.file,
+                                settings.file};
+        NTS_ASSERT(library && !bound.empty(),
                    "a problem without diagnostics lacks its library or compositions");
+        std::vector<BoundComposition> compositions;
+        compositions.reserve(bound.size());
+        for (const std::optional<BoundComposition>& entry : bound) {
+            NTS_ASSERT(entry.has_value(),
+                       "a problem without diagnostics has an unbound composition");
+            compositions.push_back(*entry);
+        }
         return Problem{.input = std::move(input),
                        .library = std::move(*library),
-                       .compositions = std::move(*bound)};
+                       .compositions = std::move(compositions)};
     } catch (const H5::Exception& exception) {
         reporter.add("/", std::format("HDF5 error in {}: {}", exception.getFuncName(),
                                       exception.getDetailMsg()));
