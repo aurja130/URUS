@@ -251,7 +251,8 @@ for every rule above, for interior, edge and corner nodes and for every face.
 
 ### 1.3a Input documents
 
-**State.** Not started. Added 2026-11-20 by the Captain's decision (§9; Project plan §7).
+**State.** In progress on `milestone-1.3a`; contract version 2 frozen 2026-11-20. Added
+2026-11-20 by the Captain's decision (§9; Project plan §7).
 
 **Why.** A reactor and its nodal library are written once; initial states, control signals
 and settings vary from run to run. Version 1 puts all of them in one file, so every new
@@ -270,8 +271,8 @@ version 1):
   `control_signals` or `settings`) and its own `format_version` = 2. A document of the wrong
   kind or an unsupported version is rejected, naming its file.
 - External links resolve against the directory of the problem input, never the working
-  directory (the engine sets HDF5's external link prefix). Diagnostics name the file as well
-  as the path inside it.
+  directory (the engine resolves the link's file name itself and opens the file, so a missing
+  file is a diagnostic naming it). Diagnostics name the file as well as the path inside it.
 - **Reactor** (required): the geometry, boundary conditions, library binding and composition
   list of version 1 (later rod banks, channels and loop). The library path resolves against
   the directory of the file that holds the reactor document.
@@ -452,7 +453,7 @@ skipped case is reported as skipped, never as passed.
 | Eigen's stopping criterion differs from PARCS's | Inner iterations stop at the wrong residual | Tolerance rescaled to the starting residual each call; a test checks the reduction |
 | Thread sanitizer with uninstrumented HDF5 | False reports | No threads in this milestone; reports are triaged, never suppressed silently |
 | Verification tolerances too tight for 3D runs | Long runs | Only on small problems; IAEA 3D at verification tolerances runs once per gate |
-| HDF5 resolves external links against the working directory by default | A run reads another document file than the one beside its problem input | The engine sets the external link prefix to the problem input's directory; a test runs from another working directory (1.3a) |
+| HDF5 resolves external links against the working directory by default | A run reads another document file than the one beside its problem input | The engine resolves each document link's file name against the problem input's directory and opens that file itself; a test runs from another working directory (1.3a) |
 
 ## 9. Changes
 

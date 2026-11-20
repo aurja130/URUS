@@ -44,7 +44,7 @@ Code links to [CONCEPTS](CONCEPTS.md), [DEFINITIONS](DEFINITIONS.md), [TESTS](TE
 | `SolverOptions` | `src/nts/io/problem.cpp` `read_solver_options` `read_kernel` `parse_kernel` `read_float_options` `read_integer_options` `read_adjoint` | Each option checked against its rule; unknown options rejected. |
 | `LibraryBinding` | `src/nts/io/problem.hpp` `LibraryBinding` `InputComposition` `BoundComposition` | The library path and the composition set and composition of each input composition. |
 | `LibraryBinding` | `src/nts/io/problem.cpp` `read_library` `read_input_compositions` `input_composition_count` `resolve_compositions` | Reading the binding, the library relative to the input, and resolving every input composition. |
-| `InputValidation` | `docs/contracts/problem_input.md` | The problem input contract, format version 1, with the validation order of §8. |
+| `InputValidation` | `docs/contracts/problem_input.md` | The problem input contract, format version 2, with the validation order of §9 and library coverage (§6). |
 | `InputValidation` | `src/nts/io/problem.hpp` `load_problem` `Problem` `ProblemInput` | One call reads, checks and binds a problem input; every problem returned together. |
 | `InputValidation` | `src/nts/io/problem.cpp` `load_problem` `check_members` `RootGroups` `open_root_groups` `check_used_compositions` | The contract order, the root groups opened and checked once before the sections, unknown members rejected, the check of the compositions the map uses. |
 | `InputWriter` | `tools/inputs/problem_input.py` `ProblemInput` `ReactorDescription` `LibraryBinding` `OperatingState` `SolverOptions` `write_problem_input` `read_problem_input` | Run from Python; writes and reads a problem input without validating it. |
