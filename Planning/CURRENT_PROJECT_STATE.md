@@ -8,7 +8,7 @@ the commit that changes any of them. Terms: [DEFINITIONS](DBC/DEFINITIONS.md).
 
 | Milestone | Branch | State |
 |---|---|---|
-| 1 Core engine | `milestone-1` | In progress since 2026-11-17 ([plan](MILESTONE_1_PLAN.md), approved 2026-11-17) |
+| 1 Core engine | `milestone-1` | In progress since 2026-11-17 ([plan](MILESTONE_1/MILESTONE_1_PLAN.md), approved 2026-11-17) |
 | DM1 Single-assembly library | — | Not started; may start: the library contract froze when 1.2 closed (2026-11-19); its start decisions P2 and O5 were made 2026-11-19 |
 | DM2 Full-core references | — | Not started |
 | 2 Coupled steady state | — | Not started |

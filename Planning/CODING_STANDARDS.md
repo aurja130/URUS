@@ -1,7 +1,7 @@
 # Coding Standards
 
 The rules every change to the engine and its tooling follows. Written 2026-11-17 in
-sub-milestone 1.1 from [the milestone 1 plan](MILESTONE_1_PLAN.md) §2, which the Captain
+sub-milestone 1.1 from [the milestone 1 plan](MILESTONE_1/MILESTONE_1_PLAN.md) §2, which the Captain
 approved; a change to a rule here is a plan change (milestone plan §9). Terms are defined in
 [DEFINITIONS](DBC/DEFINITIONS.md).
 

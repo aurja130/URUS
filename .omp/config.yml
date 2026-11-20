@@ -9,8 +9,8 @@ modelRoles:
     critique: "anthropic/claude-fable-5-2:high"
 
     # Haiku workers
-    smol: "anthropic/claude-haiku-5-5:medium"
-    task: "anthropic/claude-haiku-5-5:max"
+    smol: "anthropic/claude-haiku-5-5:low"
+    task: "anthropic/claude-haiku-5-5:medium"
 
     # Auxiliary workloads
     commit: "@smol"
@@ -34,4 +34,4 @@ compaction:
         "anthropic/claude-opus-5-5": "f150000"
         # Haiku 5.5 bills a whole request at 5x (input, output, cache) once its prompt
         # exceeds 100,000 tokens; compact early enough that one tool result cannot cross it
-        "anthropic/claude-haiku-5-5": "f80000"
+        "anthropic/claude-haiku-5-5": "f100000"

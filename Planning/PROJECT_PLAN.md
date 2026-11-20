@@ -6,7 +6,8 @@ each one delivers, and what has to be in hand before it can close. Written 2026-
 over the theory manual, and both win over this plan. Terms are defined in
 [DEFINITIONS](DBC/DEFINITIONS.md); concept nodes are those of [CONCEPTS](DBC/CONCEPTS.md).
 
-Each milestone gets `Planning/MILESTONE_<n>_PLAN.md` when it starts. That plan splits it into
+Each milestone gets a folder `Planning/MILESTONE_<n>/` when it starts, holding its plan
+`MILESTONE_<n>_PLAN.md` and any other document of that milestone. That plan splits it into
 sub-milestones (one per session), freezes the contracts, and sets every tolerance with its
 justification. This plan says what and in which order; it does not set tolerances. It
 changes only by the Captain's decision, recorded in §7.
@@ -395,3 +396,4 @@ each one is due.
 | 2026-11-17 | P1 and P6 decided. Milestone 1 scope item 2: the converter is replaced by re-extraction from the statepoints in the submodule's library writer, whose contract file replaces the present library file; GoogleTest is the test framework (§5.1). Milestone plan: `MILESTONE_1_PLAN.md`. |
 | 2026-11-18 | §5.2: DM1 closes with a Zenodo record of its statepoints and the present ones; the Captain accepted the risk of keeping the present statepoints without a backup during milestone 1. |
 | 2026-11-19 | DM1 start decisions: P2 yes (reflector data, discontinuity factors, form functions and rodded data generated in DM1); O5 (a), effective (adjoint-weighted) delayed fractions tallied into the library (TM §21). |
+| 2026-11-20 | The Captain's decision: each milestone's documents live in its own folder, `Planning/MILESTONE_<n>/`; the milestone 1 plan moved to `Planning/MILESTONE_1/MILESTONE_1_PLAN.md`. |
