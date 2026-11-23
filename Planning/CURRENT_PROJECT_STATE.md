@@ -9,7 +9,7 @@ the commit that changes any of them. Terms: [DEFINITIONS](DBC/DEFINITIONS.md).
 | Milestone | Branch | State |
 |---|---|---|
 | 1 Core engine | `milestone-1` | In progress since 2026-11-17 ([plan](MILESTONE_1/MILESTONE_1_PLAN.md), approved 2026-11-17) |
-| DM1 Single-assembly library | — | In progress since 2026-11-20: the sizing campaign (scope 1; 653 runs on ENDF/B-VII.1, one with photon transport for the direct heating fraction) runs on galactica until 2026-11-23 10:00; the DM1 plan follows from its results. Work in `external/BEAVRS_minimal`, directory `dm1_sizing/` |
+| DM1 Single-assembly library | — | In progress since 2026-11-20: the sizing campaign (scope 1; 653 runs on ENDF/B-VII.1, one with photon transport for the direct heating fraction) ran on adama until 2026-11-23 10:00 and finished 186 runs; their analysis (`dm1_sizing/SIZING_ANALYSIS.md`) awaits the Captain's decisions on the grid, the statistics target, the compute and the relaunch. The run list now has 698 runs (moderator scan plus 550 and 650 K, density scan plus 0.35 g/cm³) in relaunch priority order. Work in `external/BEAVRS_minimal`, directory `dm1_sizing/` |
 | DM2 Full-core references | — | Not started |
 | 2 Coupled steady state | — | Not started |
 | 3 Kinetics | — | Not started |
@@ -43,7 +43,7 @@ States: open, done (with date), waived (by the Captain, with date).
 | 1 | Obtain | IAEA 2D and 3D PWR specifications, reference eigenvalues and assembly powers | Scope 5 | Open |
 | DM1 | Decide | P2: reflector data, discontinuity factors, form functions and rodded data generated now | Start | Decided 2026-11-19: yes |
 | DM1 | Decide | O5: effective or physical delayed-neutron fractions | Start | Decided 2026-11-19: effective fractions tallied into the library |
-| DM1 | Run | Machine time for the sizing campaign | Scope 1 | Done 2026-11-20: galactica, 64 cores, until 2026-11-23 10:00 |
+| DM1 | Run | Machine time for the sizing campaign | Scope 1 | Done 2026-11-20: 64 cores until 2026-11-23 10:00, used on adama (186 of 653 runs); a relaunch of 107 priority runs (about 37 h on adama) awaits the Captain |
 | DM1 | Obtain | Decay-heat curve and its group fits | Scope 2 | Open |
 | DM1 | Approve data | Decay-heat group constants (L8) | Scope 2 | Open |
 | DM1 | Run | Run list | Scope 3 | Open |
@@ -109,3 +109,20 @@ data temperatures, and moderator temperatures between the nine thermal-scatterin
 show the data grid, not physics; the moderator-temperature spacing found holds for ENDF/B-VII.1
 with interpolation only. The photon cost factor (2.5) was measured with JEFF-4.0; the photon
 run's wall time re-measures it.
+
+Sizing campaign result (2026-11-23): 186 of 653 runs done on adama (4 runners × 16 threads),
+none failed; every run 2e7 active histories after 40 inactive batches, the long run 1e8. The
+analysis module `dm1_sizing/analyze.py` regenerates every number; findings and the decisions they
+ask for in `dm1_sizing/SIZING_ANALYSIS.md`. Convergence: the two-group balance reproduces the
+Monte Carlo k in 185 runs (rms 0.96 σ, max 2.69 σ); σ·√n constant within 8 % over 100–1000
+active batches; no Shannon entropy tallied. Grid: moderator nodes on the thermal-scattering
+data temperatures (550 K required); proposed 4 × 6 × 8 × 6 = 1,152 states per composition,
+worst interval errors 35–62 pcm per axis at nominal curvature (157 pcm for rodded ρ at
+0.3–0.4 g/cm³ with the unrodded off-nominal factor 2.5); the ρ node 0.8 keeps the isothermal
+temperature coefficient's grid bias near +0.1 pcm/°F.
+Open for the Captain: the delayed-group count (the library has 6, the engine 8), the grid
+accuracy criterion (per axis at nominal curvature proposed), the statistics target (1e7
+proposed), production compute (the proposed tensor takes 121 days on adama at 1e7, 41 without
+scoring cost), the O5 route (fitted delayed-fraction ratio proposed), η_c (0.028 or 0.038,
+O10), ω_D (Rowlands 4/9 until O9 profile runs), windowed multipole, and the relaunch (107
+priority runs in the reordered list).
