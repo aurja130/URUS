@@ -176,7 +176,8 @@ compiled with the flags and run, with no diagnostic. The TSan probe runs two thr
 - Nuclear data: `OPENMC_CROSS_SECTIONS=/home/aurja/Nuclear_Software/openmc-data/jeff-4.0-hdf5/cross_sections.xml`
   (JEFF-4.0, the shell default). ENDF/B-VII.1 (official OpenMC library, NJOY 2016.68) is the
   library of the DM1 work: `/home/aurja/Nuclear_Software/openmc-data/endfb-vii.1-hdf5/` holds
-  only the 119 files the BEAVRS model reads (neutron, `c_H_in_H2O`, photon; 0.9 GB), with a
+  only the 123 files the DM1 lattice models read (neutron incl. Xe-135 and Sm-149,
+  `c_H_in_H2O`, photon; 0.96 GB), with a
   `cross_sections.xml` listing just those. The full archive `endfb71.tar.xz` (1.7 GB, 6.2 GB
   unpacked) stays beside it: to add files, extract them and the archive's
   `endfb-vii.1-hdf5/cross_sections.xml` with `tar -xJf endfb71.tar.xz <paths>`, then drop the

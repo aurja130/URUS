@@ -9,7 +9,7 @@ the commit that changes any of them. Terms: [DEFINITIONS](DBC/DEFINITIONS.md).
 | Milestone | Branch | State |
 |---|---|---|
 | 1 Core engine | `milestone-1` | In progress since 2026-11-17 ([plan](MILESTONE_1/MILESTONE_1_PLAN.md), approved 2026-11-17) |
-| DM1 Single-assembly library | — | In progress since 2026-11-20: the sizing campaign (scope 1; 653 runs on ENDF/B-VII.1, one with photon transport for the direct heating fraction) ran on adama until 2026-11-23 10:00 and finished 186 runs; their analysis (`dm1_sizing/SIZING_ANALYSIS.md`) awaits the Captain's decisions on the grid, the statistics target, the compute and the relaunch. The run list now has 698 runs (moderator scan plus 550 and 650 K, density scan plus 0.35 g/cm³) in relaunch priority order. Work in `external/BEAVRS_minimal`, directory `dm1_sizing/` |
+| DM1 Single-assembly library | — | In progress since 2026-11-20: the sizing campaign (scope 1; 653 runs on ENDF/B-VII.1, one with photon transport for the direct heating fraction) ran on adama until 2026-11-23 10:00 and finished 186 runs; their analysis (`dm1_sizing/SIZING_ANALYSIS.md`) awaits the Captain's decisions on the grid, the statistics target, the compute and the relaunch. The run list now has 698 runs (moderator scan plus 550 and 650 K, density scan plus 0.35 g/cm³) in relaunch priority order. The development library (17,280 runs at 1e6 active histories with the library tallies, coarse tier of 4,800 first) is set up for the 192-core server, manual in `dm1_sizing/README.md`; not yet started. Work in `external/BEAVRS_minimal`, directory `dm1_sizing/` |
 | DM2 Full-core references | — | Not started |
 | 2 Coupled steady state | — | Not started |
 | 3 Kinetics | — | Not started |
@@ -48,6 +48,7 @@ States: open, done (with date), waived (by the Captain, with date).
 | DM1 | Approve data | Decay-heat group constants (L8) | Scope 2 | Open |
 | DM1 | Run | Run list | Scope 3 | Open |
 | DM1 | Run | Machine time for the pilot | Scope 3 | Open |
+| DM1 | Run | Machine time for the development library | Scope 3 | Requested 2026-11-23: a 192-core server (no root rights); runs set up, start planned 2026-11-24 |
 | DM1 | Run | Machine time for the production runs and reflector models | Scope 4 | Open |
 | DM1 | Obtain | Zenodo record of the DM1 statepoints and the present statepoints, DOI recorded | Close | Open |
 | DM2 | Run | Run list | Start | Open |
@@ -126,3 +127,16 @@ proposed), production compute (the proposed tensor takes 121 days on adama at 1e
 scoring cost), the O5 route (fitted delayed-fraction ratio proposed), η_c (0.028 or 0.038,
 O10), ω_D (Rowlands 4/9 until O9 profile runs), windowed multipole, and the relaunch (107
 priority runs in the reordered list).
+
+Development library set up (2026-11-23, submodule `dm1_sizing/`): campaign `devlib`, 17,280
+runs (15 compositions × 1,152 states, the 4,800 of the coarse tier first), 25,000 histories ×
+(40 inactive + 40 active) batches, IFP on, with the library tallies. Local checks with OpenMC
+0.15.4-dev94 and ENDF/B-VII.1 (123 files, Xe-135 and Sm-149 added from the official archive):
+one full-statistics run (A16, 294 K, 0.3 g/cm³, 0 ppm) took 2.2 min on 20 threads, k_inf 1.08818
+± 0.00095 after 40 inactive batches, entropy 8.031 → 8.032 over the active batches; thermal
+microscopic cross sections Xe-135 absorption 1.79e6 b, Sm-149 absorption 4.69e4 b, U-235
+detector fission 353 b; `(n,fission)` and `fission` agree for U-235 in the fuel within 4e-5
+relative (OpenMC skips a `fission` score where the material does not fission, so the detector
+uses `(n,fission)`). The library tallies cost about 15 % of the active rate (two states, 20
+batches each). Estimate [inference]: 6–7 min per run on an adama runner; on 12 runners × 16
+threads, 1–2 days for the coarse tier and 4–7 days for all runs.

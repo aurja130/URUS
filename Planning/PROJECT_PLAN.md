@@ -238,7 +238,11 @@ commits, then a pointer update here.
    (O10); it also plans the tally of effective delayed fractions (O5, decided 2026-11-19).
 2. Generator changes producing L1–L3, L6–L8, L10, L12–L14 of TM §19.3. The decay-heat fits
    (L8) are input data from a decay-heat standard, not OpenMC tallies (TM §12.3).
-3. A pilot: one assembly type at one branch state through the whole chain.
+3. A pilot: one assembly type at one branch state through the whole chain. Before it, the
+   development library (Captain, 2026-11-23): every composition on the proposed grid at 1e6
+   active histories with the library tallies, coarse tier first, as the test data from which
+   scope 2 and the library writer are built and the engine's library input is exercised; it
+   is not the production library.
 4. The production runs; then the reflector models (L11).
 
 **Closes on.** The library passes the engine's input validation; at every branch state the
@@ -320,6 +324,7 @@ and is not repeated in the tables.
 | Approve data | The decay-heat group constants (L8) | Scope 2 |
 | Run | Machine time for the sizing campaign | Scope 1 |
 | Run | The run list: assembly types, branch grid, statistics target, the tallies for O9 and O10, compute estimate | Scope 3 |
+| Run | Machine time for the development library (17,280 runs at 1e6 active histories) | Scope 3 |
 | Run | Machine time for the pilot | Scope 3 |
 | Run | Machine time for the production runs and the reflector models | Scope 4 |
 | Obtain | A Zenodo record of the DM1 statepoints and the 72 present statepoints, its DOI recorded | Close |
@@ -406,3 +411,4 @@ each one is due.
 | 2026-11-20 | The Captain's decision: the problem input becomes four input documents, one responsibility each (reactor, initial state, control signals, settings), stored in one file or as separate files linked from it; Vision §1 amended. Milestone 1 gains sub-milestone 1.3a before 1.4 (milestone 1 plan §9). |
 | 2026-11-20 | The Captain's decision: DM1 starts with a sizing campaign before its plan is approved (scope 1, §5.2), on the university server galactica, 2026-11-20 to 2026-11-23 10:00. Photon transport is left out of it: with the JEFF-4.0 library in use, the photon heating tally gives 0.06 % of the neutron heating, so it cannot give the direct heating fraction (O10); the DM1 plan must find another way. (Corrected the same day, next row.) |
 | 2026-11-20 | Correction: the 0.06 % photon finding was a tally error. A photon hands most of its energy to electrons and positrons, which score their own heating; with them counted, photon, electron and positron heating is 9.95 % of the total (A16 nominal, JEFF-4.0, 2e5 active histories, relative σ 0.2 %). Photon transport costs 2.5 times the wall time, so the sizing campaign gains one photon-transport run for the direct heating fraction (O10) (Captain). The Captain's decision: the lattice calculations use ENDF/B-VII.1 in place of JEFF-4.0 (scope 1). |
+| 2026-11-23 | The Captain's decision: before the pilot (scope 3), DM1 runs the development library, all 15 compositions on the proposed 4 × 6 × 8 × 6 grid at 1e6 active histories (17,280 runs, the 4,800 of the coarse tier first), with the library tallies for the xenon and samarium chains (L7) and the detector response (L10), on a 192-core server without root rights; production statistics (1e7 proposed) stay open. |
