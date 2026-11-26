@@ -9,7 +9,7 @@ Comments say so; the others have not been run.
 
 ## Bare homogeneous slab and cuboid
 **Concepts:** `CmfdSolve`, `EigenvalueSolve`
-**Comments:** 2026-11-16, orchestrator: from TM §19.2, row "CMFD assembly, boundary conditions". Not run. 2026-11-17, orchestrator: reference and tolerances set in the milestone 1 plan §5; infinite medium and mirror symmetry added.
+**Comments:** 2026-11-16, orchestrator: from TM §19.2, row "CMFD assembly, boundary conditions". Not run. 2026-11-17, orchestrator: reference and tolerances set in the milestone 1 plan §5; infinite medium and mirror symmetry added. 2026-11-26, orchestrator: case set settled at the freeze of sub-milestone 1.4 (plan §3): per axis, slabs with one kind on both faces (vacuum, zero flux, per-group albedo); per face, reflective against zero flux; cuboids with zero-flux and reflective faces. Mirror symmetry gains 1e-10 absolute in k; a neutron balance of 1e-9 is added (plan §5). Not yet run.
 **Reference:** Analytic two-group eigenvalue: closed form for zero-flux and reflective faces; for vacuum and albedo faces the root of the 2×2 determinant of the exact two-group slab solution, computed by a reference script; k_∞ for an infinite medium.
 **Tolerance:** Finite differences with zero coupling corrections converge at order 2; the observed order must be 2 within 0.1 from the three finest of at least four meshes, for every boundary kind on every face, with the finest-mesh error above 1e3 times the eigenvalue tolerance. Infinite medium within 1e-11 in k; mirrored problems equal within 1e-10 per node flux; verification tolerances throughout.
 
