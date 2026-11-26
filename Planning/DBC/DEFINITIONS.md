@@ -77,6 +77,9 @@ O1–O14 the decisions recorded in TM §20.2 and §21. The notation of the equat
 | closure correlation | An empirical relation that closes the balance equations: heat transfer, friction, drift-flux parameters, critical heat flux. | TM §16 |
 | heat transfer coefficient | The ratio of wall heat flux to the difference between wall and coolant temperature. | TM §16.3 |
 | DNB ratio | The ratio of the critical heat flux to the actual heat flux, reported as a margin and never fed back. **Open:** the critical heat flux correlation is chosen when fidelity work starts. | O13; TM §16.5 |
+| BWR | Boiling water reactor: the coolant boils in bulk inside the core, so void is the main feedback and control is by blades and recirculation flow. Not in scope; proposed for later, **Open:** decision P9. | Project plan §6 P9, 2026-11-26 |
+| critical power ratio | The BWR thermal margin: the assembly power at which dryout would begin, over the actual power; plays the role the DNB ratio plays for a PWR. | Project plan §6 P9, 2026-11-26 |
+| void history | The void fraction a BWR node's fuel was depleted at; a library axis beside the instantaneous void. | Project plan §6 P9, 2026-11-26 |
 | boron transport | Boron carried with the coolant through channels and loop, so that a change reaches each place after its transit time. | O6; TM §15.7, §17.7 |
 | primary loop | The coolant path outside the core in one equivalent loop: plena, hot leg, steam generator, pump, cold leg. Not in PARCS or SIMULATE-5. | Vision §2.2; TM §17 |
 | plenum | A mixing volume below or above the core. | TM §17.1 |
