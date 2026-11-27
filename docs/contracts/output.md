@@ -100,6 +100,8 @@ and the groups below.
 | `fission_source_linf_change` | float64 | `1` | δ_L∞ of the last outer iteration, over nodes with fission production |
 | `residual` | float64 | `1` | ‖Mφ − λFφ‖₂ / ‖λFφ‖₂ at the final flux and eigenvalue (TM §4.6), M and F of TM Eq. (4.7) |
 | `coupling_correction_change` | float64 | `1` | the largest change of a coupling correction D̂ (dimensionless, TM Eq. (4.1)) in the last nodal update; 0 when no nodal update was done |
+| `skipped_face_updates` | integer | — | face-group updates of D̂ skipped by the safeguards (milestone 1 plan §3 1.5: a non-positive flux in TM Eq. (4.3) or (5.26), or a singular kernel or interface system), summed over all nodal updates, an interior face counted once; 0 for the finite-difference kernel |
+| `dominance_loss_faces` | integer | — | face-group pairs with \|D̂_g\| > D̃_g after the last nodal update (TM §6.2), an interior face counted once; 0 when no nodal update was done |
 
 **`table_clamps/`**:
 
@@ -114,9 +116,9 @@ contract §7 under the same name and type (`kernel` a string, `adjoint` and
 
 **`methods/`**: scalar strings naming the methods used.
 
-| Dataset | Value in format version 2 |
+| Dataset | Value |
 |---|---|
-| `kernel` | `finite_difference` |
+| `kernel` | the `kernel` setting as used: `finite_difference`, `nem`, `anm` or `hybrid` |
 | `eigenvalue_iteration` | `Wielandt-shifted inverse iteration (TM Eqs. (4.8)-(4.9))` |
 | `linear_solver` | `BiCGSTAB (Eigen)` |
 | `preconditioner` | `incomplete LU with dual threshold (Eigen IncompleteLUT)` |
@@ -137,10 +139,12 @@ contract §7 under the same name and type (`kernel` a string, `adjoint` and
 | `build_type` | string | the CMake build type; `unspecified` when no build type was set |
 | `wall_time` | float64, `units` = `s` | wall time from the start of `urus` to the end of the solve |
 
-**Methods this engine version provides.** Format version 2 is written by an engine with the
-finite-difference kernel only. A problem whose settings ask for `kernel` other than
-`finite_difference`, or for `adjoint` = 1, is rejected with exit status 2 and a diagnostic
-naming the setting. So is one whose `wielandt_shift` is below 1e-6, a floor far above the
+**Methods this engine version provides.** All four kernels. A nodal kernel (`nem`, `anm`,
+`hybrid`) is provided for one-dimensional problems only: a reactor with more than one
+position along more than one axis whose settings ask for one is rejected with exit status 2
+and a diagnostic naming the `kernel` setting. Transverse leakage is flat (milestone 1 plan
+§3 1.5). A problem whose settings ask for `adjoint` = 1 is rejected with exit status 2 and a
+diagnostic naming the setting. So is one whose `wielandt_shift` is below 1e-6, a floor far above the
 shift of about 1e-16·k at which k + δk rounds to k and the shifted source of TM Eq. (4.8)
 vanishes. So is a problem in which no node has νΣ_f > 0 or no node has
 κΣ_f > 0, since it has no eigenvalue or no power to scale to; the diagnostic names the problem
@@ -158,3 +162,4 @@ removed member) needs a new format version.
 |---|---|
 | 2026-11-26 | Version 1, frozen at the start of sub-milestone 1.4. |
 | 2026-11-27 | Version 2: `coupling_correction_change` units `cm` -> `1` (D̂ is dimensionless, TM Eqs. (4.1)-(4.2)); plus the clarifications of §2 and §6 (`unspecified` build type; unreadable input and `wielandt_shift` give exit status 2; diagnostics name the settings file and location). Version 1 was frozen on 2026-11-26 and never written. |
+| 2026-11-27 | Format version 2 kept (additive): `convergence/skipped_face_updates` and `convergence/dominance_loss_faces`; `methods/kernel` takes the four kernel names; the nodal kernels provided for one-dimensional problems (§6). |

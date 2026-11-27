@@ -26,7 +26,7 @@ the commit that changes any of them. Terms: [DEFINITIONS](DBC/DEFINITIONS.md).
 | 1.3 Problem input and cross-section model | `milestone-1.3` | Done 2026-11-19; merged into `milestone-1` ([problem input contract](../docs/contracts/problem_input.md), format version 1) |
 | 1.3a Input documents | `milestone-1.3a` | Done 2026-11-20; merged into `milestone-1` ([problem input contract](../docs/contracts/problem_input.md), format version 2) |
 | 1.4 CMFD with zero coupling corrections, eigenvalue, output | `milestone-1.4` | Done 2026-11-27; merged into `milestone-1` ([output contract](../docs/contracts/output.md), format version 2) |
-| 1.5 Nodal kernels and the interface solve | — | Not started |
+| 1.5 Nodal kernels and the interface solve | `milestone-1.5` | In progress since 2026-11-27; contract frozen (plan §3 1.5) |
 | 1.6 Transverse leakage and the three-dimensional nodal solution | — | Not started |
 | 1.7 Adjoint, BEAVRS on the present library, milestone gate | — | Not started |
 
@@ -40,7 +40,7 @@ States: open, done (with date), waived (by the Captain, with date).
 | 1 | Decide | P1: data work as separate data milestones | Start | Done 2026-11-17: yes |
 | 1 | Obtain | GoogleTest installed (`gtest-devel`) | Scope 1 | Done 2026-11-17: `gtest-devel-1.17.0-2.fc44` |
 | 1 | Obtain | Statepoint archive published on Zenodo | Before 1.2 | Waived 2026-11-18 by the Captain: risk accepted; moved to DM1 close |
-| 1 | Obtain | IAEA 2D and 3D PWR specifications, reference eigenvalues and assembly powers | Scope 5 | Open |
+| 1 | Obtain | IAEA 2D and 3D PWR specifications, reference eigenvalues and assembly powers | Scope 5 | Done 2026-11-27: ANL-7416 Supplement 2 from IAEA INIS; references and tolerances set by the Captain (plan §5) |
 | DM1 | Decide | P2: reflector data, discontinuity factors, form functions and rodded data generated now | Start | Decided 2026-11-19: yes |
 | DM1 | Decide | O5: effective or physical delayed-neutron fractions | Start | Decided 2026-11-19: effective fractions tallied into the library |
 | DM1 | Run | Machine time for the sizing campaign | Scope 1 | Done 2026-11-20: 64 cores until 2026-11-23 10:00, used on adama (186 of 653 runs); a relaunch of 107 priority runs (about 37 h on adama) awaits the Captain |

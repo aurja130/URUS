@@ -17,7 +17,7 @@ Tests the coarse-mesh assembly and every boundary condition without the kernels.
 
 ## One-dimensional fuel and reflector slab
 **Concepts:** `NodalKernels`, `AnmKernel`, `NemKernel`, `InterfaceSolve`
-**Comments:** 2026-11-16, orchestrator: TM §19.1 row 2, equations checked. Engine test not written. 2026-11-17, orchestrator: reference changed to the analytic solution, which must reproduce 1.0507067; analytic-kernel tolerance tightened (milestone 1 plan §5).
+**Comments:** 2026-11-16, orchestrator: TM §19.1 row 2, equations checked. Engine test not written. 2026-11-17, orchestrator: reference changed to the analytic solution, which must reproduce 1.0507067; analytic-kernel tolerance tightened (milestone 1 plan §5). 2026-11-27, orchestrator: the slab data recovered from the TM §19.1 script and checked by finite differences (0.5 cm 1.0507041, 0.25 cm 1.0507060, extrapolated 1.05070665): fuel IAEA material 2 without axial buckling (D 1.5, 0.4 cm; Σ_a 0.01, 0.085; Σ₁₂ 0.02; νΣ_f 0, 0.135 cm⁻¹), reflector IAEA material 4 (D 2.0, 0.3 cm; Σ_a 0, 0.01; Σ₁₂ 0.04); reflective at x = 0, vacuum with Marshak α = ½ at 150 cm; nodes 4 + 1 at 30 cm and 8 + 2 at 15 cm. Script values: expansion kernel −8.91 pcm at 30 cm and −1.03 pcm at 15 cm; zero coupling corrections +32.9 and −17.6 pcm.
 **Reference:** Analytic transfer-matrix solution from a reference script; it must reproduce the fine-mesh finite-difference value k = 1.0507067 (0.5 and 0.25 cm, Richardson-extrapolated) to its seven printed digits.
 **Tolerance:** Analytic kernel within 1e-9 relative in k and in node fluxes on 30 cm and 15 cm nodes (an exact kernel differs only by iteration error and round-off; 1000 times the verification eigenvalue tolerance); expansion kernel within the script values, −8.9 and −1.0 pcm, to 0.1 pcm.
 
@@ -26,15 +26,15 @@ Tests the coarse-mesh assembly and every boundary condition without the kernels.
 ## IAEA two- and three-dimensional PWR benchmarks
 **Concepts:** `NodalKernels`, `TransverseLeakage`, `EigenvalueSolve`
 **Comments:** 2026-11-16, orchestrator: TM §19.1 row 1 checked the 2D eigenvalue only (analytic kernel +2.3 pcm, expansion kernel +2.4 pcm at 10 cm nodes; Wielandt shift 0.04; fission source and k changes below 1e-9; 11 nodal updates, 203 outer iterations). 2026-11-17, orchestrator: the engine must first reproduce those script values within 0.1 pcm with the same options (milestone 1 plan §5).
-**Reference:** Published reference k = 1.029585 for 2D. **Open:** the specification, the 3D reference and the reference assembly powers are not in Resources and must be obtained. Code against script: TM §19.1 row 1, finite difference 1.029650, expansion kernel 1.029609, analytic kernel 1.029608.
-**Tolerance:** Code against script: 0.1 pcm, the script's printed resolution. Against the published reference: **Open:** set from the spread of the published nodal solutions in the obtained document, before any engine comparison.
+**Reference:** ANL-7416 Supplement 2 (1977). 2D: problem ID.11-A2-3, MEDIUM-2 nodal expansion at h = 3⅓ cm, k = 1.029585 and its Table 3 assembly powers. 3D: problem ID.11-A1-1, VENTURE finite difference extrapolated, k = 1.02903 and its Table 3 "Extrapolated" assembly powers. Engine meshes given in the input: 2D 10 cm nodes; 3D 10 cm radially, 20 cm axially in the core and 10 cm in the axial reflector. Code against script: TM §19.1 row 1, finite difference 1.029650, expansion kernel 1.029609, analytic kernel 1.029608.
+**Tolerance:** Code against script: 0.1 pcm, the script's printed resolution. Against the published reference (set 2026-11-27 by the Captain, before any engine run): 2D 3 pcm in k and 0.003 absolute in assembly power normalized to core average 1; 3D 5 pcm and 0.005. Spread of the published solutions: 2D MEDIUM-2 at 10 cm against 3⅓ cm +2.6 pcm and at most 0.002 in power; 3D IQSBOX at 10/20 cm against VENTURE +1 pcm and at most 0.004.
 
-Becomes an acceptance test only with the reference powers.
+Run in sub-milestone 1.6, with transverse leakage.
 
 ## Two-region slab with discontinuity factors
 **Concepts:** `DiscontinuityFactors`, `InterfaceSolve`
-**Comments:** 2026-11-16, orchestrator: from TM §19.2. Not run. 2026-11-17, orchestrator: tolerance made explicit (milestone 1 plan §5).
-**Reference:** Analytic two-region transfer-matrix solution with the imposed flux jump, from a reference script.
+**Comments:** 2026-11-16, orchestrator: from TM §19.2. Not run. 2026-11-17, orchestrator: tolerance made explicit (milestone 1 plan §5). 2026-11-27, orchestrator: defined as the fuel and reflector slab above, on the same two meshes, with discontinuity factors f = (1.05, 0.92) on every fuel face and (0.97, 1.15) on every reflector face, so the fuel-reflector interface jumps and the vacuum face carries a factor.
+**Reference:** Analytic two-region transfer-matrix solution with the imposed flux jump, from a reference script; k and node-average fluxes normalized to unit total fission production per unit transverse area.
 **Tolerance:** 1e-10 relative in k and 1e-9 in node fluxes: the analytic kernel is exact in one dimension, so only iteration error and round-off remain, at 100 times the verification eigenvalue tolerance.
 
 ## Cross-section table interpolation

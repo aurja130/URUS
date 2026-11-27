@@ -45,7 +45,7 @@ core of Project plan §2 item 3.
 | Category | Item | Due | Presented |
 |---|---|---|---|
 | Obtain | Install GoogleTest: `sudo dnf install gtest-devel` (1.17.0, BSD-3-Clause) | Start of 1.1 | Done 2026-11-17 (`gtest-devel-1.17.0-2.fc44`) |
-| Obtain | IAEA 2D and 3D PWR specifications, reference eigenvalues and assembly powers (ANL-7416 Suppl. 2, TM Appendix D) | Start of 1.5 (scope item 5) | When 1.5 is planned |
+| Obtain | IAEA 2D and 3D PWR specifications, reference eigenvalues and assembly powers (ANL-7416 Suppl. 2, TM Appendix D) | Start of 1.5 (scope item 5) | Done 2026-11-27: ANL-7416 Supplement 2 (1977), open access from IAEA INIS, in `Resources/benchmarks/` (gitignored); references and tolerances in §5 |
 | Obtain | Statepoint archive published on Zenodo | Before 1.2 starts | Waived 2026-11-18 by the Captain: risk accepted for milestone 1; the upload moved to DM1's close (Project plan §5.2) |
 
 The statepoints in `~/Programming/OpenMC_inputs/BEAVRS_minimal/beavrs_parameter_sweep/`
@@ -398,6 +398,45 @@ under reflection; switch thresholds 0 (ANM everywhere) and above 1 (NEM everywhe
 decoupled branch Σ₁₂ = 0; no overflow at a large node buckling; the series branch continuous
 with the closed form at its threshold; both groups and every boundary kind on both sides.
 
+**Settled at freeze (2026-11-27).**
+
+- Kernels `nem`, `anm` and `hybrid` are accepted; `finite_difference` keeps D̂ = 0 and does
+  no nodal update, and its iteration is the one of 1.4 unchanged. The adjoint stays rejected.
+- The 1.5 restriction: a nodal kernel on a reactor with more than one position along more
+  than one axis is rejected with exit status 2, the diagnostic at the `kernel` setting. A
+  one-dimensional problem may lie along x, y or z.
+- Transverse leakage until 1.6 is flat: ℓ̄ of TM Eq. (5.4) from the CMFD currents by
+  Eq. (3.9), ρ₁ = ρ₂ = 0 (the flat-leakage option of TM §5.2). It is zero when the transverse
+  faces are reflective, and then the analytic kernel is exact.
+- A nodal update covers all three directions: the two-node solve on every interior face and
+  the one-node solve on every face without neighbour whose albedo is non-zero in some group
+  (bounding faces and faces toward excluded positions alike). A face with zero albedo in both
+  groups keeps D̂ = 0. Zero-flux faces use α = 10³⁰ in Eq. (5.25) as in Eq. (4.4).
+- The kernel of each node is chosen at every nodal update: `nem` and `anm` everywhere as
+  named, `hybrid` by Eq. (5.27) with k∞ of Eq. (5.3) (0 for a node without production) and
+  the current k_eff.
+- Safeguards (TM §6.2, extended [OURS]): a face-group update is skipped, D̂ kept, and counted
+  when the flux sum of Eq. (4.3) or the node flux of Eq. (5.26) is not positive, or when a
+  system of the kernels or of Eqs. (5.23), (5.25) is singular (for ANM, det A = 0 with a
+  non-zero leakage source; with ℓ̄ = ρ = 0 the particular solution is zero and A is not
+  inverted). Counted per face and group, an interior face once.
+- Iteration (TM §6.1): D̂ = 0 at start; a nodal update after every N_upd outer iterations
+  counted from the start or the last update, and after any outer iteration whose tests (4.10)
+  hold unless it directly follows a nodal update; converged when the tests hold on the outer
+  iteration directly after a nodal update. D̂ ← ω_D D̂_new + (1 − ω_D) D̂_old;
+  `coupling_correction_change` is the largest |D̂ change| of the last update.
+- Output (additive, format version 2 kept): `convergence/skipped_face_updates` (summed over
+  the run) and `convergence/dominance_loss_faces` (|D̂_g| > D̃_g after the last update);
+  `methods/kernel` names the kernel setting.
+- The one-dimensional slab cases: fuel IAEA material 2 (D 1.5, 0.4 cm; Σ_a 0.01, 0.085;
+  Σ₁₂ 0.02; νΣ_f 0, 0.135 cm⁻¹) and reflector IAEA material 4 (D 2.0, 0.3; Σ_a 0, 0.01;
+  Σ₁₂ 0.04), no axial buckling; 120 cm fuel reflective at x = 0, 30 cm reflector vacuum at
+  the other end. Recovered from the TM §19.1 script; finite differences at 0.5 and 0.25 cm
+  reproduce 1.0507041, 1.0507060 and the extrapolated 1.0507067. The discontinuity-factor
+  case is the same slab with f = (1.05, 0.92) on every face of the fuel and (0.97, 1.15) on
+  every face of the reflector. The reference script writes k and the node-average fluxes,
+  normalized to unit total fission production per unit transverse area, to a committed table.
+
 ### 1.6 Transverse leakage and the three-dimensional nodal solution
 
 **Builds.** Quadratic transverse leakage (TM Eqs. (5.4)–(5.6)) with the ghost node of O7 at
@@ -449,7 +488,7 @@ otherwise, and every reported result carries its convergence state.
 | Two-region slab with discontinuity factors | Analytic transfer-matrix solution with the imposed flux jump (reference script) | 1e-10 relative in k, 1e-9 in node fluxes | ANM is exact in 1D; 100× ε_k |
 | Cross-section table interpolation | The table; data linear in each axis (linear in 1/(3D) for D) | 1e-14 relative at table points and for linear data; clamp counts exact per node, axis and side; length-1 axes clamp every other value | A multilinear evaluation of 2³–2⁴ corners rounds within a few machine epsilons (2.2e-16); 1e-14 leaves margin and still catches any wrong weight |
 | IAEA 2D, code against script | TM §19.1 row 1: finite difference 1.029650, NEM 1.029609, ANM 1.029608, at 10 cm nodes with that run's options (albedo 0.4692, Wielandt 0.04, k and fission-source changes below 1e-9) | 0.1 pcm | Same equations and options; the script printed six decimals (0.1 pcm); its iteration error is far below that |
-| IAEA 2D and 3D, against the published reference | Published k (2D 1.029585) and assembly powers (to be obtained) | **Open:** set at the start of 1.5 from the spread of the published nodal solutions in the obtained document, before any engine comparison | A tolerance chosen after seeing the result proves nothing |
+| IAEA 2D and 3D, against the published reference (set 2026-11-27, before any engine run) | ANL-7416 Supplement 2. 2D: ID.11-A2-3, MEDIUM-2 nodal expansion at h = 3⅓ cm, k = 1.029585 and its Table 3 assembly powers. 3D: ID.11-A1-1, VENTURE finite difference extrapolated, k = 1.02903 and its Table 3 "Extrapolated" assembly powers. Engine meshes, given in the input: 2D 10 cm nodes; 3D 10 cm radially, 20 cm axially in the core and 10 cm in the axial reflector | 2D: 3 pcm in k, 0.003 absolute in assembly power (core average 1). 3D: 5 pcm, 0.005 | The Captain's option A. Spread of the published solutions: 2D MEDIUM-2 at 10 cm against 3⅓ cm +2.6 pcm and at most 0.002 in power, VENTURE extrapolated +0.5 pcm; 3D IQSBOX at 10/20 cm against VENTURE +1 pcm and at most 0.004 in power, IQSBOX with 20 cm cubes +8 pcm. The TM §19.1 script's 2D result is +2.3 pcm |
 | Forward and adjoint eigenvalues | The forward eigenvalue | 1e-10 absolute, for finite difference and for frozen nodal D̂, both groups, every boundary kind | The two are eigenvalues of transposed matrices, equal in exact arithmetic; each is converged to ε_k = 1e-12 |
 | Adjoint volume weighting | The forward flux of a problem with Σ₁₂ = 0 and νΣ_f2 = 0 on a non-uniform mesh, whose fast-group operator is self-adjoint | Fast adjoint ∝ fast forward within 1e-9 relative per node | Catches the double volume weighting TM §9.1 warns of |
 | Present-library reproduction | The present library file | Bit-identical means, identical NaN positions | Same extraction code on the same statepoints |
@@ -518,3 +557,4 @@ skipped case is reported as skipped, never as passed.
 | 2026-11-27 | 1.4 details settled during the work: Eigen 5's BiCGSTAB tolerance is absolute, so each inner call passes ε_erf times its starting residual (§3 1.4 text corrected, §8); the returned flux has a positive total fission source; the bare homogeneous meshes are 20, 40, 80 and 160 nodes for the slabs and 3, 6, 9 and 12 per side for the cuboids (≥ 4 uniform meshes as §5 asks; the albedo slabs are not yet in the asymptotic range at 10 nodes, and 24³ takes 92 s in a release build because the incomplete LU is refactored every outer iteration, §8); Eigen's `setFromTriplets` replaced by a row-by-row build, since clang-analyzer reports false memory findings inside Eigen that no suppression in our code reaches; `.clang-tidy` ignores Eigen headers for include-cleaner and excludes them from header analysis. |
 | 2026-11-27 | 1.4 review round 1 on snapshot `bbc9801`. Numerics had four findings: Eq. (4.4) evaluated in a form finite for every finite albedo; a Wielandt shift below 1e-6 rejected with exit status 2 (k_s rounds to k once the shift falls to about 1e-16·k and the source of Eq. (4.8) vanishes; the run aborted on an invariant before; the floor keeps a wide margin); a test of δ_k, δ_L2, δ_L∞ against two successive iterates; the matrix reserve. Output had one major finding (an HDF5 close error was swallowed by the destructor and the incomplete file renamed onto the output; now closed explicitly before the rename) and minor ones: the unit of `coupling_correction_change` was `cm` in the frozen contract, D̂ is dimensionless, so by the Captain's decision the output format becomes version 2 (version 1 never written); settings diagnostics name the settings document's file and the setting's location there; an unreadable input file is exit status 2; the `unspecified` build type documented; a test of every member of the file against the contract, a failed-rename test and malformed command lines. |
 | 2026-11-27 | 1.4 closed. Round 2: every round-1 finding fixed at its invariant; Numerics noted that the stated reason for the 1e-6 floor was wrong (rounding sets in near 1e-16·k, not at 1e-6) and the comment and contract were reworded; Output found a test helper reading the contract's UTF-8 strings with an ASCII memory type, restored. Round 3: both approved the final snapshot. Local CI passed all 14 steps on it (1191 tests per preset; `CURRENT_PROJECT_STATE.md` §3). Nodes `CmfdSolve`, `EigenvalueSolve` and its rule, `FieldOutput`, `RunRecord`, and the parents `Neutronics` and `Results` implemented; `NodalLibrary` stays partial. |
+| 2026-11-27 | 1.5 started on `milestone-1.5`. The IAEA prerequisite obtained (ANL-7416 Supplement 2 from IAEA INIS); the Captain set the published IAEA references and tolerances (option A, §5) before any engine comparison. Her directive on meshes: node sizes are never built into the engine; the reactor document's widths and map define the mesh, matching them to the data is the user's responsibility, and the verification inputs carry the meshes of §5. Details the plan left open, settled in §3 1.5: the 1.5 restriction, flat transverse leakage, the faces a nodal update covers, the safeguards extended to singular systems, the iteration's update and stopping points, two additive output datasets, and the slab data recovered from the TM §19.1 script. |
