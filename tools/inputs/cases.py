@@ -38,6 +38,8 @@ BORON_PPM: Final = 500.0  # inside [0, 1000]
 MODERATOR_DENSITY_KG_M3: Final = 740.0
 MODERATOR_TEMPERATURE_K: Final = 580.0
 CLAMPED_TEMPERATURE_K: Final = 950.0  # above 900: one node, clamped
+# Below this a Wielandt shift cannot move k in double precision; check_solvable rejects it.
+WIELANDT_SHIFT_TOO_SMALL: Final = 1e-16
 
 # The tight tolerances of the verification runs (milestone 1 plan §2.1).
 VERIFICATION_EIGENVALUE_TOLERANCE: Final = 1e-12
@@ -162,6 +164,21 @@ def _clamped(library: Path) -> Case:
     return Case(_problem(_reactor(library), _state(doppler=doppler), settings))
 
 
+def _linked_adjoint(library: Path) -> Case:
+    options = replace(_FINITE_DIFFERENCE, adjoint=True)
+    settings = pi.SettingsDocument(solver_options=options)
+    return Case(
+        _problem(_reactor(library), _state(), settings),
+        linked=(pi.DocumentKind.SETTINGS,),
+    )
+
+
+def _wielandt_shift(library: Path) -> Case:
+    options = replace(_FINITE_DIFFERENCE, wielandt_shift=WIELANDT_SHIFT_TOO_SMALL)
+    settings = pi.SettingsDocument(solver_options=options)
+    return Case(_problem(_reactor(library), _state(), settings))
+
+
 CASES: Final[dict[str, CaseBuilder]] = {
     "valid": _valid,
     "linked": _linked,
@@ -169,6 +186,8 @@ CASES: Final[dict[str, CaseBuilder]] = {
     "adjoint": _adjoint,
     "invalid": _invalid,
     "not_converged": _not_converged,
+    "linked_adjoint": _linked_adjoint,
+    "wielandt_shift": _wielandt_shift,
     "clamped": _clamped,
 }
 

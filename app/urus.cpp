@@ -95,11 +95,11 @@ int run_urus(int argc, char** argv) {
     std::expected<void, std::string> inputs = record_inputs(problem, record);
     if (!inputs) {
         std::println(stderr, "urus: {}", inputs.error());
-        return exit_usage;
+        return exit_rejected;
     }
 
     const nts::CrossSectionField field = nts::evaluate_cross_sections(problem);
-    const nts::Diagnostics solvable = nts::check_solvable(problem.input.file, options, field.nodes);
+    const nts::Diagnostics solvable = nts::check_solvable(problem.input, options, field.nodes);
     if (!solvable.empty()) {
         print_diagnostics(solvable);
         return exit_rejected;

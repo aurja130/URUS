@@ -28,13 +28,20 @@ struct SteadyState {
     ConvergenceState convergence;
 };
 
-// Checks that the options ask only for what this engine version provides and that the data
-// can give an eigenvalue and a power (output contract §6, "Methods this engine version
-// provides"): options.kernel == finite_difference, !options.adjoint, some node with
-// νΣ_f1 + νΣ_f2 > 0 and some node with κΣ_f1 + κΣ_f2 > 0. One diagnostic per failed check;
-// `file` names the problem input, `location` the setting or the data concerned.
-[[nodiscard]] Diagnostics check_solvable(const std::filesystem::path& problem_file,
-                                         const SolverOptions& options,
+// The smallest accepted Wielandt shift (TM Eq. (4.8)). k_s = k + shift rounds to k once the
+// shift falls to about 1e-16·k; the shifted right-hand side (1/k − 1/k_s)Fφ then vanishes and
+// the outer iteration cannot move φ. The floor keeps a wide margin above that point.
+inline constexpr double minimum_wielandt_shift = 1.0e-6;
+
+// Checks that the options ask only for what this engine version provides and that the data can
+// give an eigenvalue and a power (output contract §6, "Methods this engine version provides"):
+// options.kernel == finite_difference, !options.adjoint, wielandt_shift >=
+// minimum_wielandt_shift, some node with νΣ_f1 + νΣ_f2 > 0 and some node with κΣ_f1 + κΣ_f2 > 0.
+// One diagnostic per failed check. The settings checks name the file that holds the settings
+// document (the problem input when that document is in place or absent, else its linked file),
+// at `/settings/<name>` in the problem input and `/<name>` in a settings file. The data checks
+// name the problem input at "cross sections".
+[[nodiscard]] Diagnostics check_solvable(const ProblemInput& input, const SolverOptions& options,
                                          std::span<const NodeCrossSections> cross_sections);
 
 // Builds the coupling (make_cmfd_coupling), the system (assemble_cmfd_system), solves the

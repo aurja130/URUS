@@ -1,4 +1,4 @@
-# Output contract · format version 1
+# Output contract · format version 2
 
 The layout and units of the output: the HDF5 file `urus` writes for a run (Vision §1). It
 holds the eigenvalue, the solution fields and the run record that says whether the result is
@@ -36,7 +36,7 @@ eigenvalue and the convergence state to standard output. Diagnostics go to stand
 |---|---|---|
 | 0 | Valid result: converged, no table clamp | yes |
 | 1 | Usage error, or the output could not be written | no |
-| 2 | Problem input or library rejected, or the problem asks for a method this engine version does not provide (§6) | no |
+| 2 | Problem input or library rejected, or an input file could not be read (for its SHA-256), or the problem asks for a method this engine version does not provide (§6) | no |
 | 3 | Not converged: the outer iteration limit was reached | yes |
 | 4 | Converged with table clamps | yes |
 
@@ -49,7 +49,7 @@ is left untouched.
 
 | Member | Kind | Value |
 |---|---|---|
-| `format_version` | integer attribute | `1` |
+| `format_version` | integer attribute | `2` |
 | `eigenvalue` | group | §4 |
 | `fields` | group | §5 |
 | `run_record` | group | §6 |
@@ -114,7 +114,7 @@ contract §7 under the same name and type (`kernel` a string, `adjoint` and
 
 **`methods/`**: scalar strings naming the methods used.
 
-| Dataset | Value in format version 1 |
+| Dataset | Value in format version 2 |
 |---|---|
 | `kernel` | `finite_difference` |
 | `eigenvalue_iteration` | `Wielandt-shifted inverse iteration (TM Eqs. (4.8)-(4.9))` |
@@ -134,21 +134,27 @@ contract §7 under the same name and type (`kernel` a string, `adjoint` and
 | `engine_version` | string | the engine's version (CMake project version) |
 | `engine_commit` | string | the git commit the engine was built from, with `-dirty` appended when its working tree had changes to tracked files; `unknown` without git |
 | `build_preset` | string | the CMake preset of the build; `none` when configured without one |
-| `build_type` | string | the CMake build type |
+| `build_type` | string | the CMake build type; `unspecified` when no build type was set |
 | `wall_time` | float64, `units` = `s` | wall time from the start of `urus` to the end of the solve |
 
-**Methods this engine version provides.** Format version 1 is written by an engine with the
+**Methods this engine version provides.** Format version 2 is written by an engine with the
 finite-difference kernel only. A problem whose settings ask for `kernel` other than
 `finite_difference`, or for `adjoint` = 1, is rejected with exit status 2 and a diagnostic
-naming the setting. So is a problem in which no node has νΣ_f > 0 or no node has κΣ_f > 0,
-since it has no eigenvalue or no power to scale to; the diagnostic names the problem input.
+naming the setting. So is one whose `wielandt_shift` is below 1e-6, a floor far above the
+shift of about 1e-16·k at which k + δk rounds to k and the shifted source of TM Eq. (4.8)
+vanishes. So is a problem in which no node has νΣ_f > 0 or no node has
+κΣ_f > 0, since it has no eigenvalue or no power to scale to; the diagnostic names the problem
+input. A diagnostic about a setting names the file that holds the settings document (the
+problem input, or the linked settings file) and the setting's location in that file (problem
+input contract §9).
 
 ## 7. Changes and versions
 
-Additive changes keep format version 1: a new group, dataset or attribute, a new value of a
+Additive changes keep the format version: a new group, dataset or attribute, a new value of a
 string that names a method. Anything else (a changed unit, shape, layout or meaning, or a
 removed member) needs a new format version.
 
 | Date | Change |
 |---|---|
 | 2026-11-26 | Version 1, frozen at the start of sub-milestone 1.4. |
+| 2026-11-27 | Version 2: `coupling_correction_change` units `cm` -> `1` (D̂ is dimensionless, TM Eqs. (4.1)-(4.2)); plus the clarifications of §2 and §6 (`unspecified` build type; unreadable input and `wielandt_shift` give exit status 2; diagnostics name the settings file and location). Version 1 was frozen on 2026-11-26 and never written. |

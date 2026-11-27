@@ -234,7 +234,7 @@ protected:
 
     // The solution members of docs/contracts/output.md §3-§5 for the 3 x 3 x 2 grid.
     static void expect_solution(const H5::Group& root) {
-        EXPECT_EQ(int_attribute(root, "format_version"), 1);
+        EXPECT_EQ(int_attribute(root, "format_version"), 2);
         const double k_eff = scalar_double(root.openGroup("eigenvalue"), "k_eff");
         EXPECT_TRUE(std::isfinite(k_eff));
         EXPECT_GT(k_eff, 0.0);
@@ -315,7 +315,9 @@ protected:
         EXPECT_GT(scalar_double(provenance, "wall_time"), 0.0);
     }
 
-    // Exit status 2 writes nothing: a previous output stays as it was.
+    // Exit status 2 writes nothing: a previous output stays as it was. The diagnostic must
+    // start with the prefix from diagnostic_prefix (the file and location check_solvable names,
+    // problem input contract §9).
     void expect_rejected(const std::string& case_name, const std::string& diagnostic) {
         const std::string input = write_case(case_name);
         const std::string output_name = case_name + ".h5";
@@ -330,8 +332,16 @@ protected:
         EXPECT_EQ(read_text(root_ / output_name), previous);
     }
 
-    fs::path root_;    // NOLINT(misc-non-private-member-variables-in-classes)
-    fs::path library_; // NOLINT(misc-non-private-member-variables-in-classes)
+    // The diagnostic prefix urus prints for `location` in `file`. Diagnostics name files as urus
+    // was given them, so `file` is relative to root_, where urus runs.
+    static std::string diagnostic_prefix(const fs::path& file, const std::string& location) {
+        return std::format("{}: {}:", file.string(), location);
+    }
+
+    // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes): TEST_F bodies are subclasses
+    fs::path root_;
+    // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes): TEST_F bodies are subclasses
+    fs::path library_;
 };
 
 TEST_F(UrusEndToEnd, ValidCaseWritesASolutionAndAValidRecord) {
@@ -412,11 +422,23 @@ TEST_F(UrusEndToEnd, LinkedCaseReadsItsDocumentFilesAndRecordsThem) {
 }
 
 TEST_F(UrusEndToEnd, DefaultKernelIsRejectedWithExitStatus2AndNoOutput) {
-    expect_rejected("default_kernel", "kernel");
+    expect_rejected("default_kernel", diagnostic_prefix(fs::path{"default_kernel"} / problem_file,
+                                                        "/settings/kernel"));
 }
 
 TEST_F(UrusEndToEnd, AdjointIsRejectedWithExitStatus2AndNoOutput) {
-    expect_rejected("adjoint", "adjoint");
+    expect_rejected("adjoint",
+                    diagnostic_prefix(fs::path{"adjoint"} / problem_file, "/settings/adjoint"));
+}
+
+TEST_F(UrusEndToEnd, LinkedAdjointIsRejectedNamingTheLinkedSettingsFile) {
+    expect_rejected("linked_adjoint",
+                    diagnostic_prefix(fs::path{"linked_adjoint"} / "settings.h5", "/adjoint"));
+}
+
+TEST_F(UrusEndToEnd, WielandtShiftThatCannotMoveKIsRejectedWithExitStatus2AndNoOutput) {
+    expect_rejected("wielandt_shift", diagnostic_prefix(fs::path{"wielandt_shift"} / problem_file,
+                                                        "/settings/wielandt_shift"));
 }
 
 TEST_F(UrusEndToEnd, InvalidInputIsRejectedWithExitStatus2AndNoOutput) {
@@ -488,6 +510,21 @@ TEST_F(UrusEndToEnd, OutputInANonExistentDirectoryIsAWriteErrorWithExitStatus1) 
         std::format("{} -o {}", shell_quote(input), shell_quote("missing/out.h5")), "missing_dir");
     EXPECT_EQ(run.status, status_usage_or_write) << run.err;
     EXPECT_FALSE(fs::exists(root_ / "missing"));
+}
+
+TEST_F(UrusEndToEnd, MalformedCommandLinesAreUsageErrorsWithExitStatus1AndNoOutput) {
+    const std::string quoted_input = shell_quote(write_case("valid"));
+    const std::array<std::string, 3> command_lines{
+        quoted_input + " -x out.h5",                // unknown flag
+        quoted_input + " -o",                       // missing output
+        quoted_input + " -o out.h5 extra_argument", // extra argument
+    };
+    for (std::size_t n = 0; n < command_lines.size(); ++n) {
+        SCOPED_TRACE(command_lines[n]);
+        const RunResult run = run_urus(command_lines[n], std::format("usage_{}", n));
+        EXPECT_EQ(run.status, status_usage_or_write) << run.err;
+        EXPECT_FALSE(fs::exists(root_ / "out.h5"));
+    }
 }
 
 } // namespace

@@ -319,16 +319,18 @@ table interpolation benchmark (§5) still passes.
 
 ### 1.4 CMFD with zero coupling corrections, eigenvalue, output
 
-**State.** In progress on `milestone-1.4`; output contract version 1 frozen 2026-11-26
-(`docs/contracts/output.md`).
+**State.** Done 2026-11-27 on `milestone-1.4`, merged into `milestone-1` (gate results in
+`CURRENT_PROJECT_STATE.md` §3); output contract version 1 frozen 2026-11-26, version 2 since
+2026-11-27 (`docs/contracts/output.md`, §9).
 
 **Builds.** TM §3.3 normalization; §4.1–§4.3 assembly with Eq. (4.6) in the corrected form of
 TM Appendix C item 1; boundary conditions Eq. (4.4) on bounding and exterior faces;
 Wielandt-shifted outer iteration Eqs. (4.8)–(4.9); BiCGSTAB with Eigen's incomplete-LU
 preconditioner (TM §4.5 permits a simpler preconditioner than BILU3D). The inner iteration
 stops when the residual has fallen by ε_erf relative to its starting value, or after N_in
-iterations. Eigen's own criterion is relative to the right-hand side, so the tolerance is
-rescaled at each call. Convergence by Eq. (4.10) plus the residual.
+iterations. Eigen 5's BiCGSTAB stops on an absolute residual, so each call passes ε_erf times
+its starting residual (corrected at close; the frozen text said Eigen's criterion was relative
+to the right-hand side). Convergence by Eq. (4.10) plus the residual.
 
 **Output contract** (`docs/contracts/output.md`): k_eff; flux `[2][z][y][x]`; node power (W)
 and power density; the run record: convergence state (outer and inner iterations, nodal
@@ -483,7 +485,8 @@ skipped case is reported as skipped, never as passed.
 | Statepoints outside any repository | Library not rebuildable without 72 runs | SHA-256 recorded; risk accepted by the Captain until DM1's Zenodo record (§1.2) |
 | Library about 130 MB with standard deviations | Submodule history grows | gzip with shuffle filter in HDF5; the written file is 85 MB |
 | ANM overflow or cancellation | NaN or lost digits at large or small node buckling | Scaled hyperbolics and the series of TM §5.5; floating-point traps; unit tests at both ends |
-| Eigen's stopping criterion differs from PARCS's | Inner iterations stop at the wrong residual | Tolerance rescaled to the starting residual each call; a test checks the reduction |
+| Eigen's stopping criterion differs from PARCS's | Inner iterations stop at the wrong residual | Eigen 5's tolerance is absolute: each call passes ε_erf times its starting residual, behind a check of the Eigen version; a test checks the reduction |
+| Eigen's incomplete LU is refactored every outer iteration and its cost grows faster than the node count | Large cores run slowly (release build: 12³ nodes 1.2 s, 24³ nodes 92 s) | Verification meshes kept small (1.4); PARCS's BILU3D is a later performance item |
 | Thread sanitizer with uninstrumented HDF5 | False reports | No threads in this milestone; reports are triaged, never suppressed silently |
 | Verification tolerances too tight for 3D runs | Long runs | Only on small problems; IAEA 3D at verification tolerances runs once per gate |
 | HDF5 resolves external links against the working directory by default | A run reads another document file than the one beside its problem input | The engine resolves each document link's file name against the problem input's directory and opens that file itself; a test runs from another working directory (1.3a) |
@@ -512,3 +515,6 @@ skipped case is reported as skipped, never as passed.
 | 2026-11-20 | At the Captain's request: a sub-milestone overview table added after "Closes on"; the plan moved to `Planning/MILESTONE_1/`, the folder for every milestone 1 document (Project plan §7, 2026-11-20). |
 | 2026-11-20 | The Captain's decision: the problem input becomes four input documents (reactor, initial state, control signals, settings), each a group of the problem input or a linked document file. Sub-milestone 1.3a added before 1.4. Settled with it: the library path resolves against the reactor document's directory; the solver options go to the settings document; an initial state outside the library's coverage is rejected unless the settings allow table clamps; starting from an earlier output waits for the output contract. Project plan §7 and Vision §1 amended. |
 | 2026-11-26 | 1.4 started on `milestone-1.4`; contract frozen as `docs/contracts/output.md` (format version 1). Details the plan left open, settled in §3 1.4: only the finite-difference kernel, other kernels and the adjoint rejected with exit status 2; exit status 1 for usage and output-write errors; the atomic output write; per-volume M and F, the starting flux and no rescaling between outer iterations; the preconditioner refactored each outer iteration; D̂ stored per node face; the reference cases and their committed table. §5: the mirror-symmetry eigenvalue tolerance and the neutron-balance row added. |
+| 2026-11-27 | 1.4 details settled during the work: Eigen 5's BiCGSTAB tolerance is absolute, so each inner call passes ε_erf times its starting residual (§3 1.4 text corrected, §8); the returned flux has a positive total fission source; the bare homogeneous meshes are 20, 40, 80 and 160 nodes for the slabs and 3, 6, 9 and 12 per side for the cuboids (≥ 4 uniform meshes as §5 asks; the albedo slabs are not yet in the asymptotic range at 10 nodes, and 24³ takes 92 s in a release build because the incomplete LU is refactored every outer iteration, §8); Eigen's `setFromTriplets` replaced by a row-by-row build, since clang-analyzer reports false memory findings inside Eigen that no suppression in our code reaches; `.clang-tidy` ignores Eigen headers for include-cleaner and excludes them from header analysis. |
+| 2026-11-27 | 1.4 review round 1 on snapshot `bbc9801`. Numerics had four findings: Eq. (4.4) evaluated in a form finite for every finite albedo; a Wielandt shift below 1e-6 rejected with exit status 2 (k_s rounds to k once the shift falls to about 1e-16·k and the source of Eq. (4.8) vanishes; the run aborted on an invariant before; the floor keeps a wide margin); a test of δ_k, δ_L2, δ_L∞ against two successive iterates; the matrix reserve. Output had one major finding (an HDF5 close error was swallowed by the destructor and the incomplete file renamed onto the output; now closed explicitly before the rename) and minor ones: the unit of `coupling_correction_change` was `cm` in the frozen contract, D̂ is dimensionless, so by the Captain's decision the output format becomes version 2 (version 1 never written); settings diagnostics name the settings document's file and the setting's location there; an unreadable input file is exit status 2; the `unspecified` build type documented; a test of every member of the file against the contract, a failed-rename test and malformed command lines. |
+| 2026-11-27 | 1.4 closed. Round 2: every round-1 finding fixed at its invariant; Numerics noted that the stated reason for the 1e-6 floor was wrong (rounding sets in near 1e-16·k, not at 1e-6) and the comment and contract were reworded; Output found a test helper reading the contract's UTF-8 strings with an ASCII memory type, restored. Round 3: both approved the final snapshot. Local CI passed all 14 steps on it (1191 tests per preset; `CURRENT_PROJECT_STATE.md` §3). Nodes `CmfdSolve`, `EigenvalueSolve` and its rule, `FieldOutput`, `RunRecord`, and the parents `Neutronics` and `Results` implemented; `NodalLibrary` stays partial. |

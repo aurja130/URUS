@@ -236,4 +236,59 @@ TEST(EigenvalueSolve, OuterIterationLimitStopsWithoutConvergence) {
     EXPECT_GT(solution.k_eff, 0.0);
 }
 
+// TM Eq. (4.10): the convergence measures of the last outer iteration are the changes between
+// the last two iterates. Limits 3 and 4 with zero tolerances (so neither run stops early) return
+// φ³ and φ⁴; the flux is returned unflipped because positive iterates have ΣFφ > 0, so
+// ψ = Fφ can be recomputed from the returned fluxes and compared with the reported measures.
+TEST(EigenvalueSolve, ChangeMeasuresMatchSuccessiveIterates) {
+    const Slab slab = make_slab();
+    const CmfdSystem system =
+        assemble_cmfd_system(slab.reactor, make_cmfd_coupling(slab.reactor, slab.xs), slab.xs);
+
+    SolverOptions options = verification_options();
+    options.eigenvalue_tolerance = 0.0;
+    options.fission_source_l2_tolerance = 0.0;
+    options.fission_source_linf_tolerance = 0.0;
+    options.outer_iteration_limit = 3;
+    const EigenvalueSolution third = solve_eigenvalue(system, options);
+    options.outer_iteration_limit = 4;
+    const EigenvalueSolution fourth = solve_eigenvalue(system, options);
+    ASSERT_EQ(third.convergence.outer_iterations, 3);
+    ASSERT_EQ(fourth.convergence.outer_iterations, 4);
+    ASSERT_FALSE(fourth.convergence.converged);
+    for (const double phi : third.flux) {
+        ASSERT_GT(phi, 0.0);
+    }
+    for (const double phi : fourth.flux) {
+        ASSERT_GT(phi, 0.0);
+    }
+
+    const auto n = static_cast<Eigen::Index>(third.flux.size());
+    const Eigen::VectorXd phi3 = Eigen::Map<const Eigen::VectorXd>(third.flux.data(), n);
+    const Eigen::VectorXd phi4 = Eigen::Map<const Eigen::VectorXd>(fourth.flux.data(), n);
+    const Eigen::VectorXd psi3 = system.production * phi3;
+    const Eigen::VectorXd psi4 = system.production * phi4;
+    const Eigen::VectorXd diff = psi4 - psi3;
+    ASSERT_GT(psi4.dot(psi3), 0.0);
+
+    // Eq. (4.10): δ_L2 = ‖ψ⁴ − ψ³‖₂ / ⟨ψ⁴, ψ³⟩^½; δ_L∞ = max |Δψ| / |ψ⁴| over fissile nodes.
+    const double l2_want = diff.norm() / std::sqrt(psi4.dot(psi3));
+    double linf_want = 0.0;
+    for (std::size_t node = 0; node < slab.xs.size(); ++node) {
+        if (slab.xs[node].nu_fission_per_cm[0] > 0.0) {
+            const auto row = static_cast<Eigen::Index>(unknown_index(node, 0));
+            linf_want = std::max(linf_want, std::abs(diff[row]) / std::abs(psi4[row]));
+        }
+    }
+
+    const ConvergenceState& conv = fourth.convergence;
+    const double k_change_want = std::abs(fourth.k_eff - third.k_eff);
+    EXPECT_GT(k_change_want, 0.0);
+    EXPECT_NEAR(conv.eigenvalue_change, k_change_want, 1.0e-12 * k_change_want);
+    EXPECT_GT(l2_want, 0.0);
+    EXPECT_NEAR(conv.fission_source_l2_change, l2_want, 1.0e-12 * l2_want);
+    EXPECT_GT(linf_want, 0.0);
+    EXPECT_NEAR(conv.fission_source_linf_change, linf_want, 1.0e-12 * linf_want);
+}
+
 } // namespace nts::test

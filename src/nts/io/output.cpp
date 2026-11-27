@@ -324,14 +324,14 @@ std::expected<void, std::string> write_output(const std::filesystem::path& file,
     const std::filesystem::path temporary =
         directory / std::format(".{}.tmp-{}", file.filename().string(), ::getpid());
     try {
-        {
-            // Closed before the rename, so the file is complete when it appears under its name.
-            const H5::H5File output(temporary.string(), H5F_ACC_TRUNC);
-            write_int_attribute(output, "format_version", output_format_version);
-            write_eigenvalue(output, state);
-            write_fields(output, reactor, state);
-            write_run_record(output, record);
-        }
+        // Closed explicitly before the rename, inside the try: a failure while HDF5 flushes the
+        // file (ENOSPC, EIO, quota) must fail the write. The destructor would only report it.
+        H5::H5File output(temporary.string(), H5F_ACC_TRUNC);
+        write_int_attribute(output, "format_version", output_format_version);
+        write_eigenvalue(output, state);
+        write_fields(output, reactor, state);
+        write_run_record(output, record);
+        output.close();
         std::filesystem::rename(temporary, file);
     } catch (const H5::Exception& exception) {
         remove_temporary(temporary);

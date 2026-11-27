@@ -84,9 +84,14 @@ using Triplet = Eigen::Triplet<double>;
     return (2.0 * d_left_cm * d_right_cm) / ((d_left_cm * h_right_cm) + (d_right_cm * h_left_cm));
 }
 
-// TM Eq. (4.4): D̃_b at a face without neighbour, for albedo α_b and node width h.
+// TM Eq. (4.4): D̃_b at a face without neighbour, for albedo α_b and node width h. α ≤ 1 uses
+// 2αD/(2D+αh); α > 1 uses 2D/(2D/α+h), the same value. Both forms stay finite for every finite
+// α ≥ 0, and the result is exactly 0 for α = 0.
 [[nodiscard]] double boundary_d_tilde(double albedo, double d_cm, double h_cm) {
-    return (2.0 * albedo * d_cm) / ((2.0 * d_cm) + (albedo * h_cm));
+    if (albedo <= 1.0) {
+        return (2.0 * albedo * d_cm) / ((2.0 * d_cm) + (albedo * h_cm));
+    }
+    return (2.0 * d_cm) / (((2.0 * d_cm) / albedo) + h_cm);
 }
 
 [[nodiscard]] int storage_index(std::size_t index) {
@@ -250,7 +255,10 @@ CmfdSystem assemble_cmfd_system(const ReactorDescription& reactor, const CmfdCou
     const std::size_t unknown_count = coupling.node_count * energy_group_count;
     std::vector<Triplet> migration_triplets;
     std::vector<Triplet> production_triplets;
-    migration_triplets.reserve(unknown_count * 8);
+    // Entries per node: per group, 3 axes × (diagonal + up to 2 neighbours) = 9, so 18 for the
+    // two groups; plus removal (2) and scatter (1). Production: at most 2 per node.
+    migration_triplets.reserve(coupling.node_count * ((2 * 9) + 3));
+    production_triplets.reserve(coupling.node_count * 2);
 
     for (std::size_t node = 0; node < coupling.node_count; ++node) {
         const NodeCrossSections& xs = cross_sections[node];

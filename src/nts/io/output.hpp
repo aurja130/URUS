@@ -4,7 +4,7 @@
 
 #pragma once
 
-// The output of a run (docs/contracts/output.md, format version 1): eigenvalue, solution
+// The output of a run (docs/contracts/output.md, format version 2): eigenvalue, solution
 // fields and the run record.
 
 #include "nts/common/build_info.hpp"
@@ -21,7 +21,7 @@
 
 namespace nts {
 
-inline constexpr std::int64_t output_format_version = 1;
+inline constexpr std::int64_t output_format_version = 2;
 
 // Output contract §2.
 enum class ExitStatus : std::uint8_t {

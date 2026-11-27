@@ -21,14 +21,23 @@
 
 namespace nts {
 
-Diagnostics check_solvable(const std::filesystem::path& problem_file, const SolverOptions& options,
+Diagnostics check_solvable(const ProblemInput& input, const SolverOptions& options,
                            std::span<const NodeCrossSections> cross_sections) {
-    const std::string file = problem_file.string();
+    // A settings check names the settings document's file: the problem input when that document
+    // is in place or absent, else its linked file. The location is `/settings/<name>` in the
+    // problem input and `/<name>` in a linked settings file.
+    const std::filesystem::path& settings_document =
+        input.document_files[static_cast<std::size_t>(InputDocument::settings)];
+    const bool in_problem_input = settings_document.empty() || settings_document == input.file;
+    const std::string settings_file = (in_problem_input ? input.file : settings_document).string();
+    const std::string settings_prefix = in_problem_input ? "/settings/" : "/";
+
+    const std::string file = input.file.string();
     Diagnostics diagnostics;
     if (options.kernel != KernelChoice::finite_difference) {
         diagnostics.push_back(Diagnostic{
-            .file = file,
-            .location = "settings/kernel",
+            .file = settings_file,
+            .location = settings_prefix + "kernel",
             .entry = {},
             .message = std::format(
                 R"(kernel "{}" is not available in this engine version; only "finite_difference" is)",
@@ -37,10 +46,20 @@ Diagnostics check_solvable(const std::filesystem::path& problem_file, const Solv
     }
     if (options.adjoint) {
         diagnostics.push_back(Diagnostic{
-            .file = file,
-            .location = "settings/adjoint",
+            .file = settings_file,
+            .location = settings_prefix + "adjoint",
             .entry = {},
             .message = "the adjoint problem is not available in this engine version",
+        });
+    }
+    if (options.wielandt_shift < minimum_wielandt_shift) {
+        diagnostics.push_back(Diagnostic{
+            .file = settings_file,
+            .location = settings_prefix + "wielandt_shift",
+            .entry = {},
+            .message = std::format("wielandt_shift {:g} is below the minimum {:g}; a smaller shift "
+                                   "cannot move k in the Wielandt iteration",
+                                   options.wielandt_shift, minimum_wielandt_shift),
         });
     }
 

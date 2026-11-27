@@ -38,8 +38,8 @@ Coupling -.->|iterates to convergence| PrimaryLoop
 Coupling -->|converged state| Results["Results"]
 Tooling["Development tooling"]
 class Knobs,CoreThermalHydraulics,PrimaryLoop,Coupling planned
-class ProblemInput,Tooling implemented
-class NodalLibrary,Neutronics,Results partial
+class ProblemInput,Neutronics,Results,Tooling implemented
+class NodalLibrary partial
 ```
 
 | Node | Meaning | Terms | Status |
@@ -47,11 +47,11 @@ class NodalLibrary,Neutronics,Results partial
 | `ProblemInput` | Everything a run is given: the reactor description, the operating state, the knob settings or schedules and the solver options, read from four input documents (reactor, initial state, control signals, settings), in one input file or in document files linked from it, and checked before anything is solved. Changed 2026-11-20; was "Everything a run is given: the reactor description, the operating state, the knob settings or schedules and the solver options, read from one input file and checked before anything is solved." | problem input, reactor description, operating state, solver options, input document | implemented |
 | `Knobs` | The four controls a student may change: control rod insertion, boron, primary coolant flow and steam generator heat load, each a constant or a schedule in time. | knob, knob schedule | planned |
 | `NodalLibrary` | Homogenized cross sections and kinetics data for every composition and branch state, how they are generated with OpenMC, and the full-core reference solutions that check the nodal results. | nodal library, branch state, composition, OpenMC | partial |
-| `Neutronics` | Two-group nodal diffusion with eight delayed-neutron precursor groups: eigenvalue and critical boron, transient kinetics, xenon and samarium, decay heat, control rods, edits and pin powers. | two-group nodal diffusion, delayed-neutron precursor, eigenvalue | partial |
+| `Neutronics` | Two-group nodal diffusion with eight delayed-neutron precursor groups: eigenvalue and critical boron, transient kinetics, xenon and samarium, decay heat, control rods, edits and pin powers. | two-group nodal diffusion, delayed-neutron precursor, eigenvalue | implemented |
 | `CoreThermalHydraulics` | Fuel rod conduction and one coolant channel per assembly on the neutronic axial mesh, giving the Doppler temperature, moderator density and boron of every node. | fuel rod, coolant channel, Doppler temperature, moderator density | planned |
 | `PrimaryLoop` | The closed coolant path outside the core: plena, hot and cold legs, steam generator primary side and pump. It sets the core inlet temperature, flow and boron. | primary loop, heat load | planned |
 | `Coupling` | The fixed-point iteration that brings neutronics, core thermal-hydraulics and loop to one consistent state, at steady state and in every time step, and the choice of the time steps. | Picard iteration, time step | planned |
-| `Results` | What a run returns: solution fields, time histories, edits, and the record of convergence, table clamps and balances that every result carries. | run record, convergence state, output | partial |
+| `Results` | What a run returns: solution fields, time histories, edits, and the record of convergence, table clamps and balances that every result carries. | run record, convergence state, output | implemented |
 | `Tooling` | The repository's own tools and the development safety nets built into the engine: the pinned toolchain, build presets, local checks, runtime checks and the agents' usage guard. Changed 2026-11-17; was "The repository's own tools: the pinned toolchain, build presets, local checks and the agents' usage guard." | toolchain pin, usage guard, runtime checks | implemented |
 
 ### L2 · Problem input (`ProblemInput`)
@@ -152,23 +152,50 @@ CmfdSolve -->|node fluxes| XenonSamarium
 CmfdSolve -->|fission power| DecayHeat["Decay heat"]
 CmfdSolve -->|node fluxes, face currents| PinPower["Pin power"]
 class ControlRods,XenonSamarium,NodalKernels,CriticalBoron,AdjointEdits,Kinetics,DecayHeat,PinPower planned
-class CrossSectionModel implemented
-class CmfdSolve,EigenvalueSolve partial
+class CrossSectionModel,CmfdSolve,EigenvalueSolve implemented
 ```
 
 | Node | Meaning | Terms | Status |
 | --- | --- | --- | --- |
 | `CrossSectionModel` | The cross sections of every node at its state: multilinear interpolation in the library table, rodded mixing and the xenon and samarium absorption. A state outside the table is clamped and counted. | cross section, multilinear interpolation, table clamp, node state | implemented |
 | `ControlRods` | Rod banks inside the core: where the tips are, how a partly rodded node is homogenized, and the correction that removes rod cusping. | rod bank, rodded fraction, rod cusping | planned |
-| `CmfdSolve` | The global coarse-mesh finite-difference problem over all nodes, made exact by the coupling corrections from the nodal kernels. | CMFD, coupling correction | partial |
+| `CmfdSolve` | The global coarse-mesh finite-difference problem over all nodes, made exact by the coupling corrections from the nodal kernels. | CMFD, coupling correction | implemented |
 | `NodalKernels` | Two-node problems across every interface that give the accurate face currents, and from them the coupling corrections. | nodal kernel, transverse leakage, coupling correction | planned |
-| `EigenvalueSolve` | The steady-state eigenvalue and fundamental-mode flux, by shifted inverse iteration on the coarse-mesh system. | eigenvalue, Wielandt shift | partial |
+| `EigenvalueSolve` | The steady-state eigenvalue and fundamental-mode flux, by shifted inverse iteration on the coarse-mesh system. | eigenvalue, Wielandt shift | implemented |
 | `CriticalBoron` | The search for the uniform boron concentration that makes the core critical. | critical boron, boron | planned |
 | `AdjointEdits` | The adjoint flux, the dynamic reactivity split by cause, and the point-kinetics parameters, used as edits and for point-kinetics checks. | adjoint flux, reactivity, point kinetics | planned |
 | `XenonSamarium` | Iodine, xenon, promethium and samarium densities per node: equilibrium and their exact change over a time step. | xenon, samarium | planned |
 | `Kinetics` | Time-dependent neutronics: the theta method with exponential transform and second-order precursor integration, turning each time step into a fixed-source problem. | theta method, exponential transform, delayed-neutron precursor | planned |
 | `DecayHeat` | Heat released by fission products after fission, carried as decay-heat groups with the power linear over a step. | decay heat, decay-heat group | planned |
 | `PinPower` | The power of each pin, reconstructed from the nodal solution and the form functions. | pin power, form function | planned |
+
+#### L3 rule · Eigenvalue solve (`EigenvalueSolve`)
+```mermaid
+flowchart TD
+classDef implemented fill:#c8e6c9,stroke:#2e7d32,color:#1b5e20
+classDef partial fill:#fff3b0,stroke:#b58900,color:#5c4400
+classDef planned stroke-dasharray:6 4
+classDef external fill:#eeeeee,stroke:#9e9e9e,stroke-dasharray:1 3,color:#616161
+EsStart["Start from a flat flux and k = 1"] --> EsShift["Shift the eigenvalue estimate"]
+EsShift --> EsInner["Solve the shifted system"]
+EsInner --> EsUpdate["Update the eigenvalue and the fission source"]
+EsUpdate --> EsConverged{"All changes below tolerance?"}
+EsConverged -->|no| EsLimit{"Outer iteration limit reached?"}
+EsLimit -->|no| EsShift
+EsLimit -->|yes| EsFinish["Scale to the core power and record the convergence state"]
+EsConverged -->|yes| EsFinish
+class EsStart,EsShift,EsInner,EsUpdate,EsConverged,EsLimit,EsFinish implemented
+```
+
+| Node | Meaning | Terms | Status |
+| --- | --- | --- | --- |
+| `EsStart` | Every node starts with flux 1 in both groups and the eigenvalue estimate 1. | eigenvalue | implemented |
+| `EsShift` | The shifted eigenvalue is the current estimate plus the Wielandt shift; the coarse-mesh matrix is shifted by the fission term divided by it. | Wielandt shift, CMFD | implemented |
+| `EsInner` | The shifted system, with the fission source scaled by the difference of the inverse eigenvalues on the right, is solved by inner iterations from the last flux. | inner iteration, fission source | implemented |
+| `EsUpdate` | The new fission source gives the new eigenvalue through the Rayleigh-quotient form of the shifted iteration; the flux is not rescaled. | outer iteration, eigenvalue, fission source | implemented |
+| `EsConverged` | Asks whether the change of the eigenvalue and the root-mean-square and largest changes of the fission source over fissile nodes are below their tolerances. | tolerance, convergence state | implemented |
+| `EsLimit` | Asks whether the outer iteration limit of the solver options is reached; a result at the limit is reported as not converged. | outer iteration, exit status | implemented |
+| `EsFinish` | The flux is scaled so that the node powers sum to the core power, the residual is evaluated, and the iteration counts, final changes and residual are recorded. | node power, residual, convergence state | implemented |
 
 #### L3 · Control rods (`ControlRods`)
 ```mermaid
@@ -378,14 +405,14 @@ BalanceChecks["Balance checks"] -->|balance residuals| RunRecord["Run record"]
 RunRecord -.->|qualifies| FieldOutput["Field output"]
 RunRecord -.->|qualifies| HistoryOutput["History output"]
 class BalanceChecks,HistoryOutput planned
-class RunRecord,FieldOutput partial
+class RunRecord,FieldOutput implemented
 ```
 
 | Node | Meaning | Terms | Status |
 | --- | --- | --- | --- |
-| `FieldOutput` | Node and pin fields at the requested times: fluxes, powers, temperatures, densities, flows and boron. | solution field, output | partial |
+| `FieldOutput` | Node and pin fields at the requested times: fluxes, powers, temperatures, densities, flows and boron. | solution field, output | implemented |
 | `HistoryOutput` | Quantities over time: power, reactivity by cause, temperatures, flows, knob values. | time history, reactivity | planned |
-| `RunRecord` | The record that makes a result a valid one: convergence state of every solve, table clamp counts, the methods used, and the input. A run whose converged state is clamped is not valid. | run record, convergence state, table clamp, exit status | partial |
+| `RunRecord` | The record that makes a result a valid one: convergence state of every solve, table clamp counts, the methods used, and the input. A run whose converged state is clamped is not valid. | run record, convergence state, table clamp, exit status | implemented |
 | `BalanceChecks` | Neutron, energy and mass balances evaluated and reported, including the energy of the loop and the steam generator. | balance check | planned |
 
 ### L2 · Development tooling (`Tooling`)

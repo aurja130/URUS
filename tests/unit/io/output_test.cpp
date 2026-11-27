@@ -22,7 +22,11 @@
 #include <expected>
 #include <filesystem>
 #include <format>
+#include <fstream>
+#include <map>
+#include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "core_fixture.hpp"
@@ -139,12 +143,12 @@ std::string string_dataset(const H5::Group& group, const char* name) {
 
 std::vector<std::string> string_array(const H5::Group& group, const char* name, std::size_t count) {
     const H5::DataSet dataset = group.openDataSet(name);
-    H5::StrType const type(H5::PredType::C_S1, H5T_VARIABLE);
+    const H5::StrType type(H5::PredType::C_S1, H5T_VARIABLE);
     type.setCset(H5T_CSET_UTF8); // the contract's character set; HDF5 will not convert ASCII
     std::vector<char*> pointers(count, nullptr);
     dataset.read(static_cast<void*>(pointers.data()), type);
     std::vector<std::string> values;
-    values.reserve(pointers.size());
+    values.reserve(count);
     for (const char* pointer : pointers) {
         values.emplace_back(pointer);
     }
@@ -165,11 +169,181 @@ std::vector<std::int64_t> int_array(const H5::Group& group, const char* name, st
     return values;
 }
 
-std::vector<hsize_t> dims_of(const H5::DataSet& dataset) {
-    const H5::DataSpace space = dataset.getSpace();
-    std::vector<hsize_t> dims(static_cast<std::size_t>(space.getSimpleExtentNdims()));
-    space.getSimpleExtentDims(dims.data());
+std::vector<hsize_t> dims_of_space(const H5::DataSpace& space) {
+    const int rank = space.getSimpleExtentNdims();
+    std::vector<hsize_t> dims(static_cast<std::size_t>(rank));
+    if (rank > 0) {
+        space.getSimpleExtentDims(dims.data());
+    }
     return dims;
+}
+
+std::vector<hsize_t> dims_of(const H5::DataSet& dataset) {
+    return dims_of_space(dataset.getSpace());
+}
+
+// One member of the file: a group, a dataset or an attribute. A `units` attribute is not a
+// member of its own; it is the `units` of the object it belongs to.
+struct Member {
+    std::string kind;
+    std::string type; // "int64", "float64", "utf8", "other"; empty for a group
+    std::vector<hsize_t> dims;
+    std::optional<std::string> units;
+};
+using Members = std::map<std::string, Member>;
+
+std::string child_path(const std::string& parent, const std::string& name) {
+    return parent == "/" ? "/" + name : parent + "/" + name;
+}
+
+std::string type_label(const H5::DataType& type) {
+    const H5T_class_t klass = type.getClass();
+    if (klass == H5T_INTEGER && type.getSize() == 8 && H5Tget_sign(type.getId()) == H5T_SGN_2) {
+        return "int64";
+    }
+    if (klass == H5T_FLOAT && type.getSize() == 8) {
+        return "float64";
+    }
+    if (klass == H5T_STRING && H5Tis_variable_str(type.getId()) > 0 &&
+        H5Tget_cset(type.getId()) == H5T_CSET_UTF8) {
+        return "utf8";
+    }
+    return "other";
+}
+
+// Records the attributes of `object` (path `path`): `units` into `owner`, others as members.
+void add_attributes(const H5::H5Object& object, const std::string& path, Member& owner,
+                    Members& members) {
+    const int count = object.getNumAttrs();
+    for (int index = 0; index < count; ++index) {
+        const H5::Attribute attribute = object.openAttribute(static_cast<unsigned int>(index));
+        const std::string name = attribute.getName();
+        if (name == "units") {
+            owner.units = string_attribute(object, "units");
+            continue;
+        }
+        Member member;
+        member.kind = "attribute";
+        member.type = type_label(attribute.getDataType());
+        member.dims = dims_of_space(attribute.getSpace());
+        members.emplace(std::format("{}@{}", path, name), std::move(member));
+    }
+}
+
+void walk_group(const H5::Group& group, const std::string& path, Members& members);
+
+void walk_dataset(const H5::DataSet& dataset, const std::string& path, Members& members) {
+    Member member;
+    member.kind = "dataset";
+    member.type = type_label(dataset.getDataType());
+    member.dims = dims_of(dataset);
+    add_attributes(dataset, path, member, members);
+    members.emplace(path, std::move(member));
+}
+
+// NOLINTNEXTLINE(misc-no-recursion): the HDF5 group tree is walked by recursion; its depth is 2.
+void walk_group(const H5::Group& group, const std::string& path, Members& members) {
+    Member member;
+    member.kind = "group";
+    add_attributes(group, path, member, members);
+    if (path != "/") {
+        members.emplace(path, std::move(member));
+    }
+    for (hsize_t index = 0; index < group.getNumObjs(); ++index) {
+        const std::string name = group.getObjnameByIdx(index);
+        const std::string child = child_path(path, name);
+        const H5G_obj_t type = group.getObjTypeByIdx(index);
+        if (type == H5G_GROUP) {
+            walk_group(group.openGroup(name), child, members);
+        } else if (type == H5G_DATASET) {
+            walk_dataset(group.openDataSet(name), child, members);
+        } else {
+            Member other;
+            other.kind = "other";
+            members.emplace(child, std::move(other));
+        }
+    }
+}
+
+void add_member(Members& table, std::string path, std::string kind, std::string type,
+                std::vector<hsize_t> dims = {}, std::optional<std::string> units = std::nullopt) {
+    table.emplace(std::move(path), Member{.kind = std::move(kind),
+                                          .type = std::move(type),
+                                          .dims = std::move(dims),
+                                          .units = std::move(units)});
+}
+
+// Output contract §3-§6, format version 2: every member, both ways. Written for the test
+// reactor (nz = 2, ny = 2, nx = 3).
+Members contract_members() {
+    Members table;
+    add_member(table, "/@format_version", "attribute", "int64");
+
+    add_member(table, "/eigenvalue", "group", "");
+    add_member(table, "/eigenvalue/k_eff", "dataset", "float64", {}, "1");
+
+    add_member(table, "/fields", "group", "");
+    add_member(table, "/fields/flux", "dataset", "float64", {2, 2, 2, 3}, "cm^-2 s^-1");
+    add_member(table, "/fields/power", "dataset", "float64", {2, 2, 3}, "W");
+    add_member(table, "/fields/power_density", "dataset", "float64", {2, 2, 3}, "W cm^-3");
+
+    add_member(table, "/run_record", "group", "");
+    add_member(table, "/run_record@valid", "attribute", "int64");
+    add_member(table, "/run_record@exit_status", "attribute", "int64");
+    add_member(table, "/run_record@reason", "attribute", "utf8");
+
+    add_member(table, "/run_record/convergence", "group", "");
+    add_member(table, "/run_record/convergence/converged", "dataset", "int64");
+    add_member(table, "/run_record/convergence/outer_iterations", "dataset", "int64");
+    add_member(table, "/run_record/convergence/inner_iterations", "dataset", "int64");
+    add_member(table, "/run_record/convergence/nodal_updates", "dataset", "int64");
+    add_member(table, "/run_record/convergence/eigenvalue_change", "dataset", "float64", {}, "1");
+    add_member(table, "/run_record/convergence/fission_source_l2_change", "dataset", "float64", {},
+               "1");
+    add_member(table, "/run_record/convergence/fission_source_linf_change", "dataset", "float64",
+               {}, "1");
+    add_member(table, "/run_record/convergence/residual", "dataset", "float64", {}, "1");
+    add_member(table, "/run_record/convergence/coupling_correction_change", "dataset", "float64",
+               {}, "1");
+
+    add_member(table, "/run_record/table_clamps", "group", "");
+    add_member(table, "/run_record/table_clamps/counts", "dataset", "int64", {4, 2});
+
+    // Settings: no units.
+    add_member(table, "/run_record/options", "group", "");
+    add_member(table, "/run_record/options/kernel", "dataset", "utf8");
+    add_member(table, "/run_record/options/kernel_switch_threshold", "dataset", "float64");
+    add_member(table, "/run_record/options/wielandt_shift", "dataset", "float64");
+    add_member(table, "/run_record/options/eigenvalue_tolerance", "dataset", "float64");
+    add_member(table, "/run_record/options/fission_source_l2_tolerance", "dataset", "float64");
+    add_member(table, "/run_record/options/fission_source_linf_tolerance", "dataset", "float64");
+    add_member(table, "/run_record/options/inner_reduction", "dataset", "float64");
+    add_member(table, "/run_record/options/inner_iteration_limit", "dataset", "int64");
+    add_member(table, "/run_record/options/outer_iteration_limit", "dataset", "int64");
+    add_member(table, "/run_record/options/nodal_update_period", "dataset", "int64");
+    add_member(table, "/run_record/options/coupling_relaxation", "dataset", "float64");
+    add_member(table, "/run_record/options/adjoint", "dataset", "int64");
+    add_member(table, "/run_record/options/allow_table_clamps", "dataset", "int64");
+
+    add_member(table, "/run_record/methods", "group", "");
+    add_member(table, "/run_record/methods/kernel", "dataset", "utf8");
+    add_member(table, "/run_record/methods/eigenvalue_iteration", "dataset", "utf8");
+    add_member(table, "/run_record/methods/linear_solver", "dataset", "utf8");
+    add_member(table, "/run_record/methods/preconditioner", "dataset", "utf8");
+
+    add_member(table, "/run_record/provenance", "group", "");
+    add_member(table, "/run_record/provenance/problem_input", "dataset", "utf8");
+    add_member(table, "/run_record/provenance/problem_input_sha256", "dataset", "utf8");
+    add_member(table, "/run_record/provenance/document_files", "dataset", "utf8", {4});
+    add_member(table, "/run_record/provenance/document_sha256", "dataset", "utf8", {4});
+    add_member(table, "/run_record/provenance/library", "dataset", "utf8");
+    add_member(table, "/run_record/provenance/library_sha256", "dataset", "utf8");
+    add_member(table, "/run_record/provenance/engine_version", "dataset", "utf8");
+    add_member(table, "/run_record/provenance/engine_commit", "dataset", "utf8");
+    add_member(table, "/run_record/provenance/build_preset", "dataset", "utf8");
+    add_member(table, "/run_record/provenance/build_type", "dataset", "utf8");
+    add_member(table, "/run_record/provenance/wall_time", "dataset", "float64", {}, "s");
+    return table;
 }
 
 } // namespace
@@ -227,10 +401,40 @@ TEST(FieldOutput, WritesEigenvalueAndFormatVersion) {
     ASSERT_TRUE(nts::write_output(file, reactor, state, test_record(state, {})).has_value());
 
     const H5::H5File h5(file.string(), H5F_ACC_RDONLY);
-    EXPECT_EQ(int_attribute(h5.openGroup("/"), "format_version"), nts::output_format_version);
+    EXPECT_EQ(int_attribute(h5.openGroup("/"), "format_version"), 2);
     const H5::Group eigenvalue = h5.openGroup("eigenvalue");
     EXPECT_EQ(double_dataset(eigenvalue, "k_eff"), state.k_eff);
     EXPECT_EQ(string_attribute(eigenvalue.openDataSet("k_eff"), "units"), "1");
+}
+
+TEST(RunRecord, FileMembersMatchOutputContract) {
+    const nts::ReactorDescription reactor = test_reactor();
+    const nts::SteadyState state = test_state(reactor);
+    const std::filesystem::path file = test_directory() / "output.h5";
+    ASSERT_TRUE(nts::write_output(file, reactor, state, test_record(state, {})).has_value());
+
+    const H5::H5File h5(file.string(), H5F_ACC_RDONLY);
+    Members actual;
+    walk_group(h5.openGroup("/"), "/", actual);
+    const Members expected = contract_members();
+
+    for (const auto& [path, want] : expected) {
+        const auto found = actual.find(path);
+        if (found == actual.end()) {
+            ADD_FAILURE() << "missing member " << path;
+            continue;
+        }
+        const Member& got = found->second;
+        EXPECT_EQ(got.kind, want.kind) << path;
+        EXPECT_EQ(got.type, want.type) << path;
+        EXPECT_EQ(got.dims, want.dims) << path;
+        EXPECT_EQ(got.units, want.units) << path;
+    }
+    for (const auto& [path, got] : actual) {
+        if (!expected.contains(path)) {
+            ADD_FAILURE() << "unexpected member " << path << " (" << got.kind << ")";
+        }
+    }
 }
 
 TEST(RunRecord, WritesConvergenceOptionsMethodsAndProvenance) {
@@ -316,7 +520,7 @@ TEST(RunRecord, ClampedRunWritesStatusFourAndClampCounts) {
 }
 
 TEST(RunRecord, ClassifiesConvergedCleanRunAsValid) {
-    nts::ConvergenceState const convergence = converged_state();
+    const nts::ConvergenceState convergence = converged_state();
     const nts::RunClassification result = nts::classify_run(convergence, 10000, nts::ClampCounts{});
     EXPECT_EQ(result.exit_status, nts::ExitStatus::valid);
     EXPECT_TRUE(result.valid);
@@ -353,6 +557,36 @@ TEST(RunRecord, MissingDirectoryIsAnErrorAndCreatesNothing) {
     ASSERT_FALSE(result.has_value());
     EXPECT_NE(result.error().find("output.h5"), std::string::npos) << result.error();
     EXPECT_FALSE(std::filesystem::exists(directory));
+}
+
+TEST(RunRecord, FailedRenameLeavesTheExistingDirectoryAndNoTemporary) {
+    const nts::ReactorDescription reactor = test_reactor();
+    const nts::SteadyState state = test_state(reactor);
+    const std::filesystem::path directory = test_directory();
+    // The target is a non-empty directory: the rename of the complete temporary onto it fails.
+    const std::filesystem::path target = directory / "output.h5";
+    std::filesystem::create_directories(target);
+    {
+        std::ofstream marker(target / "keep.txt");
+        marker << "keep";
+    }
+
+    const std::expected<void, std::string> result =
+        nts::write_output(target, reactor, state, test_record(state, {}));
+    ASSERT_FALSE(result.has_value());
+    EXPECT_NE(result.error().find("output.h5"), std::string::npos) << result.error();
+    EXPECT_TRUE(std::filesystem::is_directory(target));
+    std::string text;
+    std::ifstream(target / "keep.txt") >> text;
+    EXPECT_EQ(text, "keep");
+
+    std::size_t entries = 0;
+    for (const std::filesystem::directory_entry& entry :
+         std::filesystem::directory_iterator(directory)) {
+        static_cast<void>(entry);
+        ++entries;
+    }
+    EXPECT_EQ(entries, 1U);
 }
 
 TEST(RunRecord, OverwriteReplacesTheFileAndLeavesNoTemporary) {

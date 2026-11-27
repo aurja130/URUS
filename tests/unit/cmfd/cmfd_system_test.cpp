@@ -16,6 +16,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <vector>
 
 #include "../solve/core_fixture.hpp"
@@ -202,6 +203,28 @@ TEST(CmfdSolve, BoundaryFacesTakeTheAlbedoOfTheirCondition) {
     // A zero_flux face is the limit α → ∞: D̃_b → 2D / h.
     expect_close(coupling.d_tilde[face_slot(0, Face::y_minus, 0)], 2.0 * 1.4 / 5.0);
     EXPECT_EQ(coupling.d_tilde[face_slot(0, Face::x_minus, 0)], 0.0);
+}
+
+// TM Eq. (4.4) for albedos where 2αD overflows: D̃_b stays finite and tends to 2D/h, the
+// zero_flux limit. The x_minus face has h = 2 cm, so the limit is D.
+TEST(CmfdSolve, HugeAlbedoStaysFiniteAndTendsToTheZeroFluxLimit) {
+    const double largest = std::numeric_limits<double>::max();
+    const std::array<BoundaryCondition, face_count> faces = {
+        boundary(BoundaryKind::albedo, {1.0e307, largest}),
+        boundary(BoundaryKind::reflective),
+        boundary(BoundaryKind::reflective),
+        boundary(BoundaryKind::reflective),
+        boundary(BoundaryKind::reflective),
+        boundary(BoundaryKind::reflective)};
+    const ReactorDescription reactor = make_reactor({2.0}, {5.0}, {7.0}, faces);
+    const std::vector<NodeCrossSections> xs = {example_fuel()};
+    const CmfdCoupling coupling = make_cmfd_coupling(reactor, xs);
+
+    for (std::size_t g = 0; g < energy_group_count; ++g) {
+        const double d_tilde = coupling.d_tilde[face_slot(0, Face::x_minus, g)];
+        EXPECT_TRUE(std::isfinite(d_tilde));
+        expect_close(d_tilde, xs[0].diffusion_cm[g]);
+    }
 }
 
 TEST(CmfdSolve, ExcludedNeighbourUsesTheExteriorCondition) {

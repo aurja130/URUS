@@ -147,6 +147,28 @@ def test_clamped_allows_clamps_and_has_one_node_above_the_fuel_temperature(
     np.testing.assert_array_equal(doppler, expected)
 
 
+def test_linked_adjoint_links_only_the_settings_document(tmp_path: Path) -> None:
+    problem = _write(tmp_path, "linked_adjoint")
+    output = tmp_path / "linked_adjoint"
+    assert _settings(problem).kernel == pi.KernelChoice.FINITE_DIFFERENCE
+    assert _settings(problem).adjoint is True
+    with h5py.File(str(output / cases.PROBLEM_FILE), "r") as raw:
+        group = cast(_LinkGroup, raw)
+        link = cast(_Link, group.get("settings", getlink=True))
+        assert link.filename == "settings.h5"
+        assert "initial_state" in raw
+    with h5py.File(str(output / "settings.h5"), "r") as document:
+        adjoint = document["adjoint"]
+        assert isinstance(adjoint, h5py.Dataset)
+        assert int(cast(np.integer, adjoint[()])) == 1
+
+
+def test_wielandt_shift_is_below_the_floor_the_engine_rejects(tmp_path: Path) -> None:
+    problem = _write(tmp_path, "wielandt_shift")
+    assert _settings(problem).kernel == pi.KernelChoice.FINITE_DIFFERENCE
+    assert _settings(problem).wielandt_shift == cases.WIELANDT_SHIFT_TOO_SMALL
+
+
 def test_cli_writes_the_case_and_takes_the_library_as_given(tmp_path: Path) -> None:
     library = Path("nodal_library.h5")  # relative: resolved against the output directory
     output = tmp_path / "cli"
