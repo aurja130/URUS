@@ -8,9 +8,15 @@ add_executable(nts_verification_tests
     ${PROJECT_SOURCE_DIR}/tests/unit/main.cpp
     ${PROJECT_SOURCE_DIR}/tests/unit/io/library_fixture.cpp
     ${PROJECT_SOURCE_DIR}/tests/unit/io/problem_fixture.cpp
+    ${PROJECT_SOURCE_DIR}/tests/unit/solve/core_fixture.cpp
     cross_section_interpolation_test.cpp
+    bare_homogeneous_test.cpp
+    cmfd_properties_test.cpp
 )
 target_include_directories(nts_verification_tests PRIVATE "${PROJECT_SOURCE_DIR}/tests/unit/io")
+target_include_directories(nts_verification_tests PRIVATE "${PROJECT_SOURCE_DIR}/tests/unit/solve")
+target_compile_definitions(nts_verification_tests PRIVATE
+    NTS_BARE_HOMOGENEOUS_REFERENCE="${PROJECT_SOURCE_DIR}/tests/verification/bare_homogeneous_reference.csv")
 target_link_libraries(nts_verification_tests
     PRIVATE nts_core GTest::gtest nts_warnings hdf5::hdf5_cpp hdf5::hdf5)
 

@@ -99,7 +99,7 @@ and the groups below.
 | `fission_source_l2_change` | float64 | `1` | δ_L2 of the last outer iteration |
 | `fission_source_linf_change` | float64 | `1` | δ_L∞ of the last outer iteration, over nodes with fission production |
 | `residual` | float64 | `1` | ‖Mφ − λFφ‖₂ / ‖λFφ‖₂ at the final flux and eigenvalue (TM §4.6), M and F of TM Eq. (4.7) |
-| `coupling_correction_change` | float64 | `cm` | the largest change of a coupling correction D̂ in the last nodal update; 0 when no nodal update was done |
+| `coupling_correction_change` | float64 | `1` | the largest change of a coupling correction D̂ (dimensionless, TM Eq. (4.1)) in the last nodal update; 0 when no nodal update was done |
 
 **`table_clamps/`**:
 

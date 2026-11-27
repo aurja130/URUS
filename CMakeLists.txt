@@ -29,7 +29,22 @@ endif()
 
 include(CTest)
 find_package(HDF5 1.14 REQUIRED COMPONENTS C CXX)
+find_package(Eigen3 5.0 REQUIRED CONFIG)
+
+set(NTS_BUILD_PRESET "none" CACHE STRING "Name of the CMake preset that configured this build")
+set(NTS_BUILD_INFO_HEADER "${CMAKE_BINARY_DIR}/generated/nts/common/build_info_values.hpp")
+add_custom_target(nts_build_info
+    COMMAND "${CMAKE_COMMAND}"
+        -DNTS_SOURCE_DIR=${PROJECT_SOURCE_DIR}
+        -DNTS_OUTPUT_FILE=${NTS_BUILD_INFO_HEADER}
+        -DNTS_ENGINE_VERSION=${PROJECT_VERSION}
+        -DNTS_BUILD_PRESET=${NTS_BUILD_PRESET}
+        -DNTS_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+        -P "${PROJECT_SOURCE_DIR}/cmake/write_build_info.cmake"
+    BYPRODUCTS "${NTS_BUILD_INFO_HEADER}"
+    VERBATIM)
 add_subdirectory(src)
+add_subdirectory(app)
 if(BUILD_TESTING)
     add_subdirectory(tests)
 endif()
