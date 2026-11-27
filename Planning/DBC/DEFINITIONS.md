@@ -77,6 +77,9 @@ O1–O14 the decisions recorded in TM §20.2 and §21. The notation of the equat
 | closure correlation | An empirical relation that closes the balance equations: heat transfer, friction, drift-flux parameters, critical heat flux. | TM §16 |
 | heat transfer coefficient | The ratio of wall heat flux to the difference between wall and coolant temperature. | TM §16.3 |
 | DNB ratio | The ratio of the critical heat flux to the actual heat flux, reported as a margin and never fed back. **Open:** the critical heat flux correlation is chosen when fidelity work starts. | O13; TM §16.5 |
+| BWR | Boiling water reactor: the coolant boils in bulk inside the core, so void is the main feedback and control is by blades and recirculation flow. Not in scope; proposed for later, **Open:** decision P9. | Project plan §6 P9, 2026-11-26 |
+| critical power ratio | The BWR thermal margin: the assembly power at which dryout would begin, over the actual power; plays the role the DNB ratio plays for a PWR. | Project plan §6 P9, 2026-11-26 |
+| void history | The void fraction a BWR node's fuel was depleted at; a library axis beside the instantaneous void. | Project plan §6 P9, 2026-11-26 |
 | boron transport | Boron carried with the coolant through channels and loop, so that a change reaches each place after its transit time. | O6; TM §15.7, §17.7 |
 | primary loop | The coolant path outside the core in one equivalent loop: plena, hot leg, steam generator, pump, cold leg. Not in PARCS or SIMULATE-5. | Vision §2.2; TM §17 |
 | plenum | A mixing volume below or above the core. | TM §17.1 |
@@ -106,6 +109,10 @@ O1–O14 the decisions recorded in TM §20.2 and §21. The notation of the equat
 | convergence state | Iteration counts, final changes and residuals with their tolerances; every reported result carries it. | TM §18.4 |
 | verification tolerances | Iteration tolerances far tighter than the production ones (PARCS's defaults), used in benchmarks so that iteration error never passes for agreement. | Milestone 1 plan §2.1 |
 | run record | What a result is stamped with: convergence state, table clamp counts, methods used, the input. | TM §18.4 |
+| output, output contract | The HDF5 file a run writes: the eigenvalue, the solution fields and the run record; its layout, units and versions are fixed by the output contract. | Vision §1; Output contract, 2026-11-26 |
+| exit status | The number a run ends with, saying what its output is: 0 a valid result, 1 a usage or write error, 2 a rejected input, 3 not converged, 4 converged with table clamps. Only 0, 3 and 4 write an output. | Output contract §2, 2026-11-26 |
+| residual | How far the converged flux and eigenvalue miss the coarse-mesh equations: ‖Mφ − λFφ‖₂ / ‖λFφ‖₂; reported in the convergence state, not used as a stopping test. | TM §4.6; Output contract §6, 2026-11-26 |
+| fission source | The neutrons born from fission per unit volume and time in each node, νΣ_f1 φ_1 + νΣ_f2 φ_2; its change between outer iterations is one of the convergence tests. | TM §4.4, Eq. (4.10) |
 | balance check | A neutron, energy or mass balance evaluated and reported with its residual. | TM §17.9, §18.3 |
 | solution field | A quantity defined on nodes or pins at one time. | Vision §1 |
 | time history | A quantity sampled over a transient. | Vision §1 |

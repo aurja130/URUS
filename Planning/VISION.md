@@ -145,3 +145,5 @@ rejected when it is read.
 - Hexagonal geometry for non-PWR/VVER generality, or Cartesian only?
 - SP3 transport option (both reference codes have it), or diffusion only?
 - C++ standard and build system (proposal: C++20, CMake, HDF5 C++ API).
+- BWR cores, once the core components are built and PWRs are handled properly
+  (proposal recorded 2026-11-26, Project plan §6 P9): in scope later or not?

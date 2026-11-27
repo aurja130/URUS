@@ -25,7 +25,7 @@ the commit that changes any of them. Terms: [DEFINITIONS](DBC/DEFINITIONS.md).
 | 1.2 Library contract and the present library | `milestone-1.2` | Done 2026-11-19; merged into `milestone-1` ([nodal library contract](../docs/contracts/nodal_library.md), format version 1) |
 | 1.3 Problem input and cross-section model | `milestone-1.3` | Done 2026-11-19; merged into `milestone-1` ([problem input contract](../docs/contracts/problem_input.md), format version 1) |
 | 1.3a Input documents | `milestone-1.3a` | Done 2026-11-20; merged into `milestone-1` ([problem input contract](../docs/contracts/problem_input.md), format version 2) |
-| 1.4 CMFD with zero coupling corrections, eigenvalue, output | — | Not started |
+| 1.4 CMFD with zero coupling corrections, eigenvalue, output | `milestone-1.4` | Done 2026-11-27; merged into `milestone-1` ([output contract](../docs/contracts/output.md), format version 2) |
 | 1.5 Nodal kernels and the interface solve | — | Not started |
 | 1.6 Transverse leakage and the three-dimensional nodal solution | — | Not started |
 | 1.7 Adjoint, BEAVRS on the present library, milestone gate | — | Not started |
@@ -74,10 +74,9 @@ States: open, done (with date), waived (by the Captain, with date).
 
 ## 3. Last gate results
 
-1.3a close, 2026-11-20, on the final snapshot: the engine reader approved by its reviewer with
-two test strengthenings it proposed and checked, applied as proposed; the writer approved; only
-`Planning/` documents changed after the run. `python3 -m tools.ci.local_ci` passed all 14 steps
-in 322.6 s.
+1.4 close, 2026-11-27, on the final snapshot: both reviewers (numerics; output and run record)
+approved after three rounds (ledger in plan §9); only `Planning/` documents changed after the
+run. `python3 -m tools.ci.local_ci` passed all 14 steps in 1133.2 s.
 
 | Step | Result |
 |---|---|
@@ -86,19 +85,22 @@ in 322.6 s.
 | clang-format | No change needed |
 | ruff check, ruff format | Clean |
 | basedpyright | 0 errors |
-| pytest | 194 passed |
+| pytest | 226 passed |
 | dbc | `check_dbc.py` ok |
-| preset `dev-gcc` | 1123 of 1123 tests passed |
-| preset `dev-clang` | 1123 of 1123 tests passed |
-| preset `asan-ubsan-clang` | 1123 of 1123 tests passed |
-| preset `tsan-gcc` | 1123 of 1123 tests passed |
-| preset `release-gcc` | 1123 of 1123 tests passed |
+| preset `dev-gcc` | 1191 of 1191 tests passed |
+| preset `dev-clang` | 1191 of 1191 tests passed |
+| preset `asan-ubsan-clang` | 1191 of 1191 tests passed |
+| preset `tsan-gcc` | 1191 of 1191 tests passed |
+| preset `release-gcc` | 1191 of 1191 tests passed |
 | clang-tidy | No finding on every engine source in the `dev-clang` database |
 
-Cross-section table interpolation benchmark (BENCHMARKS), in every preset, its problem now
-allowing table clamps in its settings document: all 72 table points and 200 seeded interior
-states within 1e-14 relative; clamp counts and sides exact; 16 of 16 pass. The model has no
-iteration, so there is no convergence state to report.
+Bare homogeneous slab and cuboid benchmark (BENCHMARKS), in every preset: 17 cases of
+finite differences with zero coupling corrections against the analytic two-group eigenvalue,
+observed order 2 ± 0.1 from the three finest of four meshes in every case; infinite medium
+within 1e-11 of k_∞; mirror symmetry in x, y and z within 1e-10; neutron balance within 1e-9.
+Every run converged at the verification tolerances (ε_k 1e-12, ε_L2 1e-11, ε_L∞ 1e-10, ε_erf
+0.01, one inner iteration, Wielandt shift 0.04); final δ_k ≤ 2.9e-13, δ_L2 ≤ 9.7e-12,
+δ_L∞ ≤ 2.9e-11, residual ≤ 1.9e-12 (values per case in the benchmark's Comments).
 Submodule `external/BEAVRS_minimal` at `f041ee7` since 2026-11-20 (was `4bf2d26`, then
 `aedc5a8`): adds the DM1 sizing campaign (`dm1_sizing/`) on ENDF/B-VII.1 with one
 photon-transport run, reviewed and approved; local end-to-end test with OpenMC 0.15.3 (setup,

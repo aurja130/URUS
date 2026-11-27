@@ -3,9 +3,13 @@
 #   readability-identifier-length: short names are idiomatic for physics symbols.
 #   bugprone-easily-swappable-parameters: numeric kernels take many same-typed quantities.
 #   readability-magic-numbers: physical constants are named where they carry meaning.
+# ExcludeHeaderFilterRegex: Eigen's install path (.../eigen3/Eigen/src/...) matches the header
+#   filter's /src/; its diagnostics (clang-analyzer false positives in its stack allocator) are
+#   not ours.
 # Check options with a reason:
 #   misc-include-cleaner.IgnoreHeaders: HDF5's C++ API is included only through its umbrella
-#     header H5Cpp.h; its component headers are not self-contained.
+#     header H5Cpp.h; its component headers are not self-contained. Eigen is included only
+#     through its module headers (Eigen/Sparse, ...); its Eigen/src headers are internal.
 #   misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic:
 #     plain aggregates (all members public, no invariant) are the standards' data records.
 #   readability-function-cognitive-complexity.IgnoreMacros: GoogleTest assertion macros expand
@@ -13,8 +17,9 @@
 Checks: 'bugprone-*,performance-*,modernize-*,readability-*,misc-*,clang-analyzer-*,-modernize-use-trailing-return-type,-readability-identifier-length,-bugprone-easily-swappable-parameters,-readability-magic-numbers'
 WarningsAsErrors: '*'
 HeaderFilterRegex: '.*/(src|tests|app)/.*'
+ExcludeHeaderFilterRegex: '.*/eigen3/.*'
 CheckOptions:
-  misc-include-cleaner.IgnoreHeaders: 'H5[A-Za-z]*\.h'
+  misc-include-cleaner.IgnoreHeaders: 'H5[A-Za-z]*\.h;Eigen/.*'
   readability-identifier-naming.ClassCase: CamelCase
   readability-identifier-naming.StructCase: CamelCase
   readability-identifier-naming.EnumCase: CamelCase

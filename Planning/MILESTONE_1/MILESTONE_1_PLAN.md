@@ -319,13 +319,18 @@ table interpolation benchmark (§5) still passes.
 
 ### 1.4 CMFD with zero coupling corrections, eigenvalue, output
 
+**State.** Done 2026-11-27 on `milestone-1.4`, merged into `milestone-1` (gate results in
+`CURRENT_PROJECT_STATE.md` §3); output contract version 1 frozen 2026-11-26, version 2 since
+2026-11-27 (`docs/contracts/output.md`, §9).
+
 **Builds.** TM §3.3 normalization; §4.1–§4.3 assembly with Eq. (4.6) in the corrected form of
 TM Appendix C item 1; boundary conditions Eq. (4.4) on bounding and exterior faces;
 Wielandt-shifted outer iteration Eqs. (4.8)–(4.9); BiCGSTAB with Eigen's incomplete-LU
 preconditioner (TM §4.5 permits a simpler preconditioner than BILU3D). The inner iteration
 stops when the residual has fallen by ε_erf relative to its starting value, or after N_in
-iterations. Eigen's own criterion is relative to the right-hand side, so the tolerance is
-rescaled at each call. Convergence by Eq. (4.10) plus the residual.
+iterations. Eigen 5's BiCGSTAB stops on an absolute residual, so each call passes ε_erf times
+its starting residual (corrected at close; the frozen text said Eigen's criterion was relative
+to the right-hand side). Convergence by Eq. (4.10) plus the residual.
 
 **Output contract** (`docs/contracts/output.md`): k_eff; flux `[2][z][y][x]`; node power (W)
 and power density; the run record: convergence state (outer and inner iterations, nodal
@@ -342,6 +347,35 @@ discipline).
 
 **Acceptance.** Bare homogeneous slab and cuboid benchmark (§5); infinite medium; mirror
 symmetry; neutron balance; exit status per case.
+
+**Settled at freeze (2026-11-26).**
+
+- The engine of this sub-milestone provides the finite-difference kernel only. A problem whose
+  settings ask for another kernel or for the adjoint is rejected with exit status 2 and a
+  diagnostic naming the setting, never run with a substitute; so is a problem with no
+  fission production or no fission energy, which has no eigenvalue or no power to scale to.
+- Exit status 1 is added for a usage error or an output that cannot be written. The output
+  is written to a temporary file and renamed, so a failed run never leaves a partial file.
+- M and F are the per-volume rows of TM Eq. (4.7), with the group fluxes of a node adjacent;
+  ψ = Fφ in Eqs. (4.8)–(4.10) as written. The flux starts at 1 in both groups with k = 1, and
+  is not rescaled between outer iterations: the shifted iteration (4.8)–(4.9) leaves the
+  eigenvector's amplitude fixed at convergence. δ_L∞ runs over nodes with νΣ_f > 0.
+- The preconditioner is Eigen's incomplete LU with dual threshold, refactored at every outer
+  iteration because the shifted matrix changes with k_s (TM §4.5 permits a simpler
+  preconditioner than BILU3D). The inner stopping rule is TM §4.5's: residual reduced by
+  ε_erf from its value at the start of the call, or N_in iterations.
+- Every coupling correction D̂ is stored per node face and is 0 here; the assembly implements
+  Eq. (4.6) with D̂, and a unit test checks it with non-zero D̂ against the currents of
+  Eqs. (4.1) and (4.5), so 1.5 only fills the values.
+- The bare homogeneous reference cases: for each axis, a slab with the same kind (vacuum,
+  zero flux, albedo with per-group values) on both of its faces, whose exact solution is the
+  root of the 2×2 determinant of the symmetric two-group slab; for each of the six faces, a
+  slab reflective on that face and zero-flux on the opposite one (closed form); and cuboids
+  with zero-flux and reflective faces (closed form). Transverse faces of a slab are
+  reflective. The reference script writes the cases and their eigenvalues to a committed
+  table that the verification test reads, so case data are written once.
+- End-to-end tests write the library with the C++ library fixture and the problem inputs
+  with the input writer, run `urus` and read its output.
 
 ### 1.5 Nodal kernels and the interface solve
 
@@ -409,7 +443,8 @@ otherwise, and every reported result carries its convergence state.
 |---|---|---|---|
 | Bare homogeneous slab and cuboid, finite difference | Analytic two-group eigenvalue: closed form for zero-flux and reflective faces; for vacuum (Marshak) and albedo faces, the root of the 2×2 determinant of the exact two-group slab solution (reference script, scipy root finder at 1e-14) | Observed order 2 ± 0.1 from the three finest of ≥ 4 uniform meshes, each boundary kind on each of the six faces (1D slabs rotated to x, y, z) and the cuboid | Node-centred finite differences are second order (TM §4.1). The finest-mesh error must exceed 1e3 × ε_k, so the observed order is not polluted by iteration error |
 | Infinite medium (all faces reflective) | k_∞ of the two-group data, closed form | 1e-11 absolute in k | Iteration error ≤ 1e-12; 10× margin for round-off |
-| Mirror symmetry | The mirrored solution | 1e-10 relative per node flux | Equal to ε_L∞ |
+| Mirror symmetry | The mirrored solution | 1e-10 relative per node flux; 1e-10 absolute in k (added 2026-11-26) | Equal to ε_L∞; 100× ε_k for two independently iterated runs |
+| Neutron balance (added 2026-11-26) | Production, in-scatter, removal and the net boundary leakage of the converged solution, the face currents from TM Eqs. (4.1) and (4.5) evaluated independently of the matrix | Per group, the core balance within 1e-9 relative to its source term; the node-wise balance ‖r‖₂/‖λFφ‖₂ within 1e-9 | Interior currents cancel exactly, so the balance error is the residual of the converged iteration, bounded by the change tolerances: 100× ε_L2 |
 | One-dimensional fuel and reflector slab | Analytic transfer-matrix solution (reference script). It must reproduce the TM §19.1 value k = 1.0507067 to its 7 printed digits, or the discrepancy is resolved first | ANM: 1e-9 relative in k and in node fluxes, on 30 cm and 15 cm nodes. NEM: error −8.9 and −1.0 pcm (TM §19.1) within 0.1 pcm | ANM is exact in 1D without transverse leakage (TM §5.5), so only iteration and round-off remain: 1000× ε_k. NEM's error is its truncation; the script values carry 0.1 pcm resolution |
 | Two-region slab with discontinuity factors | Analytic transfer-matrix solution with the imposed flux jump (reference script) | 1e-10 relative in k, 1e-9 in node fluxes | ANM is exact in 1D; 100× ε_k |
 | Cross-section table interpolation | The table; data linear in each axis (linear in 1/(3D) for D) | 1e-14 relative at table points and for linear data; clamp counts exact per node, axis and side; length-1 axes clamp every other value | A multilinear evaluation of 2³–2⁴ corners rounds within a few machine epsilons (2.2e-16); 1e-14 leaves margin and still catches any wrong weight |
@@ -450,7 +485,8 @@ skipped case is reported as skipped, never as passed.
 | Statepoints outside any repository | Library not rebuildable without 72 runs | SHA-256 recorded; risk accepted by the Captain until DM1's Zenodo record (§1.2) |
 | Library about 130 MB with standard deviations | Submodule history grows | gzip with shuffle filter in HDF5; the written file is 85 MB |
 | ANM overflow or cancellation | NaN or lost digits at large or small node buckling | Scaled hyperbolics and the series of TM §5.5; floating-point traps; unit tests at both ends |
-| Eigen's stopping criterion differs from PARCS's | Inner iterations stop at the wrong residual | Tolerance rescaled to the starting residual each call; a test checks the reduction |
+| Eigen's stopping criterion differs from PARCS's | Inner iterations stop at the wrong residual | Eigen 5's tolerance is absolute: each call passes ε_erf times its starting residual, behind a check of the Eigen version; a test checks the reduction |
+| Eigen's incomplete LU is refactored every outer iteration and its cost grows faster than the node count | Large cores run slowly (release build: 12³ nodes 1.2 s, 24³ nodes 92 s) | Verification meshes kept small (1.4); PARCS's BILU3D is a later performance item |
 | Thread sanitizer with uninstrumented HDF5 | False reports | No threads in this milestone; reports are triaged, never suppressed silently |
 | Verification tolerances too tight for 3D runs | Long runs | Only on small problems; IAEA 3D at verification tolerances runs once per gate |
 | HDF5 resolves external links against the working directory by default | A run reads another document file than the one beside its problem input | The engine resolves each document link's file name against the problem input's directory and opens that file itself; a test runs from another working directory (1.3a) |
@@ -478,3 +514,7 @@ skipped case is reported as skipped, never as passed.
 | 2026-11-19 | 1.3 closed after all three re-reviews approved the final snapshot; local CI passed all 14 steps (1044 tests per preset). Nodes `ReactorDescription`, `OperatingState`, `SolverOptions`, `LibraryBinding`, `InputValidation`, `InputWriter` and `CrossSectionModel` implemented, and with them `ProblemInput` and `Neutronics` by the parent rule. Not yet built under them: rod banks, channel and loop geometry (`ReactorDescription`), rodded mixing and xenon and samarium (`CrossSectionModel`); each node becomes `partial` again when the sub-milestone that builds them starts. Merged into `milestone-1`. |
 | 2026-11-20 | At the Captain's request: a sub-milestone overview table added after "Closes on"; the plan moved to `Planning/MILESTONE_1/`, the folder for every milestone 1 document (Project plan §7, 2026-11-20). |
 | 2026-11-20 | The Captain's decision: the problem input becomes four input documents (reactor, initial state, control signals, settings), each a group of the problem input or a linked document file. Sub-milestone 1.3a added before 1.4. Settled with it: the library path resolves against the reactor document's directory; the solver options go to the settings document; an initial state outside the library's coverage is rejected unless the settings allow table clamps; starting from an earlier output waits for the output contract. Project plan §7 and Vision §1 amended. |
+| 2026-11-26 | 1.4 started on `milestone-1.4`; contract frozen as `docs/contracts/output.md` (format version 1). Details the plan left open, settled in §3 1.4: only the finite-difference kernel, other kernels and the adjoint rejected with exit status 2; exit status 1 for usage and output-write errors; the atomic output write; per-volume M and F, the starting flux and no rescaling between outer iterations; the preconditioner refactored each outer iteration; D̂ stored per node face; the reference cases and their committed table. §5: the mirror-symmetry eigenvalue tolerance and the neutron-balance row added. |
+| 2026-11-27 | 1.4 details settled during the work: Eigen 5's BiCGSTAB tolerance is absolute, so each inner call passes ε_erf times its starting residual (§3 1.4 text corrected, §8); the returned flux has a positive total fission source; the bare homogeneous meshes are 20, 40, 80 and 160 nodes for the slabs and 3, 6, 9 and 12 per side for the cuboids (≥ 4 uniform meshes as §5 asks; the albedo slabs are not yet in the asymptotic range at 10 nodes, and 24³ takes 92 s in a release build because the incomplete LU is refactored every outer iteration, §8); Eigen's `setFromTriplets` replaced by a row-by-row build, since clang-analyzer reports false memory findings inside Eigen that no suppression in our code reaches; `.clang-tidy` ignores Eigen headers for include-cleaner and excludes them from header analysis. |
+| 2026-11-27 | 1.4 review round 1 on snapshot `bbc9801`. Numerics had four findings: Eq. (4.4) evaluated in a form finite for every finite albedo; a Wielandt shift below 1e-6 rejected with exit status 2 (k_s rounds to k once the shift falls to about 1e-16·k and the source of Eq. (4.8) vanishes; the run aborted on an invariant before; the floor keeps a wide margin); a test of δ_k, δ_L2, δ_L∞ against two successive iterates; the matrix reserve. Output had one major finding (an HDF5 close error was swallowed by the destructor and the incomplete file renamed onto the output; now closed explicitly before the rename) and minor ones: the unit of `coupling_correction_change` was `cm` in the frozen contract, D̂ is dimensionless, so by the Captain's decision the output format becomes version 2 (version 1 never written); settings diagnostics name the settings document's file and the setting's location there; an unreadable input file is exit status 2; the `unspecified` build type documented; a test of every member of the file against the contract, a failed-rename test and malformed command lines. |
+| 2026-11-27 | 1.4 closed. Round 2: every round-1 finding fixed at its invariant; Numerics noted that the stated reason for the 1e-6 floor was wrong (rounding sets in near 1e-16·k, not at 1e-6) and the comment and contract were reworded; Output found a test helper reading the contract's UTF-8 strings with an ASCII memory type, restored. Round 3: both approved the final snapshot. Local CI passed all 14 steps on it (1191 tests per preset; `CURRENT_PROJECT_STATE.md` §3). Nodes `CmfdSolve`, `EigenvalueSolve` and its rule, `FieldOutput`, `RunRecord`, and the parents `Neutronics` and `Results` implemented; `NodalLibrary` stays partial. |
